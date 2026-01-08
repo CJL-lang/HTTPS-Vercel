@@ -14,6 +14,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
     const location = useLocation();
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isTrackmanDataExpanded, setIsTrackmanDataExpanded] = useState(false);
     const [continueTestInfo, setContinueTestInfo] = useState(null);
     const [reloadToken, setReloadToken] = useState(0);
     // 用于防止重复加载的 Ref
@@ -331,19 +332,19 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
     const handleContinueNextTest = async () => {
         if (!continueTestInfo) return;
-        
+
         try {
             const TYPE_MAP = ['physical', 'mental', 'skills'];
             const nextType = TYPE_MAP[continueTestInfo.nextPrimary];
             const routeType = nextType === 'skills' ? 'technique' : nextType;
             const studentId = student?.id || continueTestInfo.student?.id;
-            
+
             const userJson = localStorage.getItem('user');
             const user = userJson ? JSON.parse(userJson) : null;
-            
+
             const defaultTitle = continueTestInfo.title || (nextType === 'mental' ? t('mentalAssessment') : (nextType === 'physical' ? t('physicalAssessment') : t('skillsAssessment')));
             const backendLang = t('langCode') || 'cn';
-            
+
             const nextAssessmentId = await createAssessment(
                 studentId,
                 nextType === 'skills' ? 'technique' : nextType,
