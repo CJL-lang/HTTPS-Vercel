@@ -1,0 +1,671 @@
+/**
+ * 测评相关 API 调用
+ */
+
+export const saveGoalToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
+    if (!user?.token || !currentId) return null;
+
+    if (!content || (Array.isArray(content) && content.length === 0)) {
+        return null;
+    }
+
+    try {
+        // 将 'skills' 映射为后端期望的 'technique'
+        const goalType = type === 'skills' || type === 'technique' ? 'technique' : type;
+
+        // 格式化内容数组
+        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
+            title: item.title || item.name || '目标',
+            content: item.content || item.stage_content || ''
+        })).filter(item => item.content.trim() !== '');
+
+        if (formattedContent.length === 0) return currentId;
+
+        const requestBody = {
+            assessment_id: currentId,
+            type: goalType,
+            content: formattedContent,
+            language: language
+        };
+
+        const response = await fetch('/api/goals', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (response.ok) {
+            return currentId;
+        } else {
+            const txt = await response.text();
+            console.error('Failed to save goals:', txt);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error saving goals:', error);
+        return null;
+    }
+};
+
+export const savePlanToBackend = async (type, content, currentId, user, studentId, title = '', language = 'cn') => {
+    if (!user?.token || !currentId) return null;
+
+    try {
+        // 格式化内容数组
+        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
+            title: item.title || item.name || '',
+            content: item.content || ''
+        })).filter(item => item.content.trim() !== '');
+
+        if (formattedContent.length === 0) return currentId;
+
+        const requestBody = {
+            assessment_id: currentId,
+            content: formattedContent,
+            language: language
+        };
+
+        const response = await fetch('/api/plans', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (response.ok) {
+            const resData = await response.json();
+            return resData.assessment_id;
+        }
+
+        const txt = await response.text();
+        console.error('Failed to save plans:', txt);
+    } catch (error) {
+        console.error('Error saving plans:', error);
+    }
+    return null;
+};
+
+export const saveDiagnosisToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
+    try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
+
+        // Ensure content is formatted correctly for backend
+        // Backend expects: [{"title": "...", "grade": "...", "content": "..."}]
+        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
+            title: item.title || item.name || '',
+            grade: item.grade || item.level || 'L1',
+            content: item.content || item.description || ''
+        }));
+
+        const requestBody = {
+            assessment_id: currentId || '',
+            content: formattedContent,
+            language: language
+        };
+
+        const response = await fetch('/api/diagnosis', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(requestBody),
+        });
+
+        if (response.ok) {
+            const resData = await response.json();
+            return resData.assessment_id || resData.assessmentId || null;
+        }
+
+        const txt = await response.text();
+        console.error('Failed to save diagnosis:', txt);
+    } catch (error) {
+        console.error('Error saving diagnosis:', error);
+    }
+    return null;
+};
+
+/**
+ * 获取已有诊断数据
+ */
+export const getDiagnosisFromBackend = async (assessmentId, user) => {
+    if (!user?.token || !assessmentId) return null;
+    
+    try {
+        const response = await fetch(`/api/diagnoses/${assessmentId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${user.token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            // 后端返回的对象包含 content 数组
+            return data.content || [];
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching diagnosis:', error);
+        return null;
+    }
+};
+
+/**
+ * 更新已有诊断数据 (PATCH)
+ */
+export const updateDiagnosisToBackend = async (assessmentId, content, user, language = 'cn') => {
+    if (!user?.token || !assessmentId) return false;
+    
+    try {
+        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
+            title: item.title || item.name || '',
+            grade: item.grade || item.level || 'L1',
+            content: item.content || item.description || ''
+        }));
+
+        const requestBody = {
+            assessment_id: assessmentId,
+            content: formattedContent,
+            language: language
+        };
+
+        const response = await fetch('/api/diagnoses', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error('[API] updateDiagnosisToBackend failed:', response.status, errText);
+        }
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error patching diagnosis:', error);
+        return false;
+    }
+};
+
+export const saveStykuDataToBackend = async (assessmentId, stykuData, user) => {
+    if (!user?.token || !assessmentId) return null;
+
+    try {
+        const payload = {
+            assessment_id: assessmentId,
+            height: parseFloat(stykuData.height) || 0,
+            weight: parseFloat(stykuData.weight) || 0,
+            sitting_height: parseFloat(stykuData.sittingHeight) || 0,
+            bmi: parseFloat(stykuData.bmi) || 0,
+            chest: parseFloat(stykuData.torso?.chest) || 0,
+            waist: parseFloat(stykuData.torso?.waist) || 0,
+            hip: parseFloat(stykuData.torso?.hip) || 0,
+            upper_arm: parseFloat(stykuData.upperLimbs?.upperArm) || 0,
+            forearm: parseFloat(stykuData.upperLimbs?.forearm) || 0,
+            thigh: parseFloat(stykuData.lowerLimbs?.thigh) || 0,
+            calf: parseFloat(stykuData.lowerLimbs?.calf) || 0
+        };
+
+        const response = await fetch('/api/styku', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            return result;
+        } else {
+            const errData = await response.text();
+            console.error('Failed to save Styku data:', errData);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error saving Styku data:', error);
+        return null;
+    }
+};
+
+export const saveMentalDataToBackend = async (assessmentId, mentalData, user) => {
+    if (!user?.token || !assessmentId) return null;
+
+    try {
+        const payload = {
+            assessment_id: assessmentId,
+            focus: parseInt(mentalData.focus) || 0,
+            stability: parseInt(mentalData.stability) || 0,
+            confidence: parseInt(mentalData.confidence) || 0
+        };
+
+
+        const response = await fetch('/api/mental', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+            return assessmentId;
+        } else {
+            const errData = await response.text();
+            console.error('Failed to save mental data:', errData);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error saving mental data:', error);
+        return null;
+    }
+};
+
+export const saveTrackmanDataToBackend = async (assessmentId, trackmanData, user) => {
+    if (!user?.token || !assessmentId) return null;
+
+    try {
+        // 将前端嵌套结构扁平化为后端期望的字段
+        const payload = {
+            assessment_id: assessmentId,
+            ball_speed: parseFloat(trackmanData.layerA?.ballSpeed) || 0,
+            launch_angle: parseFloat(trackmanData.layerA?.launchAngle) || 0,
+            launch_direction: trackmanData.layerA?.launchDirection || "",
+            spin_rate: parseInt(trackmanData.layerA?.spinRate) || 0,
+            spin_axis: trackmanData.layerA?.spinAxis || "",
+            carry: parseInt(trackmanData.layerA?.carry) || 0,
+            landing_angle: parseFloat(trackmanData.layerA?.landingAngle) || 0,
+            offline: trackmanData.layerA?.offline || "",
+            club_speed: parseFloat(trackmanData.layerB?.clubSpeed) || 0,
+            attack_angle: parseFloat(trackmanData.layerB?.attackAngle) || 0,
+            club_path: parseFloat(trackmanData.layerB?.clubPath) || 0,
+            face_angle: parseFloat(trackmanData.layerB?.faceAngle) || 0,
+            face_to_path: parseFloat(trackmanData.layerB?.faceToPath) || 0,
+            dynamic_loft: parseFloat(trackmanData.layerB?.dynamicLoft) || 0,
+            smash_factor: parseFloat(trackmanData.layerB?.smashFactor) || 0,
+            spin_loft: parseFloat(trackmanData.layerB?.spinLoft) || 0,
+            low_point: trackmanData.layerC?.lowPoint || "",
+            impact_offset: trackmanData.layerC?.impactOffset || "",
+            indexing: trackmanData.layerC?.indexing || ""
+        };
+
+        const response = await fetch('/api/trackman', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+            return assessmentId;
+        } else {
+            const errData = await response.text();
+            console.error('Failed to save trackman data:', errData);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error saving trackman data:', error);
+        return null;
+    }
+};
+
+export const updateAssessment = async (assessmentId, updateData, user) => {
+    console.log('[API] updateAssessment trigger:', { assessmentId, updateData });
+    if (!user?.token || !assessmentId) {
+        console.warn('[API] updateAssessment aborted: missing token or id', { assessmentId, hasToken: !!user?.token });
+        return false;
+    }
+    
+    try {
+        const payload = {
+            assessment_id: assessmentId.toString(),
+            ...updateData
+        };
+        
+        console.log('[API] PATCH /assessment payload:', payload);
+        
+        const response = await fetch('/api/assessment', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+        
+        console.log('[API] PATCH /assessment response status:', response.status);
+        
+        if (response.ok) {
+            return true;
+        } else {
+            const errData = await response.text();
+            console.error('Failed to update assessment:', errData);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error updating assessment:', error);
+        return false;
+    }
+};
+
+export const createAssessment = async (studentId, type, user, title = '', language = 'cn') => {
+    if (!user?.token || !studentId) return null;
+
+    try {
+        const typeMapping = {
+            'physical': 'physical',
+            'mental': 'mental',
+            'skills': 'technique',
+            'technique': 'technique'
+        };
+
+        const backendType = typeMapping[type] || type;
+
+        const payload = {
+            student_user_id: studentId.toString(),
+            type: backendType,
+            title: title || '新测评',
+            language: language
+        };
+        
+        const response = await fetch('/api/assessment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            return data.assessment_id;
+        } else {
+            const errData = await response.text();
+            console.error('Failed to create assessment:', errData);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error creating assessment:', error);
+        return null;
+    }
+};
+
+/**
+ * 获取已有训练计划
+ */
+export const getPlanFromBackend = async (assessmentId, user) => {
+    if (!user?.token || !assessmentId) return null;
+    
+    try {
+        const response = await fetch(`/api/plans/${assessmentId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${user.token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.content || [];
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching plans:', error);
+        return null;
+    }
+};
+
+/**
+ * 更新已有训练计划 (PATCH)
+ */
+export const updatePlanToBackend = async (assessmentId, content, user, language = 'cn') => {
+    if (!user?.token || !assessmentId) return false;
+    
+    try {
+        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
+            title: item.title || item.name || '',
+            content: item.content || ''
+        })).filter(item => item.content.trim() !== '');
+
+        const requestBody = {
+            assessment_id: assessmentId,
+            content: formattedContent,
+            language: language
+        };
+
+        const response = await fetch('/api/plans', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error patching plans:', error);
+        return false;
+    }
+};
+
+/**
+ * 获取已有目标数据
+ */
+export const getGoalFromBackend = async (assessmentId, user) => {
+    if (!user?.token || !assessmentId) return null;
+    
+    try {
+        const response = await fetch(`/api/goals/${assessmentId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${user.token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.content || [];
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching goals:', error);
+        return null;
+    }
+};
+
+/**
+ * 更新已有目标数据 (PATCH)
+ */
+export const updateGoalToBackend = async (assessmentId, content, user, language = 'cn') => {
+    if (!user?.token || !assessmentId) return false;
+    
+    try {
+        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
+            title: item.title || item.name || '',
+            content: item.content || ''
+        })).filter(item => item.content.trim() !== '');
+
+        const requestBody = {
+            assessment_id: assessmentId,
+            content: formattedContent,
+            language: language
+        };
+
+        const response = await fetch('/api/goals', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(requestBody),
+        });
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error patching goals:', error);
+        return false;
+    }
+};
+
+/**
+ * 获取单项测评全量数据 (采集数据 + 诊断 + 方案 + 目标)
+ */
+export const getFullAssessmentData = async (assessmentId, user) => {
+    if (!user?.token || !assessmentId) return null;
+    
+    try {
+        const response = await fetch(`/api/singleAssess/${assessmentId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${user.token}`
+            }
+        });
+
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching full assessment data:', error);
+        return null;
+    }
+};
+
+/**
+ * 更新 Trackman 数据 (PATCH)
+ */
+export const updateTrackmanDataToBackend = async (assessmentId, data, user) => {
+    if (!user?.token || !assessmentId) return false;
+    try {
+        // 后端 PATCH 使用 DisallowUnknownFields：不能传 layerA/layerB/layerC 等未知字段
+        // 这里统一将前端嵌套结构扁平化为后端期望字段（与 POST 保持一致）
+        const payload = {
+            assessment_id: assessmentId,
+            ball_speed: parseFloat(data?.ball_speed ?? data?.layerA?.ballSpeed) || 0,
+            launch_angle: parseFloat(data?.launch_angle ?? data?.layerA?.launchAngle) || 0,
+            launch_direction: (data?.launch_direction ?? data?.layerA?.launchDirection) || "",
+            spin_rate: parseInt(data?.spin_rate ?? data?.layerA?.spinRate) || 0,
+            spin_axis: (data?.spin_axis ?? data?.layerA?.spinAxis) || "",
+            carry: parseInt(data?.carry ?? data?.layerA?.carry) || 0,
+            landing_angle: parseFloat(data?.landing_angle ?? data?.layerA?.landingAngle) || 0,
+            offline: (data?.offline ?? data?.layerA?.offline) || "",
+            club_speed: parseFloat(data?.club_speed ?? data?.layerB?.clubSpeed) || 0,
+            attack_angle: parseFloat(data?.attack_angle ?? data?.layerB?.attackAngle) || 0,
+            club_path: parseFloat(data?.club_path ?? data?.layerB?.clubPath) || 0,
+            face_angle: parseFloat(data?.face_angle ?? data?.layerB?.faceAngle) || 0,
+            face_to_path: parseFloat(data?.face_to_path ?? data?.layerB?.faceToPath) || 0,
+            dynamic_loft: parseFloat(data?.dynamic_loft ?? data?.layerB?.dynamicLoft) || 0,
+            smash_factor: parseFloat(data?.smash_factor ?? data?.layerB?.smashFactor) || 0,
+            spin_loft: parseFloat(data?.spin_loft ?? data?.layerB?.spinLoft) || 0,
+            low_point: (data?.low_point ?? data?.layerC?.lowPoint) || "",
+            impact_offset: (data?.impact_offset ?? data?.layerC?.impactOffset) || "",
+            indexing: (data?.indexing ?? data?.layerC?.indexing) || ""
+        };
+
+        const response = await fetch('/api/trackman', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error('[API] PATCH /trackman failed:', response.status, errText);
+        }
+        return response.ok;
+    } catch (error) {
+        console.error('Error patching trackman data:', error);
+        return false;
+    }
+};
+
+/**
+ * 更新 Mental 数据 (PATCH)
+ */
+export const updateMentalDataToBackend = async (assessmentId, data, user) => {
+    if (!user?.token || !assessmentId) return false;
+    try {
+        // 后端 PATCH 使用 DisallowUnknownFields：只发送后端 struct 支持的字段
+        // 这里与 POST 保持一致：focus/stability/confidence（数值）
+        const payload = {
+            assessment_id: assessmentId,
+            focus: parseInt(data?.focus) || 0,
+            stability: parseInt(data?.stability) || 0,
+            confidence: parseInt(data?.confidence) || 0
+        };
+
+        const response = await fetch('/api/mental', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error('[API] PATCH /mental failed:', response.status, errText);
+        }
+        return response.ok;
+    } catch (error) {
+        console.error('Error patching mental data:', error);
+        return false;
+    }
+};
+
+/**
+ * 更新 Styku 数据 (PATCH)
+ */
+export const updateStykuDataToBackend = async (assessmentId, data, user) => {
+    if (!user?.token || !assessmentId) return false;
+    try {
+        // 后端 PATCH 使用 DisallowUnknownFields：不能传 torso/upperLimbs/lowerLimbs 等未知字段
+        // 这里与 POST 保持一致：全部扁平化并转成数字
+        const payload = {
+            assessment_id: assessmentId,
+            height: parseFloat(data?.height) || 0,
+            weight: parseFloat(data?.weight) || 0,
+            sitting_height: parseFloat(data?.sitting_height ?? data?.sittingHeight) || 0,
+            bmi: parseFloat(data?.bmi) || 0,
+            chest: parseFloat(data?.chest ?? data?.torso?.chest) || 0,
+            waist: parseFloat(data?.waist ?? data?.torso?.waist) || 0,
+            hip: parseFloat(data?.hip ?? data?.torso?.hip) || 0,
+            upper_arm: parseFloat(data?.upper_arm ?? data?.upperLimbs?.upperArm) || 0,
+            forearm: parseFloat(data?.forearm ?? data?.upperLimbs?.forearm) || 0,
+            thigh: parseFloat(data?.thigh ?? data?.lowerLimbs?.thigh) || 0,
+            calf: parseFloat(data?.calf ?? data?.lowerLimbs?.calf) || 0
+        };
+
+        const response = await fetch('/api/styku', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error('[API] PATCH /styku failed:', response.status, errText);
+        }
+        return response.ok;
+    } catch (error) {
+        console.error('Error patching styku data:', error);
+        return false;
+    }
+};

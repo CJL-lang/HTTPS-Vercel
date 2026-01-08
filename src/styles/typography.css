@@ -1,0 +1,91 @@
+/**
+ * Typography CSS - 文字样式
+ * 包含标题、标签、正文等文字样式
+ */
+
+@layer components {
+
+  /* 主标题 */
+  .title-main {
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest;
+  }
+
+  /* 副标题 */
+  .title-subtitle {
+    @apply text-[11px] font-bold text-white uppercase tracking-[0.3em] opacity-40;
+  }
+
+  /* 指标标签 */
+  .metric-label {
+    @apply text-xs sm:text-sm font-bold text-[#d4af37] uppercase tracking-widest transition-colors break-words leading-tight;
+  }
+
+  /* 章节标题 */
+  .section-title {
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest;
+  }
+
+  /* 章节副标题 */
+  .section-subtitle {
+    @apply text-[11px] font-bold text-[#d4af37] uppercase tracking-[0.3em] opacity-40;
+  }
+
+  /* 工作台主标题 */
+  .title-workbench {
+    @apply text-2xl font-bold tracking-tighter truncate;
+  }
+
+  /* 引导/选项标题 */
+  .text-guide-title {
+    @apply text-base font-bold text-white;
+  }
+
+  /* 引导/选项描述 */
+  .text-guide-desc {
+    @apply text-xs font-medium text-white/60 leading-relaxed;
+  }
+
+  /* 步骤标签 */
+  .text-step-label {
+    @apply text-xs font-bold text-white/80;
+  }
+
+  /* 章节标题 (大写) */
+  .text-section-title {
+    @apply text-base font-black uppercase tracking-[0.2em] text-white/90;
+  }
+
+  /* 字段标签 */
+  .text-field-label {
+    @apply text-xs font-bold text-white/80;
+  }
+
+  /* 报告详情页大标题 */
+  .report-page-title {
+    @apply text-lg sm:text-xl font-black tracking-tight text-white;
+  }
+
+  /* 报告详情页章节标题 */
+  .report-section-title {
+    /* 对齐 SectionTitle（学员列表）风格 */
+    @apply text-[16px] sm:text-[20px] font-semibold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[#d4af37];
+  }
+
+  /* 报告详情页字段标签 */
+  .report-field-label {
+    /* 对齐 styku-input-label */
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest truncate;
+  }
+
+  /* 报告详情页大数值 */
+  .report-field-value {
+    /* 对齐 styku-input-field（展示态，无 input 相关样式） */
+    @apply text-xl sm:text-2xl font-normal text-white/90;
+  }
+
+  /* 报告详情页单位 */
+  .report-field-unit {
+    /* 对齐 styku-input-unit */
+    @apply text-[11px] sm:text-[12px] text-white font-bold uppercase tracking-[0.3em] opacity-40;
+  }
+}

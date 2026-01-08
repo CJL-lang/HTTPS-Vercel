@@ -1,0 +1,813 @@
+/**
+ * Components CSS - 组件样式
+ * 包含卡片、容器、图标容器等组件样式
+ */
+
+@layer components {
+
+  /* =========================
+   * Report Detail Pages
+   * ========================= */
+
+  .report-detail-page {
+    @apply min-h-screen text-white p-4 sm:p-6 pb-24 relative overflow-x-hidden bg-transparent;
+  }
+
+  .report-detail-header {
+    @apply relative z-10 mb-8 sm:mb-12 flex items-center gap-3;
+  }
+
+  .report-detail-title {
+    @apply title-workbench flex-1 min-w-0;
+  }
+
+  .report-detail-content {
+    @apply relative z-10 max-w-md mx-auto;
+  }
+
+  .report-loading {
+    @apply min-h-screen flex items-center justify-center bg-transparent;
+  }
+
+  .report-loading-spinner {
+    @apply animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#d4af37];
+  }
+
+  .report-empty {
+    @apply min-h-screen flex flex-col items-center justify-center bg-transparent text-white p-6;
+  }
+
+  .report-empty-title {
+    @apply text-lg font-bold mb-6;
+  }
+
+  .report-empty-btn {
+    @apply px-6 py-3 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/20 transition-all;
+  }
+
+  /* Section wrapper (keeps spacing consistent across report pages) */
+  .report-section {
+    @apply mb-10;
+  }
+
+  /* Shared “glass” container used by report cards */
+  .report-card {
+    @apply glass-card border border-white/10 surface-strong rounded-2xl sm:rounded-[32px] overflow-hidden shadow-xl;
+  }
+
+  /* Report list card (goals/diagnosis/assessment lists) */
+  .report-list-item {
+    @apply relative;
+  }
+
+  .report-list-item-body {
+    @apply p-6 relative z-10;
+  }
+
+  .report-list-row {
+    @apply flex items-start gap-4;
+  }
+
+  .report-bullet {
+    @apply mt-1.5 w-1.5 h-1.5 rounded-full bg-[#d4af37] shrink-0;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+  }
+
+  .report-list-hover-bg {
+    @apply absolute inset-0 bg-white/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-500;
+  }
+
+  .report-list-divider {
+    @apply mx-6 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent;
+  }
+
+  .report-item-title {
+    @apply text-[13px] font-bold text-[#d4af37] mb-2 uppercase tracking-widest;
+  }
+
+  .report-item-text {
+    @apply text-white/70 text-sm leading-relaxed font-light;
+  }
+
+  .report-item-header-row {
+    @apply flex items-center justify-between gap-3 mb-2;
+  }
+
+  .report-item-badge {
+    @apply text-[11px] px-2.5 py-1 rounded-full bg-white/10 border border-white/20 text-[#d4af37] font-bold;
+  }
+
+  /* Metrics */
+  .report-metrics-grid {
+    @apply grid grid-cols-1 gap-3 sm:gap-4;
+  }
+
+  .report-metric-card {
+    @apply glass-card p-4 sm:p-6 border border-white/10 surface-strong rounded-2xl sm:rounded-[32px] flex items-center justify-between transition-all;
+  }
+
+  .report-metric-left {
+    @apply flex items-center gap-3 sm:gap-4;
+  }
+
+  .report-metric-icon {
+    @apply w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37];
+  }
+
+  .report-metric-value-row {
+    @apply flex items-baseline gap-1;
+  }
+
+  /* Accordion groups (Styku/Trackman groups) */
+  .report-group-card {
+    @apply glass-card border border-white/10 surface-strong rounded-2xl sm:rounded-[32px] overflow-hidden shadow-lg;
+  }
+
+  .report-group-toggle {
+    @apply w-full flex items-center justify-between p-4 sm:p-6 active:opacity-70 transition-all;
+  }
+
+  .report-group-title-row {
+    @apply flex items-center gap-3;
+  }
+
+  .report-group-title {
+    @apply text-[11px] sm:text-[12px] font-black text-white/60 uppercase tracking-[0.2em];
+  }
+
+  .report-group-chevron {
+    @apply w-4 h-4 text-white/20 transition-transform duration-500;
+  }
+
+  .report-group-items-grid {
+    @apply px-4 sm:px-6 pb-4 sm:pb-6 grid grid-cols-2 gap-3 sm:gap-4;
+  }
+
+  .report-group-item {
+    /* 对齐 styku-input-card（统一卡片视觉） */
+    @apply surface-strong border border-white/5 rounded-2xl sm:rounded-[32px] p-4 sm:p-6 shadow-2xl shadow-black/50 flex flex-col;
+  }
+
+  /* Outlook quote card */
+  .report-outlook-card {
+    @apply glass-card p-7 border border-white/10 surface-strong rounded-2xl sm:rounded-[32px] relative overflow-hidden shadow-xl;
+  }
+
+  .report-outlook-quote {
+    @apply absolute -right-2 -bottom-2 w-20 h-20 text-white/[0.03] -rotate-12;
+  }
+
+  .report-outlook-text {
+    @apply text-white/70 text-[15px] leading-[1.8] font-light relative z-10;
+  }
+
+  .report-footer {
+    @apply mt-8 sm:mt-12 pt-4 sm:pt-6 border-t border-white/5 text-center;
+  }
+
+  .report-footer-text {
+    @apply text-white/20 text-[11px] sm:text-[12px] uppercase tracking-[0.2em];
+  }
+
+  /* 数据卡片容器 */
+  .data-card {
+    @apply surface-strong p-4 sm:p-6 border border-white/5 rounded-2xl sm:rounded-[32px] flex items-center justify-between transition-all shadow-2xl shadow-black/50 gap-3;
+  }
+
+  /* 指标卡片内容区域 */
+  .metric-content {
+    @apply flex items-center gap-3 sm:gap-4 min-w-0 flex-1;
+  }
+
+  /* 指标图标容器 */
+  .metric-icon-container {
+    @apply w-10 h-10 rounded-2xl bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37] shrink-0 border border-[#d4af37]/20;
+  }
+
+  /* 指标标签容器 */
+  .metric-label-container {
+    @apply min-w-0 flex-1;
+  }
+
+  /* 指标控制区域 */
+  .metric-controls {
+    @apply flex items-center gap-2 sm:gap-4 shrink-0;
+  }
+
+  /* 数值输入容器 */
+  .number-input-container {
+    @apply flex items-center gap-1 sm:gap-2 surface-strong rounded-xl p-1 border border-white/5;
+  }
+
+  /* 增减按钮 */
+  .number-input-btn {
+    @apply w-7 h-7 sm:w-8 sm:h-8 rounded-xl surface-weak flex items-center justify-center hover:bg-[#d4af37]/20 transition-all active:scale-90;
+  }
+
+  /* 数值输入框 */
+  .number-input {
+    @apply w-12 sm:w-16 bg-transparent text-center font-normal text-white focus:outline-none text-xl sm:text-2xl placeholder:font-normal;
+  }
+
+  /* 单位标签 */
+  .unit-label {
+    @apply text-white/50 font-bold text-[11px] sm:text-[12px] w-4 sm:w-6;
+  }
+
+  /* 页面容器 */
+  .page-container {
+    @apply space-y-10 pb-20;
+    animation: fadeInUp 0.5s ease-out;
+  }
+
+  /* 页面头部 */
+  .page-header {
+    @apply flex justify-between items-center px-2;
+  }
+
+  /* 页面标题组 */
+  .page-title-group {
+    @apply flex flex-col;
+  }
+
+  /* 网格布局容器 */
+  .grid-container {
+    @apply grid grid-cols-1 gap-6 px-2;
+  }
+
+  /* 目标卡片 */
+  .goal-card {
+    @apply surface-strong p-4 sm:p-6 border border-white/5 rounded-2xl sm:rounded-[32px] transition-all duration-300 relative shadow-2xl shadow-black/50;
+  }
+
+  .goal-card:focus-within {
+    @apply border-[#d4af37]/50;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+
+  /* 目标卡片头部 */
+  .goal-card-header {
+    @apply flex justify-between items-start mb-4 gap-2;
+  }
+
+  /* 目标图标容器 */
+  .goal-icon-container {
+    @apply w-8 h-8 rounded-full bg-[#d4af37]/10 flex items-center justify-center shrink-0 border border-[#d4af37]/20;
+  }
+
+  /* 目标标题 */
+  .goal-title {
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest block truncate;
+  }
+
+  /* 目标操作按钮组 */
+  .goal-actions {
+    @apply flex items-center gap-1.5 sm:gap-2 shrink-0;
+  }
+
+  /* 语音按钮 */
+  .voice-btn {
+    @apply p-2 sm:p-2.5 rounded-xl transition-all active:scale-90;
+  }
+
+  .voice-btn.active {
+    @apply bg-red-500/20 text-red-500 animate-pulse;
+  }
+
+  .voice-btn.inactive {
+    @apply surface-weak text-white/40 hover:text-white;
+  }
+
+  /* 删除按钮 */
+  .delete-btn {
+    @apply p-2 sm:p-2.5 rounded-xl surface-weak text-white/20 hover:text-red-500 transition-all active:scale-90;
+  }
+
+  /* 添加按钮 - 虚线边框 */
+  .add-button-dashed {
+    @apply w-full py-6 rounded-2xl sm:rounded-[32px] border-2 border-dashed border-white/25 hover:border-[#d4af37]/50 hover:bg-[#d4af37]/10 transition-all flex flex-col items-center justify-center gap-2 relative overflow-hidden;
+    background-color: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+  }
+
+  .add-button-dashed::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none;
+  }
+
+  /* 添加按钮图标容器 */
+  .add-button-icon {
+    @apply w-10 h-10 rounded-full surface-weak flex items-center justify-center group-hover:bg-[#d4af37] group-hover:text-black transition-all;
+  }
+
+  /* 添加按钮文本 */
+  .add-button-text {
+    @apply text-[12px] font-bold uppercase tracking-[0.2em] text-white/80 group-hover:text-white transition-colors;
+  }
+
+  /* STYKU 输入卡片 */
+  .styku-input-card {
+    @apply surface-strong border border-white/5 rounded-2xl sm:rounded-[32px] p-4 sm:p-6 flex items-center justify-between shadow-2xl shadow-black/50;
+  }
+
+  /* STYKU 输入标签 */
+  .styku-input-label {
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest truncate;
+  }
+
+  /* STYKU 输入单位 */
+  .styku-input-unit {
+    @apply text-[11px] sm:text-[12px] text-white font-bold uppercase tracking-[0.3em] opacity-40;
+  }
+
+  /* STYKU 输入框 */
+  .styku-input-field {
+    @apply bg-transparent text-xl sm:text-2xl font-normal text-white/90 w-full focus:outline-none placeholder:text-white/40 placeholder:font-normal mt-1 sm:mt-2;
+  }
+
+  /* STYKU 增减按钮容器 */
+  .styku-buttons-container {
+    @apply flex flex-col gap-2 ml-4;
+  }
+
+  /* STYKU 增减按钮 */
+  .styku-button {
+    @apply w-8 h-8 rounded-full surface-weak border border-white/10 flex items-center justify-center hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all active:scale-90;
+  }
+
+  /* 扫描状态容器 */
+  .scan-status-container {
+    @apply surface-strong h-48 flex flex-col items-center justify-center border border-[#d4af37]/20 relative overflow-hidden rounded-2xl sm:rounded-[32px] mx-2 shadow-2xl shadow-black/50;
+  }
+
+  /* 扫描完成容器 */
+  .scan-complete-container {
+    @apply surface-strong h-48 flex items-center justify-center border border-[#d4af37]/30 rounded-2xl sm:rounded-[32px] relative overflow-hidden mx-2 shadow-2xl shadow-black/50;
+  }
+
+  /* 无数据容器 */
+  .no-data-container {
+    @apply h-48 flex flex-col items-center justify-center border border-white/30 rounded-[32px] mx-2 relative overflow-hidden;
+    background-color: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(12px);
+  }
+
+  .no-data-container::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none;
+  }
+
+  /* 章节标题容器 */
+  .section-header {
+    @apply flex items-center gap-3;
+  }
+
+  /* 章节标题装饰线 */
+  .section-header-line {
+    /* 与 report-section-title（16/20px）同高度 */
+    @apply w-1 h-[20px] sm:h-[24px] bg-[#d4af37] rounded-full shrink-0;
+  }
+
+  /* 章节标题文本 */
+  .section-header-title {
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest;
+  }
+
+  /* 诊断卡片 */
+  .diagnosis-card {
+    @apply surface-strong p-4 sm:p-6 border border-white/5 rounded-2xl sm:rounded-[32px] transition-all duration-300 relative shadow-2xl shadow-black/50;
+  }
+
+  .diagnosis-card:focus-within {
+    @apply border-[#d4af37]/50;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+
+  .diagnosis-card.selector-open {
+    @apply z-[100];
+    overflow: visible !important;
+  }
+
+  /* 诊断卡片头部 */
+  .diagnosis-card-header {
+    @apply flex justify-between items-start mb-4 gap-2;
+  }
+
+  /* 标题选择按钮 */
+  .title-selector-btn {
+    @apply flex items-center gap-2 text-sm font-bold text-[#d4af37] uppercase tracking-widest shrink-0 w-fit truncate max-w-full;
+  }
+
+  /* 自定义标题输入容器 */
+  .custom-title-container {
+    @apply flex items-center gap-2 relative z-[110];
+  }
+
+  /* 自定义标题输入框 */
+  .custom-title-input {
+    @apply surface-strong border border-[#d4af37]/50 text-xs sm:text-sm font-normal text-white uppercase tracking-widest focus:outline-none focus:border-[#d4af37] focus:ring-2 focus:ring-[#d4af37]/20 w-full py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl shadow-2xl;
+  }
+
+  /* 标题选择器下拉菜单 */
+  .title-selector-dropdown {
+    @apply absolute top-full left-0 mt-2 w-48 sm:w-56 bg-[#1a1a1a] border border-white/10 rounded-2xl sm:rounded-[32px] shadow-2xl z-[120] flex flex-col overflow-hidden overscroll-contain;
+  }
+
+  /* 标题选择器选项 */
+  .title-selector-option {
+    @apply w-full px-3 sm:px-4 py-3 sm:py-4 text-left text-[11px] font-bold text-white/60 hover:bg-[#d4af37] hover:text-black transition-all uppercase tracking-widest border-b border-white/5 last:border-0;
+  }
+
+  /* 自定义标题选项 */
+  .title-selector-custom {
+    @apply w-full px-3 sm:px-4 py-3 sm:py-4 text-left text-[11px] font-bold text-white bg-[#1a1a1a] hover:bg-white/10 hover:text-white transition-all uppercase tracking-widest border-b border-white/5 sticky top-0 z-10;
+  }
+
+  /* 计划指南卡片 */
+  .plan-guide-card {
+    @apply p-4 sm:p-6 surface-strong border border-[#d4af37]/20 bg-[#d4af37]/5 rounded-2xl sm:rounded-[32px] shadow-2xl shadow-black/50;
+  }
+
+  /* 计划指南图标容器 */
+  .plan-guide-icon {
+    @apply w-10 h-10 rounded-2xl bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37] flex-shrink-0 border border-[#d4af37]/20;
+  }
+
+  /* 计划指南标题 */
+  .plan-guide-title {
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest mb-1 truncate;
+  }
+
+  /* 计划指南描述 */
+  .plan-guide-desc {
+    @apply text-[11px] font-bold text-white uppercase tracking-[0.3em] opacity-40 leading-relaxed;
+  }
+
+  /* 语音按钮激活状态 - 金色主题 */
+  .voice-btn.active-gold {
+    @apply bg-[#d4af37] text-black shadow-lg shadow-[#d4af37]/20;
+  }
+
+  /* 目标战略卡片 */
+  .goal-strategic-card {
+    @apply flex flex-col items-center justify-center py-8 sm:py-12 surface-strong border border-[#d4af37]/10 rounded-2xl sm:rounded-[32px] mb-6 relative overflow-hidden shadow-2xl shadow-black/50;
+  }
+
+  /* 目标战略卡片渐变背景 */
+  .goal-strategic-gradient {
+    @apply absolute inset-0 bg-gradient-to-b from-[#d4af37]/5 to-transparent;
+  }
+
+  /* 目标战略图标容器 */
+  .goal-strategic-icon-container {
+    @apply w-16 h-16 sm:w-20 sm:h-20 rounded-[28px] sm:rounded-[32px] bg-gradient-to-br from-[#d4af37]/20 to-transparent border border-[#d4af37]/30 flex items-center justify-center shadow-2xl shadow-yellow-500/10 rotate-12;
+  }
+
+  /* 目标战略图标边框动画 */
+  .goal-strategic-icon-border {
+    @apply absolute inset-0 rounded-[28px] sm:rounded-[32px] border border-[#d4af37]/20 rotate-12;
+  }
+
+  /* 目标战略标签 */
+  .goal-strategic-label {
+    @apply text-[11px] sm:text-[12px] font-bold text-[#d4af37] uppercase tracking-[0.4em] mb-2;
+  }
+
+  /* 目标战略标题 */
+  .goal-strategic-title {
+    @apply text-sm sm:text-base font-bold uppercase tracking-widest text-white text-center px-4 sm:px-8;
+  }
+
+  /* 目标副标题 */
+  .goal-subtitle {
+    @apply text-[11px] sm:text-[12px] text-[#d4af37] font-bold uppercase tracking-widest truncate block opacity-40;
+  }
+
+  /* 分类标题装饰线 - 左侧 */
+  .category-title-line-left {
+    @apply h-[2px] w-6 sm:w-8 bg-gradient-to-r from-[#d4af37] to-transparent;
+  }
+
+  /* 分类标题 */
+  .category-title {
+    @apply text-sm sm:text-base font-bold text-[#d4af37] uppercase tracking-[0.2em] sm:tracking-[0.3em] truncate;
+  }
+
+  /* 分类标题装饰线 - 右侧 */
+  .category-title-line-right {
+    @apply h-[1px] flex-1 bg-gradient-to-r from-[#d4af37]/10 to-transparent;
+  }
+
+  /* 扫描状态动画线条 */
+  .scan-status-animation-line {
+    @apply absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#d4af37] to-transparent z-20;
+  }
+
+  /* 扫描状态渐变背景 */
+  .scan-status-gradient {
+    @apply absolute inset-0 bg-gradient-to-b from-[#d4af37]/5 to-transparent;
+  }
+
+  /* 处理状态文本 */
+  .processing-text {
+    @apply text-white text-[12px] font-bold animate-pulse tracking-[0.3em] uppercase;
+  }
+
+  /* 系统加密标签 */
+  .system-encrypted-label {
+    @apply text-[11px] text-[#d4af37] font-bold tracking-[0.2em] uppercase opacity-40;
+  }
+
+  /* 数据同步文本 */
+  .data-sync-text {
+    @apply text-[16px] text-white font-bold mt-4 tracking-[0.2em] uppercase;
+  }
+
+  /* 无数据文本 */
+  .no-data-text {
+    @apply text-[12px] text-white/90 font-bold tracking-[0.2em] uppercase;
+  }
+
+  /* 自定义标题取消按钮 */
+  .custom-title-cancel-btn {
+    @apply text-white/40 hover:text-white transition-colors p-2 shrink-0 surface-weak rounded-xl;
+  }
+
+  /* 物理诊断语音按钮 */
+  .physical-voice-btn {
+    @apply p-2 sm:p-2.5 rounded-xl transition-all active:scale-90;
+  }
+
+  .physical-voice-btn.active {
+    @apply bg-red-500/20 text-red-500 animate-pulse;
+  }
+
+  .physical-voice-btn.inactive {
+    @apply surface-weak text-white/40 hover:text-white;
+  }
+
+  /* 标准 Textarea 样式 */
+  .textarea-standard {
+    @apply textarea-dark h-28 text-[12px] font-normal leading-relaxed;
+  }
+
+  /* 带过渡效果的 Textarea */
+  .textarea-standard-transition {
+    @apply textarea-dark h-28 text-[12px] font-normal leading-relaxed transition-opacity;
+  }
+
+  /* 下拉菜单滚动容器 */
+  .dropdown-scroll-container {
+    @apply overflow-y-auto max-h-48 sm:max-h-60 custom-scrollbar touch-pan-y;
+  }
+
+  /* Styku 输入内容容器 */
+  .styku-input-content {
+    @apply flex flex-col gap-1 flex-1 min-w-0;
+  }
+
+  /* 增减按钮图标 */
+  .icon-plus-minus {
+    @apply w-4 h-4 text-[#d4af37];
+  }
+
+  /* Sparkles 图标样式 */
+  .icon-sparkles {
+    @apply text-[#d4af37]/40 shrink-0;
+  }
+
+  /* 小图标尺寸 */
+  .icon-sm {
+    @apply sm:w-4 sm:h-4;
+  }
+
+  /* 相对定位容器 */
+  .relative-container {
+    @apply relative flex-1 min-w-0;
+  }
+
+  /* 标题容器列布局 */
+  .title-container-col {
+    @apply flex flex-col gap-3;
+  }
+
+  /* 诊断 Textarea 样式（较矮版本） */
+  .textarea-diagnosis {
+    @apply textarea-dark text-[12px] min-h-[100px];
+  }
+
+  /* 居中内容容器 */
+  .centered-content-container {
+    @apply flex flex-col items-center relative z-10;
+  }
+
+  /* 章节标题装饰线 */
+  .section-decorative-line {
+    @apply w-1 h-4 bg-[#d4af37] rounded-full;
+  }
+
+  /* 章节标题文本 */
+  .section-title-text {
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest;
+  }
+
+  /* 操作按钮容器 */
+  .action-buttons-container {
+    @apply flex items-center gap-1.5 sm:gap-2 shrink-0;
+  }
+
+  /* 目标项头部容器 */
+  .goal-item-header-container {
+    @apply flex items-center gap-2 sm:gap-3 min-w-0;
+  }
+
+  /* 返回按钮 */
+  .btn-back {
+    @apply w-9 h-9 sm:w-10 sm:h-10 rounded-full surface-weak border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors active:scale-90;
+  }
+
+  /* 学生信息卡片 */
+  .student-info-card {
+    @apply relative overflow-hidden rounded-2xl sm:rounded-[32px] text-center border border-[#d4af37]/20 surface-strong;
+  }
+
+  /* 学生信息卡片标签 */
+  .student-info-label {
+    @apply text-[11px] sm:text-xs md:text-sm font-bold text-[#d4af37] mb-0.5 sm:mb-1 uppercase tracking-widest;
+  }
+
+  /* 学生信息卡片值 */
+  .student-info-value {
+    @apply text-xs sm:text-sm font-bold text-white;
+  }
+
+  /* 学生头像容器 */
+  .student-avatar {
+    @apply w-[75px] h-[75px] rounded-full bg-[#d4af37] flex items-center justify-center text-black font-bold shrink-0;
+  }
+
+  /* 金色渐变按钮 */
+  .btn-gold-gradient {
+    @apply bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold;
+  }
+
+  /* 金色渐变按钮 - 完整样式 */
+  .btn-gold-gradient-full {
+    @apply bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold flex items-center justify-center transition-all;
+    box-shadow: 0 20px 40px rgba(212, 175, 55, 0.3);
+  }
+
+  /* App.jsx 背景图片样式 */
+  .app-background-image {
+    background-image: url('https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&q=80&w=2400');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  /* 动画延迟 - 第二个光晕效果 */
+  .animation-delay-negative {
+    animation-delay: -4s;
+  }
+
+  /* 性能优化 - willChange */
+  .will-change-transform-opacity {
+    will-change: transform, opacity;
+  }
+
+  /* 触摸操作优化 */
+  .touch-action-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* 3D变换容器 */
+  .transform-3d-container {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+
+  /* 3D变换 - 中等深度 */
+  .transform-3d-medium {
+    transform: translateZ(20px);
+    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
+    -webkit-filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.3));
+  }
+
+  /* 3D变换 - 浅深度 */
+  .transform-3d-shallow {
+    transform: translateZ(15px);
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+    -webkit-filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+  }
+
+  /* 步骤条进度线 */
+  .stepper-progress-line {
+    @apply absolute top-[14px] sm:top-[18px] h-[2px] surface -z-10;
+    left: 0;
+    right: 0;
+  }
+
+  /* 3个步骤时的进度条背景线 */
+  .stepper-progress-line-3 {
+    left: 16.66%;
+    right: 16.66%;
+  }
+
+  /* 1个步骤时的进度条背景线 */
+  .stepper-progress-line-1 {
+    left: 50%;
+    right: 50%;
+  }
+
+  .stepper-active-line {
+    @apply absolute top-[14px] sm:top-[18px] h-[2px] bg-[#d4af37] -z-10;
+    transition: all 500ms;
+    width: 0;
+  }
+
+  /* 3个步骤时的激活进度条 */
+  .stepper-active-line-3 {
+    left: 16.66%;
+  }
+
+  .stepper-active-line-3-0 {
+    width: 0%;
+  }
+
+  .stepper-active-line-3-1 {
+    width: 33.33%;
+  }
+
+  .stepper-active-line-3-2 {
+    width: 66.66%;
+  }
+
+  /* 1个步骤时 */
+  .stepper-active-line-1 {
+    left: 50%;
+    width: 0%;
+  }
+}
+
+/* Logo进度条动画 */
+.logo-progress-container {
+  position: relative;
+  width: 8rem;
+  height: 8rem;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .logo-progress-container {
+    width: 10rem;
+    height: 10rem;
+  }
+}
+
+.logo-progress-base {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: grayscale(100%) brightness(0.4);
+  opacity: 0.7;
+}
+
+.logo-progress-fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* 使用 clip-path 从下到上显示，初始状态完全隐藏 */
+  clip-path: inset(100% 0 0 0);
+  animation: logoProgressFill 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes logoProgressFill {
+  from {
+    clip-path: inset(100% 0 0 0);
+    /* 从底部开始，完全隐藏 */
+  }
+
+  to {
+    clip-path: inset(0% 0 0 0);
+    /* 显示完整logo */
+  }
+}
+
+/* 动画定义 - 必须在 @layer 外部 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

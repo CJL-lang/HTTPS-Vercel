@@ -1,0 +1,63 @@
+/**
+ * Layout CSS - 布局样式
+ * 包含页面布局、间距、响应式布局等
+ */
+
+@layer components {
+  /* 响应式间距容器 */
+  .spacing-container {
+    @apply space-y-10;
+  }
+
+  /* 响应式内边距 */
+  .padding-responsive {
+    @apply p-4 sm:p-6;
+  }
+
+  /* 响应式水平内边距 */
+  .padding-x-responsive {
+    @apply px-2 sm:px-4;
+  }
+
+  /* 响应式垂直内边距 */
+  .padding-y-responsive {
+    @apply py-4 sm:py-6;
+  }
+
+  /* 响应式间距 */
+  .gap-responsive {
+    @apply gap-3 sm:gap-4;
+  }
+
+  /* 响应式字体大小 */
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm;
+  }
+
+  /* 响应式字体大小 - 中等 */
+  .text-responsive-md {
+    @apply text-sm sm:text-base;
+  }
+
+  /* 响应式字体大小 - 大 */
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl;
+  }
+
+  /* 响应式宽度 */
+  .w-responsive-icon {
+    @apply w-7 h-7 sm:w-8 sm:h-8;
+  }
+
+  /* 响应式输入宽度 */
+  .w-responsive-input {
+    @apply w-12 sm:w-16;
+  }
+
+  /* 记录列表滚动容器 */
+  .records-scroll-container {
+    @apply overflow-y-auto;
+    max-height: calc(100vh - 300px);
+  }
+}
+

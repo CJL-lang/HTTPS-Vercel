@@ -1,0 +1,10 @@
+/* AddRecordPage 样式模块 */
+
+.progressLine {
+    left: calc(100% / 6);
+    right: calc(100% / 6);
+}
+
+.activeProgressLine {
+    transition: all 500ms;
+}

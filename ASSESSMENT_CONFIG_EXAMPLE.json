@@ -1,0 +1,79 @@
+{
+  "assessmentConfig": [
+    {
+      "id": "physical",
+      "label": "身体素质测评",
+      "icon": "Activity",
+      "color": "from-[#d4af37] to-[#f9e29c]",
+      "borderColor": "border-[#d4af37]/30",
+      "shadowColor": "shadow-[#d4af37]/20",
+      "description": "身体素质测评，包含身体数据采集、诊断和训练方案"
+    },
+    {
+      "id": "mental",
+      "label": "心理素质测评",
+      "icon": "Brain",
+      "color": "from-[#d4af37] to-[#f9e29c]",
+      "borderColor": "border-[#d4af37]/30",
+      "shadowColor": "shadow-[#d4af37]/20",
+      "description": "心理素质测评，包含专注力、抗压能力和自信心评估"
+    },
+    {
+      "id": "skills",
+      "label": "技能测评",
+      "icon": "Trophy",
+      "color": "from-[#d4af37] to-[#f9e29c]",
+      "borderColor": "border-[#d4af37]/30",
+      "shadowColor": "shadow-[#d4af37]/20",
+      "description": "技能测评，包含TrackMan数据、挥杆诊断和技术方案"
+    }
+  ],
+  "notes": [
+    "所有颜色使用Tailwind CSS类名格式",
+    "icon字段支持: Activity, Brain, Trophy, Heart, Target等Lucide React图标名称",
+    "color字段使用渐变格式: from-[颜色] to-[颜色]",
+    "borderColor格式: border-[颜色]/透明度",
+    "shadowColor格式: shadow-[颜色]/透明度",
+    "可以通过AI API动态生成此配置并传入组件"
+  ],
+  "example_custom_config": [
+    {
+      "id": "balance",
+      "label": "平衡力测评",
+      "icon": "Target",
+      "color": "from-[#d4af37] to-[#f9e29c]",
+      "borderColor": "border-[#d4af37]/30",
+      "shadowColor": "shadow-[#d4af37]/20",
+      "description": "评估身体平衡能力和稳定性"
+    },
+    {
+      "id": "flexibility",
+      "label": "柔韧性测评",
+      "icon": "Heart",
+      "color": "from-[#d4af37] to-[#f9e29c]",
+      "borderColor": "border-[#d4af37]/30",
+      "shadowColor": "shadow-[#d4af37]/20",
+      "description": "测试关节活动度和肌肉伸展能力"
+    }
+  ],
+  "usage_example": {
+    "description": "在组件中使用配置的示例代码",
+    "code": [
+      "// 1. 从AI API获取配置",
+      "const aiConfig = await fetch('/api/ai/assessment-config').then(r => r.json());",
+      "",
+      "// 2. 传入组件",
+      "<SingleAssessmentSelectionPage",
+      "  onBack={handleBack}",
+      "  onStartAssessment={handleStart}",
+      "  assessmentConfig={aiConfig}",
+      "/>",
+      "",
+      "// 3. 或者使用默认配置（不传assessmentConfig参数）",
+      "<SingleAssessmentSelectionPage",
+      "  onBack={handleBack}",
+      "  onStartAssessment={handleStart}",
+      "/>"
+    ]
+  }
+}
