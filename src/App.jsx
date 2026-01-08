@@ -132,13 +132,9 @@ export default function App() {
     const [students, setStudents] = useState([]);
     const lastFetchedStudentsTokenRef = useRef(null);
 
-    // 统一的获取学员列表函数，可强制刷新
-    const fetchStudentsList = React.useCallback(async (force = false) => {
-        if (isCheckingAuth) return;
-        if (!(isLoggedIn && currentUser?.token)) return;
-        if (!force && lastFetchedStudentsTokenRef.current === currentUser.token) return;
-        lastFetchedStudentsTokenRef.current = currentUser.token;
-
+    // 集中刷新学生列表的函数，可在创建新学员后调用
+    const refreshStudents = React.useCallback(async () => {
+        if (!isLoggedIn || !currentUser?.token) return;
         try {
             const response = await fetch('/api/students', {
                 method: 'GET',
@@ -162,19 +158,18 @@ export default function App() {
                 }
             }
         } catch (error) {
-            // 静默失败，避免打断流程
+            // 忽略错误，保持现有列表
         }
-    }, [isLoggedIn, currentUser?.token, isCheckingAuth]);
+    }, [isLoggedIn, currentUser?.token]);
 
-    // 初次加载或登录状态变更时获取列表
+    // 首次登录后加载学生列表（避免重复拉取）
     useEffect(() => {
-        fetchStudentsList();
-    }, [fetchStudentsList]);
-
-    // 暴露刷新函数供子页面在创建学员后调用
-    const refreshStudents = React.useCallback(() => {
-        fetchStudentsList(true);
-    }, [fetchStudentsList]);
+        if (isCheckingAuth) return;
+        if (isLoggedIn && currentUser?.token && lastFetchedStudentsTokenRef.current !== currentUser.token) {
+            lastFetchedStudentsTokenRef.current = currentUser.token;
+            refreshStudents();
+        }
+    }, [isLoggedIn, currentUser?.token, isCheckingAuth, refreshStudents]);
 
     const [currentStudentIndex, setCurrentStudentIndex] = useState(null);
 
@@ -644,8 +639,8 @@ export default function App() {
                                     onNext={(target) => navigate(typeof target === 'string' ? (target.startsWith('/') ? target : `/${target}`) : '/students')}
                                     students={students}
                                     onSelectStudent={selectStudent}
-                                    refreshStudents={refreshStudents}
                                     onAddStudent={startAddStudent}
+                                    refreshStudents={refreshStudents}
                                     handleStartPhysicalAssessment={handleStartPhysicalAssessment}
                                     handleStartMentalAssessment={handleStartMentalAssessment}
                                     handleStartSkillsAssessment={handleStartSkillsAssessment}

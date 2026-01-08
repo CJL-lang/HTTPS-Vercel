@@ -145,8 +145,14 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
             // success
             alert('学员已保存！');
 
-            // 刷新全局学员列表，确保列表立即出现新学员
-            try { refreshStudents && refreshStudents(); } catch (e) {}
+            // 刷新学员列表，确保新学员立刻出现在列表中
+            if (typeof refreshStudents === 'function') {
+                try {
+                    await refreshStudents();
+                } catch (e) {
+                    // ignore refresh errors
+                }
+            }
 
             // 如果返回了学员ID，跳转到该学员的主页，否则跳转到列表页
             if (result.student_user_id) {

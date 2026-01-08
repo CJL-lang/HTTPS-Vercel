@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import PageWrapper from '../../components/PageWrapper';
+import DialogBubbles from '../../components/DialogBubbles';
 import { X, Check, Send, RotateCcw, Mic } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
@@ -140,31 +141,9 @@ const ThreeDPage = () => {
                             </div>
                         </motion.div>
 
-                        {/* 对话气泡面板：与动画分离，独立滚动 */}
-                        <div className="absolute inset-x-4 top-4 bottom-44 z-20 max-w-md mx-auto pointer-events-auto">
-                            <div className="h-full overflow-y-auto pr-2 scrollbar-hide space-y-3">
-                                {messages.map((msg) => (
-                                    <motion.div
-                                        key={msg.id}
-                                        initial={{ opacity: 0, x: msg.sender === 'user' ? 20 : -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className={cn(
-                                            "flex",
-                                            msg.sender === 'user' ? "justify-end" : "justify-start"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "max-w-[80%] px-5 py-3 rounded-3xl text-base sm:text-lg leading-relaxed shadow-lg backdrop-blur-sm",
-                                            msg.sender === 'user' 
-                                                ? "bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-medium" 
-                                                : "bg-white/10 border border-white/20 text-white"
-                                        )}>
-                                            {msg.text}
-                                        </div>
-                                    </motion.div>
-                                ))}
-                                <div ref={messagesEndRef} />
-                            </div>
+                        {/* 对话气泡组件：位于动画下方，内部滚动（含淡出遮罩） */}
+                        <div className="w-full max-w-md px-4 mt-6 flex-shrink-0">
+                            <DialogBubbles messages={messages} className="h-44 sm:h-48 border border-white/10 bg-transparent" />
                         </div>
                     </div>
                 </div>

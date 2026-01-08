@@ -28,6 +28,7 @@
   body {
     @apply bg-black text-white antialiased;
     font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
