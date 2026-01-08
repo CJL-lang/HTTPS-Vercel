@@ -36,7 +36,7 @@ const PageWrapper = ({ children, title, onBack, onAdd, footer }) => {
                 </motion.button>
             )}
 
-            <main className={cn("flex-1 px-4 sm:px-8 py-6 sm:py-8 overflow-y-auto relative z-10 scrollbar-hide", onBack && "pt-20")}>
+            <main className={cn("flex-1 px-4 sm:px-8 py-6 sm:py-8 overflow-hidden relative z-10 scrollbar-hide", onBack && "pt-20")}>
                 {children}
             </main>
 

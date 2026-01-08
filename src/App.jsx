@@ -132,49 +132,49 @@ export default function App() {
     const [students, setStudents] = useState([]);
     const lastFetchedStudentsTokenRef = useRef(null);
 
-    // Fetch students when logged in (只在验证完成后才执行)
-    useEffect(() => {
-        if (isCheckingAuth) return; // 正在验证时，不获取学生列表
+    // 统一的获取学员列表函数，可强制刷新
+    const fetchStudentsList = React.useCallback(async (force = false) => {
+        if (isCheckingAuth) return;
+        if (!(isLoggedIn && currentUser?.token)) return;
+        if (!force && lastFetchedStudentsTokenRef.current === currentUser.token) return;
+        lastFetchedStudentsTokenRef.current = currentUser.token;
 
-        const fetchStudents = async () => {
-            if (isLoggedIn && currentUser?.token) {
-                // 防止重复加载学生列表
-                if (lastFetchedStudentsTokenRef.current === currentUser.token) return;
-                lastFetchedStudentsTokenRef.current = currentUser.token;
+        try {
+            const response = await fetch('/api/students', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentUser.token}`
+                },
+            });
 
-                try {
-                    const response = await fetch('/api/students', {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${currentUser.token}`
-                        },
-
-                    });
-
-                    if (response.ok) {
-                        const studentsData = await response.json();
-
-                        if (Array.isArray(studentsData)) {
-                            const mappedStudents = studentsData.map(student => ({
-                                ...student,
-                                gender: student.gender === 0 ? '女性' : student.gender === 1 ? '男性' : '未知',
-                                displayId: student.id ? student.id.slice(-6) : '未知',
-                                yearsOfGolf: student.years_of_golf || student.yearsOfGolf,
-                                history: student.bio || student.history // 将后端的 bio 映射为前端展示用的 history
-                            }));
-                            setStudents(mappedStudents);
-                        }
-                    } else {
-
-                    }
-                } catch (error) {
-
+            if (response.ok) {
+                const studentsData = await response.json();
+                if (Array.isArray(studentsData)) {
+                    const mappedStudents = studentsData.map(student => ({
+                        ...student,
+                        gender: student.gender === 0 ? '女性' : student.gender === 1 ? '男性' : '未知',
+                        displayId: student.id ? student.id.slice(-6) : '未知',
+                        yearsOfGolf: student.years_of_golf || student.yearsOfGolf,
+                        history: student.bio || student.history
+                    }));
+                    setStudents(mappedStudents);
                 }
             }
-        };
-        fetchStudents();
+        } catch (error) {
+            // 静默失败，避免打断流程
+        }
     }, [isLoggedIn, currentUser?.token, isCheckingAuth]);
+
+    // 初次加载或登录状态变更时获取列表
+    useEffect(() => {
+        fetchStudentsList();
+    }, [fetchStudentsList]);
+
+    // 暴露刷新函数供子页面在创建学员后调用
+    const refreshStudents = React.useCallback(() => {
+        fetchStudentsList(true);
+    }, [fetchStudentsList]);
 
     const [currentStudentIndex, setCurrentStudentIndex] = useState(null);
 
@@ -644,6 +644,7 @@ export default function App() {
                                     onNext={(target) => navigate(typeof target === 'string' ? (target.startsWith('/') ? target : `/${target}`) : '/students')}
                                     students={students}
                                     onSelectStudent={selectStudent}
+                                    refreshStudents={refreshStudents}
                                     onAddStudent={startAddStudent}
                                     handleStartPhysicalAssessment={handleStartPhysicalAssessment}
                                     handleStartMentalAssessment={handleStartMentalAssessment}
