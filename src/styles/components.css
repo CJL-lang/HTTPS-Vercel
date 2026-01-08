@@ -323,6 +323,7 @@
   /* STYKU 输入框 */
   .styku-input-field {
     @apply bg-transparent text-xl sm:text-2xl font-normal text-white/90 w-full focus:outline-none placeholder:text-white/40 placeholder:font-normal mt-1 sm:mt-2;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* STYKU 增减按钮容器 */
@@ -332,7 +333,8 @@
 
   /* STYKU 增减按钮 */
   .styku-button {
-    @apply w-8 h-8 rounded-full surface-weak border border-white/10 flex items-center justify-center hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all active:scale-90;
+    @apply w-8 h-8 rounded-full surface-weak border border-white/10 flex items-center justify-center hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all active:scale-90 focus:outline-none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* 扫描状态容器 */
@@ -395,7 +397,8 @@
 
   /* 标题选择按钮 */
   .title-selector-btn {
-    @apply flex items-center gap-2 text-sm font-bold text-[#d4af37] uppercase tracking-widest shrink-0 w-fit truncate max-w-full;
+    @apply flex items-center gap-2 text-sm font-bold text-[#d4af37] uppercase tracking-widest shrink-0 w-fit truncate max-w-full focus:outline-none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* 自定义标题输入容器 */
@@ -415,7 +418,8 @@
 
   /* 标题选择器选项 */
   .title-selector-option {
-    @apply w-full px-3 sm:px-4 py-3 sm:py-4 text-left text-[11px] font-bold text-white/60 hover:bg-[#d4af37] hover:text-black transition-all uppercase tracking-widest border-b border-white/5 last:border-0;
+    @apply w-full px-3 sm:px-4 py-3 sm:py-4 text-left text-[11px] font-bold text-white/60 hover:bg-[#d4af37] hover:text-black transition-all uppercase tracking-widest border-b border-white/5 last:border-0 focus:outline-none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* 自定义标题选项 */
@@ -549,16 +553,35 @@
   /* 标准 Textarea 样式 */
   .textarea-standard {
     @apply textarea-dark h-28 text-[12px] font-normal leading-relaxed;
+    -webkit-tap-highlight-color: transparent;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .textarea-standard:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
   }
 
   /* 带过渡效果的 Textarea */
   .textarea-standard-transition {
     @apply textarea-dark h-28 text-[12px] font-normal leading-relaxed transition-opacity;
+    -webkit-tap-highlight-color: transparent;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .textarea-standard-transition:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
   }
 
   /* 下拉菜单滚动容器 */
   .dropdown-scroll-container {
-    @apply overflow-y-auto max-h-48 sm:max-h-60 custom-scrollbar touch-pan-y;
+    @apply overflow-y-auto max-h-48 sm:max-h-60 custom-scrollbar touch-pan-y focus:outline-none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Styku 输入内容容器 */
@@ -594,6 +617,15 @@
   /* 诊断 Textarea 样式（较矮版本） */
   .textarea-diagnosis {
     @apply textarea-dark text-[12px] min-h-[100px];
+    -webkit-tap-highlight-color: transparent;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .textarea-diagnosis:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
   }
 
   /* 居中内容容器 */
