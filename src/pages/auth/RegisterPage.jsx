@@ -92,7 +92,7 @@ const RegisterPage = ({ onRegister, navigate }) => {
                 },
                 body: JSON.stringify({
                     role: role,
-                    name: username,
+                    username: username,
                     email: email,
                     password: password,
                     phone: phone,

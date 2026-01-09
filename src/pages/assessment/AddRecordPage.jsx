@@ -30,6 +30,7 @@ import UnsavedChangesDialog from './components/UnsavedChangesDialog';
 // Utils
 import { ROUTE_MAP, TYPE_MAP } from './utils/assessmentConstants';
 import { updateAssessment } from './utils/assessmentApi';
+import { saveAssessmentStep } from './utils/assessmentProgress';
 
 const AddRecordPage = ({ 
     onBack, 
@@ -137,6 +138,36 @@ const AddRecordPage = ({
             // 忽略错误
         }
     }, [navigation.activePrimary, student?.id]);
+
+    // 记录“上次停留步骤”，用于待处理报告继续填写时恢复到对应页面
+    useEffect(() => {
+        const assessmentId =
+            assessmentData_hook.recordData?.assessmentId ||
+            actualAssessmentData?.assessment_id ||
+            actualAssessmentData?.id;
+
+        if (!assessmentId) return;
+
+        saveAssessmentStep({
+            userId: user?.id || 'guest',
+            assessmentId,
+            step: navigation.activeSecondary
+        });
+    }, [navigation.activeSecondary, assessmentData_hook.recordData?.assessmentId, actualAssessmentData?.assessment_id, actualAssessmentData?.id, user?.id]);
+
+    // 关键逻辑：完成测试后的“稍后生成/生成AI报告”只应停留在目标制定页
+    // 如果用户未选择操作就切走，回到目标制定应恢复为“完成测试”按钮
+    useEffect(() => {
+        if (navigation.activeSecondary !== 3 && showCompleteActions) {
+            try {
+                const key = getShowCompleteActionsKey();
+                sessionStorage.removeItem(key);
+            } catch (e) {
+                // 忽略错误
+            }
+            setShowCompleteActionsState(false);
+        }
+    }, [navigation.activeSecondary, showCompleteActions, student?.id]);
 
     const save = useAssessmentSave({
         recordData: assessmentData_hook.recordData,

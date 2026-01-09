@@ -14,6 +14,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const passedTitle = location.state?.title || location.state?.assessmentData?.title;
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [expandedGroups, setExpandedGroups] = useState({});
@@ -181,7 +182,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                 const report = {
                     id: id,
                     studentId: data.student_id,
-                    title: t('physicalReportTitle'),
+                    title: passedTitle || t('physicalReportTitle'),
                     date: data.created_at ? new Date(data.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
 
                     // (a) 训练引言
@@ -389,13 +390,23 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
 
     const handleBack = () => {
         // 返回到历史测评列表页面
-        if (reportData?.studentId) {
-            navigate(`/student/${reportData.studentId}/physical-report`);
-        } else if (onBack) {
-            onBack();
-        } else {
-            navigate('/physical-report');
+        const backStudentId =
+            reportData?.studentId ||
+            student?.id ||
+            location.state?.studentId ||
+            location.state?.student?.id;
+
+        if (backStudentId) {
+            navigate(`/student/${backStudentId}/physical-report`);
+            return;
         }
+
+        if (onBack) {
+            onBack();
+            return;
+        }
+
+        navigate('/physical-report');
     };
 
     const handleSaveAndGoHome = () => {
@@ -479,7 +490,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                 >
                     <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
                 </button>
-                <h1 className="report-detail-title">{reportData.title || t('physicalDetail')}</h1>
+                <h1 className="report-detail-title">{passedTitle || reportData.title || t('physicalDetail')}</h1>
             </div>
 
             <div className="report-detail-content">

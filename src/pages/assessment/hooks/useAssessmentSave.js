@@ -21,6 +21,7 @@ import {
 import { persistModuleToStudent } from '../utils/assessmentHelpers';
 import { TYPE_MAP } from '../utils/assessmentConstants';
 import { useLanguage } from '../../../utils/LanguageContext';
+import { clearAssessmentStep } from '../utils/assessmentProgress';
 
 export const useAssessmentSave = ({
     recordData,
@@ -283,6 +284,9 @@ export const useAssessmentSave = ({
         
         // 优先使用后端返回的真正的 assessmentId
         const finalRecordId = recordData.assessmentId || recordId;
+
+        // 清理本地保存的“上次停留步骤”
+        clearAssessmentStep({ userId: user?.id || 'guest', assessmentId: finalRecordId });
         
         // 在生成AI报告前，先调用接口获取单个测评数据
         // finalRecordId 就是 assessment_id，会作为路径参数传递给后端
@@ -369,17 +373,23 @@ export const useAssessmentSave = ({
                 };
                 const basePath = reportPages[type] || '/physical-report';
                 
-                // 只有在有下一项测评时才传递继续测试的状态信息
-                const navState = hasNextTest ? {
-                    continueCompleteTest: true,
-                    nextPrimary: activePrimary + 1,
-                    assessmentData,
-                    student
-                } : undefined;
+                // 跳转时携带 title/student，保证详情页能显示正确标题并返回到对应列表
+                const navState = {
+                    title: recordData?.title,
+                    student,
+                    studentId: student?.id,
+                    ...(hasNextTest
+                        ? {
+                            continueCompleteTest: true,
+                            nextPrimary: activePrimary + 1,
+                            assessmentData,
+                        }
+                        : {})
+                };
                 
                 // Use the actual finalRecordId when navigating to the report detail
                 const targetId = finalRecordId || recordId;
-                navigate(`${basePath}/${targetId}`, navState ? { state: navState } : {});
+                navigate(`${basePath}/${targetId}`, { state: navState });
             } catch (e) {
                 console.error('Navigate failed:', e);
                 if (typeof window !== 'undefined') {
@@ -397,6 +407,9 @@ export const useAssessmentSave = ({
     };
 
     const handleGenerateLater = async (navigate, assessmentData) => {
+        // 清理本地保存的“上次停留步骤”
+        clearAssessmentStep({ userId: user?.id || 'guest', assessmentId: recordData.assessmentId });
+
         // 清除当前测评的 showCompleteActions 状态
         try {
             const key = getShowCompleteActionsKey();

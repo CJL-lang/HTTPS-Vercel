@@ -14,6 +14,8 @@ const SaveButton = ({
     isNavigating,
     t 
 }) => {
+    // 解决显示完整操作按钮组的条件
+    const shouldShowCompleteActions = showCompleteActions && activeSecondary === 3;
     
     return (
         <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 px-4 sm:px-6 z-[60]">
@@ -30,7 +32,7 @@ const SaveButton = ({
                             <Loader2 className="w-5 h-5 animate-spin" />
                             <span>正在生成报告...</span>
                         </motion.div>
-                    ) : !showCompleteActions ? (
+                    ) : !shouldShowCompleteActions ? (
                         <motion.button
                             key="save"
                             initial={{ opacity: 0, y: 20 }}
