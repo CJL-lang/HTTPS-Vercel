@@ -69,53 +69,118 @@ const ThreeDPage = () => {
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const inputRef = useRef(null);
-    
+    const [currentInfo, setCurrentInfo] = useState({});
+    const [nextField, setNextField] = useState('name');
+    const [isComplete, setIsComplete] = useState(false);
+
     // 语音输入功能
     const { isListening, startListening, stopListening } = useVoiceInput();
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
         setIsSelecting(false);
-        setMessages([{ 
-            id: 1, 
-            sender: 'ai', 
-            text: `你好！我是 ${tempChar.name}。${tempChar.description}`, 
-            timestamp: Date.now() 
+        setCurrentInfo({});
+        setNextField('name');
+        setIsComplete(false);
+        setMessages([{
+            id: 1,
+            sender: 'ai',
+            text: `你好！我是 ${tempChar.name}，${tempChar.description}。我想更了解你，可以告诉我你的名字吗？`,
+            timestamp: Date.now()
         }]);
     };
 
-    const generateAIResponse = (userMessage) => {
-        const responses = [
-            `我理解。${userMessage}`,
-            `这个问题很有意思。我的看法是：${userMessage}`,
-            `你说得好，让我帮你分析一下${userMessage}`,
-            `很感谢你的提问。关于这个，${userMessage}`,
-            `我想从另一个角度来看待这个问题。${userMessage}`,
-        ];
-        return responses[Math.floor(Math.random() * responses.length)];
+    // 格式化用户信息用于显示
+    const formatUserInfo = (info) => {
+        const lines = [];
+        if (info.name) lines.push(`👤 姓名：${info.name}`);
+        if (info.age) lines.push(`🎂 年龄：${info.age}岁`);
+        if (info.gender) lines.push(`⚥ 性别：${info.gender}`);
+        if (info.years_of_golf) lines.push(`⛳ 球龄：${info.years_of_golf}年`);
+        if (info.history) lines.push(`📝 高尔夫历史：${info.history}`);
+        if (info.medical_history) lines.push(`🏥 伤病史：${info.medical_history}`);
+        if (info.purpose) lines.push(`🎯 训练目的：${info.purpose}`);
+        return lines.join('\n');
     };
 
     const handleSendMessage = async () => {
         if (!inputValue.trim() || !selectedChar) return;
-        const userMessage = { 
-            id: messages.length + 1, 
-            sender: 'user', 
-            text: inputValue, 
-            timestamp: Date.now() 
+
+        const userMessage = {
+            id: messages.length + 1,
+            sender: 'user',
+            text: inputValue,
+            timestamp: Date.now()
         };
         setMessages(prev => [...prev, userMessage]);
+        const userInput = inputValue;
         setInputValue('');
         setIsLoading(true);
-        setTimeout(() => {
-            const aiMessage = { 
-                id: messages.length + 2, 
-                sender: 'ai', 
-                text: generateAIResponse(inputValue), 
-                timestamp: Date.now() 
+
+        try {
+            // 调用后端 AI 对话接口
+            const response = await fetch('/api/AIDialog', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    current_info: currentInfo,
+                    last_user_message: userInput
+                })
+            });
+
+            const data = await response.json();
+
+            // 更新收集的信息
+            if (data.updated_info) {
+                setCurrentInfo(data.updated_info);
+            }
+
+            // 更新下一个要询问的字段
+            if (data.next_field) {
+                setNextField(data.next_field);
+                if (data.next_field === 'done') {
+                    setIsComplete(true);
+                }
+            }
+
+            // 添加 AI 回复
+            const aiMessage = {
+                id: messages.length + 2,
+                sender: 'ai',
+                text: data.reply || '抱歉，我没有理解你的意思。',
+                timestamp: Date.now(),
+                isValid: data.is_valid,
+                errorCode: data.error_code
             };
             setMessages(prev => [...prev, aiMessage]);
+
+            // 如果信息收集完成，显示总结
+            if (data.next_field === 'done') {
+                setTimeout(() => {
+                    const summaryMessage = {
+                        id: messages.length + 3,
+                        sender: 'ai',
+                        text: `太棒了！我已经了解了你的基本信息：\n\n${formatUserInfo(data.updated_info)}\n\n接下来我们可以开始训练规划了！`,
+                        timestamp: Date.now()
+                    };
+                    setMessages(prev => [...prev, summaryMessage]);
+                }, 800);
+            }
+
+        } catch (error) {
+            console.error('AI 对话接口调用失败:', error);
+            const errorMessage = {
+                id: messages.length + 2,
+                sender: 'ai',
+                text: '抱歉，我现在遇到了一些问题，请稍后再试。',
+                timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
             setIsLoading(false);
-        }, 800);
+        }
     };
 
     // 处理语音输入
@@ -151,13 +216,31 @@ const ThreeDPage = () => {
                         onClick={() => setSelectedChar(null)}
                         className="p-2 text-slate-300 hover:text-white transition-colors"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
                     </button>
                     <div className="flex-1 text-center">
                         <h1 className="text-white font-bold text-sm">{selectedChar.name}</h1>
                     </div>
                     <div className="w-6 h-3 rounded-full bg-gradient-to-r from-green-400/60 to-emerald-500/60"></div>
                 </header>
+
+                {/* 信息收集进度 */}
+                {!isComplete && (
+                    <div className="px-4 py-2 bg-white/5 border-b border-white/5 shrink-0">
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                            <span>正在收集信息：</span>
+                            <span className="text-[#d4af37]">
+                                {nextField === 'name' && '姓名'}
+                                {nextField === 'age' && '年龄'}
+                                {nextField === 'gender' && '性别'}
+                                {nextField === 'years_of_golf' && '球龄'}
+                                {nextField === 'history' && '高尔夫历史'}
+                                {nextField === 'medical_history' && '伤病历史'}
+                                {nextField === 'purpose' && '训练目的'}
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* 中间内容区 - 可滚动 */}
                 <main className="flex-1 overflow-y-auto px-4 z-10 pt-4 pb-24">
@@ -200,9 +283,9 @@ const ThreeDPage = () => {
                                 !selectedChar && "opacity-50 cursor-not-allowed"
                             )}
                         >
-                            <Mic 
-                                size={20} 
-                                strokeWidth={2.5} 
+                            <Mic
+                                size={20}
+                                strokeWidth={2.5}
                                 className={isListening ? "animate-pulse" : ""}
                             />
                             {isListening ? "正在录音，点击停止" : "点击说话"}
@@ -241,7 +324,7 @@ const ThreeDPage = () => {
                                         : 'bg-white/5 text-white/20'
                                 )}
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 7-7 7 7" /><path d="M12 19V5" /></svg>
                             </button>
                         </div>
                     </div>

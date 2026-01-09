@@ -15,6 +15,74 @@ import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useLanguage } from '../../utils/LanguageContext';
 import { cn } from '../../utils/cn';
 
+// 等级下拉框组件 - 自动检测位置，避免超出容器，支持滚动
+const GradeDropdown = ({ grades, onSelect, onClose, buttonRef }) => {
+    const dropdownRef = useRef(null);
+    const [position, setPosition] = useState('bottom'); // 'bottom' 或 'top'
+
+    useEffect(() => {
+        if (!dropdownRef.current || !buttonRef?.current) return;
+
+        const checkPosition = () => {
+            const button = buttonRef.current;
+            if (!button) return;
+
+            const buttonRect = button.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const dropdownHeight = 180; // 最大高度
+            const spaceBelow = viewportHeight - buttonRect.bottom;
+            const spaceAbove = buttonRect.top;
+
+            // 如果下方空间不足，且上方空间足够，则向上展开
+            if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+                setPosition('top');
+            } else {
+                setPosition('bottom');
+            }
+        };
+
+        // 延迟检查，确保 DOM 已渲染
+        setTimeout(checkPosition, 0);
+    }, [buttonRef]);
+
+    return (
+        <motion.div
+            ref={dropdownRef}
+            initial={{ opacity: 0, y: position === 'top' ? -10 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: position === 'top' ? -10 : 10 }}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className={cn(
+                "title-selector-dropdown grade-dropdown",
+                position === 'top' && "bottom-full mb-2"
+            )}
+            onClick={(e) => e.stopPropagation()}
+            style={position === 'top' ? { top: 'auto', bottom: '100%', marginTop: 0 } : {}}
+        >
+            <div
+                className="dropdown-scroll-container"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+            >
+                {grades.map((grade) => (
+                    <button
+                        key={grade}
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSelect(grade);
+                        }}
+                        className="title-selector-option"
+                    >
+                        {grade}
+                    </button>
+                ))}
+            </div>
+        </motion.div>
+    );
+};
+
 const presetTitles = [
     "柔软度等级",
     "上肢力量等级",
@@ -32,13 +100,14 @@ const titlesWithGrade = [
     "下肢力量等级",
     "协调性等级",
     "核心稳定性等级",
-    "旋转爆发力等级"
+    "旋转爆发力等级",
+    "心肺耐力" // 添加心肺耐力，也需要等级选择器
 ];
 
 // 定义等级范围的辅助函数
 const getGradeOptions = (title) => {
-    // 统一改为 L1-L8
-    return Array.from({ length: 8 }, (_, i) => `L${i + 1}`);
+    // 身体素质测评只支持 L1-L4
+    return Array.from({ length: 4 }, (_, i) => `L${i + 1}`);
 };
 
 // ✅ 中文标题 -> problem_category enum 映射（关键）
@@ -80,6 +149,8 @@ const PhysicalDiagnosisItem = forwardRef(({
     const [showGradeSelector, setShowGradeSelector] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const inputRef = useRef(null);
+    const cardRef = useRef(null);
+    const gradeButtonRef = useRef(null);
 
     // 获取标题的翻译显示文本
     const getTitleDisplay = (title) => {
@@ -120,9 +191,17 @@ const PhysicalDiagnosisItem = forwardRef(({
         }
     }, [showGradeSelector]);
 
+
     return (
         <motion.div
-            ref={ref}
+            ref={(node) => {
+                cardRef.current = node;
+                if (typeof ref === 'function') {
+                    ref(node);
+                } else if (ref) {
+                    ref.current = node;
+                }
+            }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
@@ -156,10 +235,11 @@ const PhysicalDiagnosisItem = forwardRef(({
                                 <ChevronDown size={12} className={cn("transition-transform shrink-0", showTitleSelector === item.id && "rotate-180")} />
                             </button>
 
-                            {/* 等级下拉框 - 显示逻辑改为：只要不是心肺耐力，或者只要是自定义项，都允许选等级 */}
+                            {/* 等级下拉框 - 显示逻辑：在 titlesWithGrade 列表中的标题或自定义项都显示等级选择器 */}
                             {(item.isCustom || titlesWithGrade.includes(item.title)) && (
                                 <div className="relative-container">
                                     <button
+                                        ref={gradeButtonRef}
                                         type="button"
                                         onClick={(e) => {
                                             e.preventDefault();
@@ -174,36 +254,15 @@ const PhysicalDiagnosisItem = forwardRef(({
 
                                     <AnimatePresence>
                                         {showGradeSelector && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: 10 }}
-                                                onWheel={(e) => e.stopPropagation()}
-                                                onTouchStart={(e) => e.stopPropagation()}
-                                                className="title-selector-dropdown w-20"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <div
-                                                    className="dropdown-scroll-container"
-                                                    onPointerDown={(e) => e.stopPropagation()}
-                                                    onMouseDown={(e) => e.stopPropagation()}
-                                                >
-                                                    {getGradeOptions(item.title).map((grade) => (
-                                                        <button
-                                                            key={grade}
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                updateItem(item.id, { grade });
-                                                                setShowGradeSelector(false);
-                                                            }}
-                                                            className="title-selector-option"
-                                                        >
-                                                            {grade}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </motion.div>
+                                            <GradeDropdown
+                                                buttonRef={gradeButtonRef}
+                                                grades={getGradeOptions(item.title)}
+                                                onSelect={(grade) => {
+                                                    updateItem(item.id, { grade });
+                                                    setShowGradeSelector(false);
+                                                }}
+                                                onClose={() => setShowGradeSelector(false)}
+                                            />
                                         )}
                                     </AnimatePresence>
                                 </div>

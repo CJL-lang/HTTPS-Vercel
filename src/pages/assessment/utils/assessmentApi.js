@@ -209,27 +209,31 @@ export const updateDiagnosisToBackend = async (assessmentId, content, user, lang
 };
 
 export const saveStykuDataToBackend = async (assessmentId, stykuData, user, language = 'cn') => {
-    if (!user?.token || !assessmentId) return null;
+    if (!user?.token || !assessmentId) {
+        console.warn('[API] POST /styku: Missing token or assessmentId', { hasToken: !!user?.token, assessmentId });
+        return null;
+    }
 
     try {
+        // 确保所有必需字段都有值，避免发送 null 或 undefined
         const payload = {
-            assessment_id: assessmentId,
-            height: parseFloat(stykuData.height) || 0,
-            weight: parseFloat(stykuData.weight) || 0,
-            sitting_height: parseFloat(stykuData.sittingHeight) || 0,
-            bmi: parseFloat(stykuData.bmi) || 0,
-            chest: parseFloat(stykuData.torso?.chest) || 0,
-            waist: parseFloat(stykuData.torso?.waist) || 0,
-            hip: parseFloat(stykuData.torso?.hip) || 0,
-            upper_arm: parseFloat(stykuData.upperLimbs?.upperArm) || 0,
-            forearm: parseFloat(stykuData.upperLimbs?.forearm) || 0,
-            thigh: parseFloat(stykuData.lowerLimbs?.thigh) || 0,
-            calf: parseFloat(stykuData.lowerLimbs?.calf) || 0,
-            language: language
+            assessment_id: assessmentId.toString(), // 确保是字符串
+            height: stykuData.height != null ? parseFloat(stykuData.height) : 0,
+            weight: stykuData.weight != null ? parseFloat(stykuData.weight) : 0,
+            sitting_height: stykuData.sittingHeight != null ? parseFloat(stykuData.sittingHeight) : 0,
+            bmi: stykuData.bmi != null ? parseFloat(stykuData.bmi) : 0,
+            chest: stykuData.torso?.chest != null ? parseFloat(stykuData.torso.chest) : 0,
+            waist: stykuData.torso?.waist != null ? parseFloat(stykuData.torso.waist) : 0,
+            hip: stykuData.torso?.hip != null ? parseFloat(stykuData.torso.hip) : 0,
+            upper_arm: stykuData.upperLimbs?.upperArm != null ? parseFloat(stykuData.upperLimbs.upperArm) : 0,
+            forearm: stykuData.upperLimbs?.forearm != null ? parseFloat(stykuData.upperLimbs.forearm) : 0,
+            thigh: stykuData.lowerLimbs?.thigh != null ? parseFloat(stykuData.lowerLimbs.thigh) : 0,
+            calf: stykuData.lowerLimbs?.calf != null ? parseFloat(stykuData.lowerLimbs.calf) : 0
         };
+        
         // 只在有备注时添加 notes 字段
-        if (stykuData.notes) {
-            payload.notes = stykuData.notes;
+        if (stykuData.notes && stykuData.notes.trim()) {
+            payload.notes = stykuData.notes.trim();
         }
 
         console.log('[API] POST /styku payload:', payload);
@@ -252,6 +256,7 @@ export const saveStykuDataToBackend = async (assessmentId, stykuData, user, lang
         } else {
             const errData = await response.text();
             console.error('[API] POST /styku failed:', response.status, errData);
+            console.error('[API] POST /styku request payload was:', payload);
             return null;
         }
     } catch (error) {
@@ -264,17 +269,28 @@ export const saveMentalDataToBackend = async (assessmentId, mentalData, user, la
     if (!user?.token || !assessmentId) return null;
 
     try {
+        // 根据后端文档，需要 focus, stress, stability 字段
         const payload = {
             assessment_id: assessmentId,
             focus: parseInt(mentalData.focus) || 0,
-            stability: parseInt(mentalData.stability) || 0,
-            confidence: parseInt(mentalData.confidence) || 0,
-            language: language
+            stress: parseInt(mentalData.stress) || 0,
+            stability: parseInt(mentalData.stability) || 0
         };
+        
+        // 如果提供了 confidence，也包含进去（虽然文档中没有，但可能后端支持）
+        if (mentalData.confidence !== undefined) {
+            payload.confidence = parseInt(mentalData.confidence) || 0;
+        }
+        
+        // 如果提供了 notes，也包含进去
+        if (mentalData.notes) {
+            payload.notes = mentalData.notes;
+        }
 
-        console.log('[API] POST /mental payload:', payload);
+        console.log('[API] POST /mentalData payload:', payload);
 
-        const response = await fetch('/api/mental', {
+        // 后端路由是 /mentalData，不是 /mental
+        const response = await fetch('/api/mentalData', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -283,53 +299,57 @@ export const saveMentalDataToBackend = async (assessmentId, mentalData, user, la
             body: JSON.stringify(payload),
         });
 
-        console.log('[API] POST /mental response status:', response.status);
+        console.log('[API] POST /mentalData response status:', response.status);
 
         if (response.ok) {
-            console.log('[API] POST /mental success');
+            const result = await response.json();
+            console.log('[API] POST /mentalData success:', result);
             return assessmentId;
         } else {
             const errData = await response.text();
-            console.error('[API] POST /mental failed:', response.status, errData);
+            console.error('[API] POST /mentalData failed:', response.status, errData);
             return null;
         }
     } catch (error) {
-        console.error('[API] POST /mental error:', error);
+        console.error('[API] POST /mentalData error:', error);
         return null;
     }
 };
 
 export const saveTrackmanDataToBackend = async (assessmentId, trackmanData, user, language = 'cn') => {
-    if (!user?.token || !assessmentId) return null;
+    if (!user?.token || !assessmentId) {
+        console.warn('[API] POST /trackman: Missing token or assessmentId', { hasToken: !!user?.token, assessmentId });
+        return null;
+    }
 
     try {
+        // 根据后端文档，trackman POST 不需要 language 字段
         // 将前端嵌套结构扁平化为后端期望的字段
         const payload = {
-            assessment_id: assessmentId,
-            ball_speed: parseFloat(trackmanData.layerA?.ballSpeed) || 0,
-            launch_angle: parseFloat(trackmanData.layerA?.launchAngle) || 0,
+            assessment_id: assessmentId.toString(), // 确保是字符串
+            ball_speed: trackmanData.layerA?.ballSpeed != null && trackmanData.layerA.ballSpeed !== '' ? parseFloat(trackmanData.layerA.ballSpeed) : 0,
+            launch_angle: trackmanData.layerA?.launchAngle != null && trackmanData.layerA.launchAngle !== '' ? parseFloat(trackmanData.layerA.launchAngle) : 0,
             launch_direction: trackmanData.layerA?.launchDirection || "",
-            spin_rate: parseInt(trackmanData.layerA?.spinRate) || 0,
+            spin_rate: trackmanData.layerA?.spinRate != null && trackmanData.layerA.spinRate !== '' ? parseInt(trackmanData.layerA.spinRate) : 0,
             spin_axis: trackmanData.layerA?.spinAxis || "",
-            carry: parseInt(trackmanData.layerA?.carry) || 0,
-            landing_angle: parseFloat(trackmanData.layerA?.landingAngle) || 0,
+            carry: trackmanData.layerA?.carry != null && trackmanData.layerA.carry !== '' ? parseInt(trackmanData.layerA.carry) : 0,
+            landing_angle: trackmanData.layerA?.landingAngle != null && trackmanData.layerA.landingAngle !== '' ? parseFloat(trackmanData.layerA.landingAngle) : 0,
             offline: trackmanData.layerA?.offline || "",
-            club_speed: parseFloat(trackmanData.layerB?.clubSpeed) || 0,
-            attack_angle: parseFloat(trackmanData.layerB?.attackAngle) || 0,
-            club_path: parseFloat(trackmanData.layerB?.clubPath) || 0,
-            face_angle: parseFloat(trackmanData.layerB?.faceAngle) || 0,
-            face_to_path: parseFloat(trackmanData.layerB?.faceToPath) || 0,
-            dynamic_loft: parseFloat(trackmanData.layerB?.dynamicLoft) || 0,
-            smash_factor: parseFloat(trackmanData.layerB?.smashFactor) || 0,
-            spin_loft: parseFloat(trackmanData.layerB?.spinLoft) || 0,
+            club_speed: trackmanData.layerB?.clubSpeed != null && trackmanData.layerB.clubSpeed !== '' ? parseFloat(trackmanData.layerB.clubSpeed) : 0,
+            attack_angle: trackmanData.layerB?.attackAngle != null && trackmanData.layerB.attackAngle !== '' ? parseFloat(trackmanData.layerB.attackAngle) : 0,
+            club_path: trackmanData.layerB?.clubPath != null && trackmanData.layerB.clubPath !== '' ? parseFloat(trackmanData.layerB.clubPath) : 0,
+            face_angle: trackmanData.layerB?.faceAngle != null && trackmanData.layerB.faceAngle !== '' ? parseFloat(trackmanData.layerB.faceAngle) : 0,
+            face_to_path: trackmanData.layerB?.faceToPath != null && trackmanData.layerB.faceToPath !== '' ? parseFloat(trackmanData.layerB.faceToPath) : 0,
+            dynamic_loft: trackmanData.layerB?.dynamicLoft != null && trackmanData.layerB.dynamicLoft !== '' ? parseFloat(trackmanData.layerB.dynamicLoft) : 0,
+            smash_factor: trackmanData.layerB?.smashFactor != null && trackmanData.layerB.smashFactor !== '' ? parseFloat(trackmanData.layerB.smashFactor) : 0,
+            spin_loft: trackmanData.layerB?.spinLoft != null && trackmanData.layerB.spinLoft !== '' ? parseFloat(trackmanData.layerB.spinLoft) : 0,
             low_point: trackmanData.layerC?.lowPoint || "",
             impact_offset: trackmanData.layerC?.impactOffset || "",
-            indexing: trackmanData.layerC?.indexing || "",
-            language: language
+            indexing: trackmanData.layerC?.indexing || ""
         };
         // 只在有备注时添加 notes 字段
-        if (trackmanData.notes) {
-            payload.notes = trackmanData.notes;
+        if (trackmanData.notes && trackmanData.notes.trim()) {
+            payload.notes = trackmanData.notes.trim();
         }
 
         console.log('[API] POST /trackman payload:', payload);
@@ -346,11 +366,13 @@ export const saveTrackmanDataToBackend = async (assessmentId, trackmanData, user
         console.log('[API] POST /trackman response status:', response.status);
 
         if (response.ok) {
-            console.log('[API] POST /trackman success');
+            const result = await response.json();
+            console.log('[API] POST /trackman success:', result);
             return assessmentId;
         } else {
             const errData = await response.text();
             console.error('[API] POST /trackman failed:', response.status, errData);
+            console.error('[API] POST /trackman request payload was:', payload);
             return null;
         }
     } catch (error) {
@@ -670,16 +692,23 @@ export const updateMentalDataToBackend = async (assessmentId, data, user, langua
     if (!user?.token || !assessmentId) return false;
     try {
         // 后端 PATCH 使用 DisallowUnknownFields：只发送后端 struct 支持的字段
-        // 这里与 POST 保持一致：focus/stability/confidence（数值）
+        // 根据后端文档，需要 focus/stress/stability 字段
         const payload = {
             assessment_id: assessmentId,
             focus: parseInt(data?.focus) || 0,
-            stability: parseInt(data?.stability) || 0,
-            confidence: parseInt(data?.confidence) || 0,
-            language: language
+            stress: parseInt(data?.stress) || 0,
+            stability: parseInt(data?.stability) || 0
         };
+        
+        // 如果提供了 confidence，也包含进去（虽然文档中没有，但可能后端支持）
+        if (data?.confidence !== undefined) {
+            payload.confidence = parseInt(data.confidence) || 0;
+        }
 
-        const response = await fetch('/api/mental', {
+        console.log('[API] PATCH /mentalData payload:', payload);
+
+        // 后端路由是 /mentalData，不是 /mental
+        const response = await fetch('/api/mentalData', {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -687,9 +716,12 @@ export const updateMentalDataToBackend = async (assessmentId, data, user, langua
             },
             body: JSON.stringify(payload),
         });
+        
+        console.log('[API] PATCH /mentalData response status:', response.status);
+        
         if (!response.ok) {
             const errText = await response.text();
-            console.error('[API] PATCH /mental failed:', response.status, errText);
+            console.error('[API] PATCH /mentalData failed:', response.status, errText);
         }
         return response.ok;
     } catch (error) {

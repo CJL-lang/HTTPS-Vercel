@@ -8,19 +8,124 @@
  *   - 支持动态添加自定义诊断项
  * 使用场景：新增测评记录页面的技能测评-诊断步骤
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, ClipboardCheck, Sparkles, Plus, X, ChevronDown } from 'lucide-react';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
 
+// 等级下拉框组件 - 自动检测位置，避免超出容器，支持滚动（技能测评使用 L1-L9）
+const GradeDropdown = ({ grades, onSelect, onClose, buttonRef }) => {
+    const dropdownRef = useRef(null);
+    const [position, setPosition] = useState('bottom'); // 'bottom' 或 'top'
+
+    useEffect(() => {
+        if (!dropdownRef.current || !buttonRef?.current) return;
+
+        const checkPosition = () => {
+            const button = buttonRef.current;
+            if (!button) return;
+
+            const buttonRect = button.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const dropdownHeight = 200; // 最大高度（L1-L9 需要更多空间）
+            const spaceBelow = viewportHeight - buttonRect.bottom;
+            const spaceAbove = buttonRect.top;
+
+            // 如果下方空间不足，且上方空间足够，则向上展开
+            if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+                setPosition('top');
+            } else {
+                setPosition('bottom');
+            }
+        };
+
+        // 延迟检查，确保 DOM 已渲染
+        setTimeout(checkPosition, 0);
+    }, [buttonRef]);
+
+    return (
+        <motion.div
+            ref={dropdownRef}
+            initial={{ opacity: 0, y: position === 'top' ? -10 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: position === 'top' ? -10 : 10 }}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            className={cn(
+                "title-selector-dropdown grade-dropdown",
+                position === 'top' && "bottom-full mb-2"
+            )}
+            onClick={(e) => e.stopPropagation()}
+            style={position === 'top' ? { top: 'auto', bottom: '100%', marginTop: 0 } : {}}
+        >
+            <div
+                className="dropdown-scroll-container"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+            >
+                {grades.map((grade) => (
+                    <button
+                        key={grade}
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSelect(grade);
+                        }}
+                        className="title-selector-option"
+                    >
+                        {grade}
+                    </button>
+                ))}
+            </div>
+        </motion.div>
+    );
+};
+
+// 等级选择器组件 - 封装按钮和下拉框
+const LevelSelector = ({ currentLevel, onSelect, levels }) => {
+    const [showGradeSelector, setShowGradeSelector] = useState(false);
+    const gradeButtonRef = useRef(null);
+
+    return (
+        <div className="relative-container">
+            <button
+                ref={gradeButtonRef}
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowGradeSelector(!showGradeSelector);
+                }}
+                className="title-selector-btn"
+            >
+                <span className="truncate">{currentLevel || 'L1'}</span>
+                <ChevronDown size={12} className={cn("transition-transform shrink-0", showGradeSelector && "rotate-180")} />
+            </button>
+
+            <AnimatePresence>
+                {showGradeSelector && (
+                    <GradeDropdown
+                        buttonRef={gradeButtonRef}
+                        grades={levels}
+                        onSelect={(level) => {
+                            onSelect(level);
+                            setShowGradeSelector(false);
+                        }}
+                        onClose={() => setShowGradeSelector(false)}
+                    />
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
 const SkillsDiagnosis = ({ data, update }) => {
     const { t } = useLanguage();
     const { isListening, startListening } = useVoiceInput();
     const [listeningField, setListeningField] = useState(null);
     const [openSelector, setOpenSelector] = useState(null);
-    const [openLevelSelector, setOpenLevelSelector] = useState(null);
 
     // 同步自定义诊断项到 recordData
     const customItems = data.skillsDiagnosis || [];
@@ -36,13 +141,12 @@ const SkillsDiagnosis = ({ data, update }) => {
     useEffect(() => {
         const handleClickOutside = () => {
             if (openSelector) setOpenSelector(null);
-            if (openLevelSelector) setOpenLevelSelector(null);
         };
-        if (openSelector || openLevelSelector) {
+        if (openSelector) {
             window.addEventListener('click', handleClickOutside);
         }
         return () => window.removeEventListener('click', handleClickOutside);
-    }, [openSelector, openLevelSelector]);
+    }, [openSelector]);
 
     const updateField = (key, val) => {
         update(`diagnosisData.${key}`, val);
@@ -60,7 +164,7 @@ const SkillsDiagnosis = ({ data, update }) => {
 
     // 自定义诊断项的选项配置 - 使用翻译键（木杆位于第3位）
     const clubOptions = ["clubDriver", "clubMainIron", "clubWood", "clubPutting", "clubScrambling", "clubFinesseWedges", "clubIrons"];
-    const levelOptions = ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8"];
+    const levelOptions = ["L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9"]; // 技能测评支持 L1-L9
 
     // 添加自定义诊断项 - 默认选择"铁杆"
     const addCustomItem = () => {
@@ -144,43 +248,13 @@ const SkillsDiagnosis = ({ data, update }) => {
                                                 <span className="truncate">{item.label}</span>
                                             </label>
                                             {/* 等级选择器 */}
-                                            <div className="relative">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        setOpenLevelSelector(openLevelSelector === item.key ? null : item.key);
-                                                    }}
-                                                    className="title-selector-btn"
-                                                >
-                                                    <span className="truncate">{getDiagnosisLevel(item.key)}</span>
-                                                    <ChevronDown size={12} className={cn("transition-transform shrink-0", openLevelSelector === item.key && "rotate-180")} />
-                                                </button>
-                                                {openLevelSelector === item.key && (
-                                                    <div
-                                                        className="title-selector-dropdown"
-                                                        onMouseDown={(e) => e.stopPropagation()}
-                                                    >
-                                                        <div className="dropdown-scroll-container">
-                                                            {levelOptions.map((level) => (
-                                                                <button
-                                                                    key={level}
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        updateDiagnosisLevel(item.key, level);
-                                                                        setOpenLevelSelector(null);
-                                                                    }}
-                                                                    className="title-selector-option"
-                                                                >
-                                                                    {level}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <LevelSelector
+                                                currentLevel={getDiagnosisLevel(item.key)}
+                                                onSelect={(level) => {
+                                                    updateDiagnosisLevel(item.key, level);
+                                                }}
+                                                levels={levelOptions}
+                                            />
                                         </div>
                                         <button
                                             onClick={() => {
@@ -264,43 +338,13 @@ const SkillsDiagnosis = ({ data, update }) => {
                                     </div>
 
                                     {/* 等级选择器 */}
-                                    <div className="relative">
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setOpenSelector(openSelector === `level-${item.id}` ? null : `level-${item.id}`);
-                                            }}
-                                            className="title-selector-btn"
-                                        >
-                                            <span className="truncate">{item.level}</span>
-                                            <ChevronDown size={12} className={cn("transition-transform shrink-0", openSelector === `level-${item.id}` && "rotate-180")} />
-                                        </button>
-                                        {openSelector === `level-${item.id}` && (
-                                            <div
-                                                className="title-selector-dropdown"
-                                                onMouseDown={(e) => e.stopPropagation()}
-                                            >
-                                                <div className="dropdown-scroll-container">
-                                                    {levelOptions.map((option) => (
-                                                        <button
-                                                            key={option}
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                updateCustomItem(item.id, 'level', option);
-                                                                setOpenSelector(null);
-                                                            }}
-                                                            className="title-selector-option"
-                                                        >
-                                                            {option}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
+                                    <LevelSelector
+                                        currentLevel={item.level}
+                                        onSelect={(level) => {
+                                            updateCustomItem(item.id, 'level', level);
+                                        }}
+                                        levels={levelOptions}
+                                    />
                                 </div>
 
                                 {/* 语音输入和删除按钮 */}

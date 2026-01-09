@@ -5,7 +5,7 @@ import { useLanguage } from '../../utils/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TextSection, DynamicSection } from '../../components/reports/ReportSharedComponents';
 import RadarChart from '../../components/reports/RadarChart';
-import { createAssessment } from '../assessment/utils/assessmentApi';
+import { createAssessment, updateAssessment } from '../assessment/utils/assessmentApi';
 import { diagnosesToRadarGradeData } from '../../utils/diagnosesToRadar';
 import { createAIReport, getBackendLang } from './utils/aiReportApi';
 
@@ -41,12 +41,12 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
 
                 // 使用新的 AI Report 接口
                 const response = await fetch(`/api/AIReport/${id}`, { headers });
-                
+
                 // 如果返回 404，自动创建 AI 报告
                 if (response.status === 404) {
                     console.log('[PhysicalReportDetailPage] AI report not found, creating empty report');
                     const { createAIReport } = await import('./utils/aiReportApi');
-                    
+
                     // 创建空的 AI 报告
                     const created = await createAIReport(id);
                     if (created) {
@@ -61,7 +61,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                         return;
                     }
                 }
-                
+
                 if (!response.ok) throw new Error('Failed to fetch AI report data');
 
                 const data = await response.json();
@@ -287,7 +287,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
 
             // 直接使用 singleAssess 接口
             const response = await fetch(`/api/singleAssess/${id}`, { headers });
-            
+
             if (!response.ok) {
                 const errorText = await response.text().catch(() => '');
                 throw new Error(errorText || `Failed to fetch assessment data (${response.status})`);
@@ -396,7 +396,27 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
         }
     };
 
-    const handleBack = () => {
+    const handleBack = async () => {
+        // 在返回前，更新 assessment 的标题（如果有 assessmentId）
+        const assessmentId = id; // id 来自 URL 参数，就是 assessmentId
+        const currentTitle = passedTitle || reportData?.title;
+
+        if (assessmentId && currentTitle) {
+            try {
+                const userJson = localStorage.getItem('user');
+                const user = userJson ? JSON.parse(userJson) : null;
+
+                if (user?.token) {
+                    console.log('[PhysicalReportDetailPage] handleBack: Updating assessment before navigation', { assessmentId, title: currentTitle });
+                    await updateAssessment(assessmentId, { title: currentTitle }, user);
+                    console.log('[PhysicalReportDetailPage] handleBack: Assessment updated successfully');
+                }
+            } catch (error) {
+                console.error('[PhysicalReportDetailPage] handleBack: Failed to update assessment', error);
+                // 即使更新失败，也继续执行返回操作
+            }
+        }
+
         // 返回到历史测评列表页面
         const backStudentId =
             reportData?.studentId ||
