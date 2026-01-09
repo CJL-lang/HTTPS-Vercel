@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Clock, CheckCircle, Brain } from 'lucide-rea
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '../../utils/LanguageContext';
 import { createAssessment } from '../assessment/utils/assessmentApi';
+import { loadAssessmentStep } from '../assessment/utils/assessmentProgress';
 
 const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const { id } = useParams();
@@ -52,7 +53,7 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                         status: c.status === '已完成' ? 'completed' : 'draft', // 后端返回中文状态
                         date: new Date(c.timestamp).toLocaleDateString(),
                         completedAt: c.timestamp,
-                        currentStep: 3
+                        currentStep: c.status === '已完成' ? 3 : 0
                     }));
                 }
             } catch (error) {
@@ -73,8 +74,11 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const handleRecordClick = (record) => {
         if (record.status === 'draft') {
             const stepMap = ['data', 'diagnosis', 'plan', 'goal'];
+            const savedStep = loadAssessmentStep({ userId: user?.id || 'guest', assessmentId: record.id });
+            const targetStep = savedStep ?? (record.currentStep ?? 0);
             if (navigate) {
-                navigate(`/add-record/mental/${stepMap[record.currentStep || 0]}`, {
+                navigate(`/add-record/mental/${stepMap[targetStep]}`,
+                {
                     state: {
                         student,
                         assessmentData: {
@@ -89,7 +93,7 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
             }
         } else if (navigate) {
             // 跳转到已完成报告的详情页
-            navigate(`/mental-report/${record.id}`);
+            navigate(`/mental-report/${record.id}`, { state: { title: record.title } });
         }
     };
 

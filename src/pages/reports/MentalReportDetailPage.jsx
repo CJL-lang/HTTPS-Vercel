@@ -14,6 +14,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const passedTitle = location.state?.title || location.state?.assessmentData?.title;
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [expandedMetrics, setExpandedMetrics] = useState({});
@@ -175,7 +176,8 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                 // 组装数据
                 setReportData({
                     id: id,
-                    title: t('mentalReportTitle'),
+                    studentId: data.student_id,
+                    title: passedTitle || t('mentalReportTitle'),
                     date: data.created_at ? new Date(data.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
 
                     // 训练引言
@@ -359,13 +361,23 @@ const MentalReportDetailPage = ({ onBack, student }) => {
 
     const handleBack = () => {
         // 返回到历史测评列表页面
-        if (student?.id) {
-            navigate(`/student/${student.id}/mental-report`);
-        } else if (onBack) {
-            onBack();
-        } else {
-            navigate('/mental-report');
+        const backStudentId =
+            reportData?.studentId ||
+            student?.id ||
+            location.state?.studentId ||
+            location.state?.student?.id;
+
+        if (backStudentId) {
+            navigate(`/student/${backStudentId}/mental-report`);
+            return;
         }
+
+        if (onBack) {
+            onBack();
+            return;
+        }
+
+        navigate('/mental-report');
     };
 
     const handleSaveAndGoHome = () => {
@@ -448,7 +460,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                 >
                     <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
                 </button>
-                <h1 className="report-detail-title">{reportData.title}</h1>
+                <h1 className="report-detail-title">{passedTitle || reportData.title}</h1>
             </div>
 
             <div className="report-detail-content">

@@ -13,6 +13,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
+    const passedTitle = location.state?.title || location.state?.assessmentData?.title;
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isTrackmanDataExpanded, setIsTrackmanDataExpanded] = useState(false);
@@ -239,7 +240,8 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 // 组装数据
                 const report = {
                     id: id,
-                    title: t('skillsReportTitle'),
+                    studentId: data.student_id,
+                    title: passedTitle || t('skillsReportTitle'),
                     date: trackmanData.created_at ? new Date(trackmanData.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
 
                     // 训练引言
@@ -437,13 +439,23 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
     const handleBack = () => {
         // 返回到历史测评列表页面
-        if (student?.id) {
-            navigate(`/student/${student.id}/skills-report`);
-        } else if (onBack) {
-            onBack();
-        } else {
-            navigate('/skills-report');
+        const backStudentId =
+            reportData?.studentId ||
+            student?.id ||
+            location.state?.studentId ||
+            location.state?.student?.id;
+
+        if (backStudentId) {
+            navigate(`/student/${backStudentId}/skills-report`);
+            return;
         }
+
+        if (onBack) {
+            onBack();
+            return;
+        }
+
+        navigate('/skills-report');
     };
 
     const handleSaveAndGoHome = () => {
@@ -526,7 +538,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 >
                     <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
                 </button>
-                <h1 className="report-detail-title">{reportData.title}</h1>
+                <h1 className="report-detail-title">{passedTitle || reportData.title}</h1>
             </div>
 
             <div className="report-detail-content">
