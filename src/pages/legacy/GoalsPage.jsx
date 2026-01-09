@@ -12,7 +12,7 @@ import { useLanguage } from '../../utils/LanguageContext';
 
 const GoalsPage = ({ data, setData, onBack, onNext }) => {
     const { t } = useLanguage();
-    const { isListening, startListening } = useVoiceInput();
+    const { isListening, startListening, stopListening } = useVoiceInput();
 
     return (
         <PageWrapper
@@ -61,7 +61,13 @@ const GoalsPage = ({ data, setData, onBack, onNext }) => {
                         onChange={e => setData({ ...data, goal: e.target.value })}
                     />
                     <button
-                        onClick={() => startListening((text) => setData({ ...data, goal: text }))}
+                        onClick={() => {
+                            if (isListening) {
+                                stopListening();
+                            } else {
+                                startListening((text) => setData({ ...data, goal: text }));
+                            }
+                        }}
                         className="absolute right-2 top-2 p-2 hover:surface rounded-xl transition-colors group"
                     >
                         <Mic size={18} className={isListening ? "text-[#d4af37] animate-pulse" : "text-white/60 group-hover:text-[#d4af37] transition-colors"} />

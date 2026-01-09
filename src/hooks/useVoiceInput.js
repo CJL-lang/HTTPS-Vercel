@@ -125,6 +125,13 @@ export const useVoiceInput = () => {
     const streamRef = useRef(null);
     const onResultCallbackRef = useRef(null);
     const timeoutRef = useRef(null);
+    const audioContextRef = useRef(null);
+    const processorRef = useRef(null);
+    const sourceRef = useRef(null);
+    const audioChunksRef = useRef([]);
+    const actualSampleRateRef = useRef(0);
+    const segmentIntervalRef = useRef(null);
+    const lastProcessedIndexRef = useRef(0);
 
     // 检查浏览器是否支持必要的 API
     useState(() => {
@@ -133,11 +140,94 @@ export const useVoiceInput = () => {
         }
     });
 
+    // 处理当前累积的音频数据（用于分段识别）
+    const processCurrentSegment = useCallback(async (isPartial = true) => {
+        const totalChunks = audioChunksRef.current.length;
+        const lastProcessedIndex = lastProcessedIndexRef.current;
+
+        // 如果没有新的数据块，跳过
+        if (totalChunks <= lastProcessedIndex) {
+            return;
+        }
+
+        const audioChunks = audioChunksRef.current;
+        const actualSampleRate = actualSampleRateRef.current;
+
+        // 合并所有音频数据（包括已处理的）
+        const totalLength = audioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
+        const mergedAudio = new Float32Array(totalLength);
+        let offset = 0;
+        for (const chunk of audioChunks) {
+            mergedAudio.set(chunk, offset);
+            offset += chunk.length;
+        }
+
+        const duration = totalLength / actualSampleRate;
+
+        // 至少需要 0.5 秒才进行识别
+        if (duration < 0.5) {
+            return;
+        }
+
+        console.log(`${isPartial ? '📝 分段' : '🎯 最终'}识别: ${duration.toFixed(2)}秒音频`);
+
+        try {
+            // 重采样到 16000Hz
+            const targetSampleRate = 16000;
+            const ratio = actualSampleRate / targetSampleRate;
+            const newLength = Math.round(totalLength / ratio);
+            const resampled = new Float32Array(newLength);
+
+            for (let i = 0; i < newLength; i++) {
+                const srcIndex = i * ratio;
+                const index = Math.floor(srcIndex);
+                const fraction = srcIndex - index;
+
+                if (index + 1 < mergedAudio.length) {
+                    resampled[i] = mergedAudio[index] * (1 - fraction) + mergedAudio[index + 1] * fraction;
+                } else {
+                    resampled[i] = mergedAudio[index];
+                }
+            }
+
+            // 转换为 16-bit PCM
+            const pcmData = floatTo16BitPCM(resampled);
+
+            // 获取 token 并识别
+            const accessToken = await getBaiduAccessToken();
+            const result = await recognizeSpeech(pcmData, accessToken);
+
+            if (result && onResultCallbackRef.current) {
+                // 实时更新识别结果
+                onResultCallbackRef.current(result);
+            }
+
+            // 更新已处理的索引
+            lastProcessedIndexRef.current = totalChunks;
+        } catch (error) {
+            console.error('分段识别失败:', error);
+            // 分段识别失败不弹窗，避免打断用户
+        }
+    }, []);
+
+    // 处理录音数据的函数（最终处理）
+    const processRecording = useCallback(async () => {
+        if (!audioChunksRef.current.length) {
+            console.log('无录音数据');
+            return;
+        }
+
+        // 执行最后一次完整识别
+        await processCurrentSegment(false);
+    }, [processCurrentSegment]);
+
     // 开始录音
     const startListening = useCallback(async (onResult) => {
         if (isListening) return;
 
         onResultCallbackRef.current = onResult;
+        audioChunksRef.current = [];
+        lastProcessedIndexRef.current = 0;
 
         try {
             // 请求麦克风权限
@@ -159,118 +249,34 @@ export const useVoiceInput = () => {
             const source = audioContext.createMediaStreamSource(stream);
             const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-            const audioChunks = [];
-            const actualSampleRate = audioContext.sampleRate;
+            audioContextRef.current = audioContext;
+            processorRef.current = processor;
+            sourceRef.current = source;
+            actualSampleRateRef.current = audioContext.sampleRate;
 
-            console.log('开始录音，实际采样率:', actualSampleRate, 'Hz');
+            console.log('🎤 开始录音（实时识别模式），实际采样率:', audioContext.sampleRate, 'Hz');
+            console.log('💡 每3秒自动识别一次，最长30秒，可随时点击按钮停止');
 
             processor.onaudioprocess = (e) => {
                 if (streamRef.current) {
                     const inputData = e.inputBuffer.getChannelData(0);
-                    audioChunks.push(new Float32Array(inputData));
+                    audioChunksRef.current.push(new Float32Array(inputData));
                 }
             };
 
             source.connect(processor);
             processor.connect(audioContext.destination);
 
-            // 8秒后自动停止（增加录音时长以获得更好的识别效果）
-            timeoutRef.current = setTimeout(async () => {
-                // 停止录音
-                processor.disconnect();
-                source.disconnect();
+            // 启动分段识别定时器（每3秒识别一次）
+            segmentIntervalRef.current = setInterval(() => {
+                processCurrentSegment(true);
+            }, 3000);
 
-                if (streamRef.current) {
-                    streamRef.current.getTracks().forEach(track => track.stop());
-                    streamRef.current = null;
-                }
-
-                setIsListening(false);
-                console.log('录音已停止');
-
-                // 合并音频数据
-                const totalLength = audioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
-                const mergedAudio = new Float32Array(totalLength);
-                let offset = 0;
-                for (const chunk of audioChunks) {
-                    mergedAudio.set(chunk, offset);
-                    offset += chunk.length;
-                }
-
-                const duration = totalLength / actualSampleRate;
-                console.log('原始音频:', totalLength, '采样点,', duration.toFixed(2), '秒');
-
-                if (duration < 0.5) {
-                    alert('录音时间太短，请重试');
-                    audioContext.close();
-                    return;
-                }
-
-                // 检查音频质量 - 计算平均音量
-                let sumSquares = 0;
-                for (let i = 0; i < mergedAudio.length; i++) {
-                    sumSquares += mergedAudio[i] * mergedAudio[i];
-                }
-                const rms = Math.sqrt(sumSquares / mergedAudio.length);
-                const dbfs = 20 * Math.log10(rms);
-                console.log('音频音量 RMS:', rms.toFixed(6), 'dBFS:', dbfs.toFixed(2));
-
-                if (rms < 0.001) {
-                    alert('未检测到有效音频信号，请检查麦克风或提高音量');
-                    audioContext.close();
-                    return;
-                }
-
-                try {
-                    // 重采样到 16000Hz
-                    const targetSampleRate = 16000;
-                    const ratio = actualSampleRate / targetSampleRate;
-                    const newLength = Math.round(totalLength / ratio);
-                    const resampled = new Float32Array(newLength);
-
-                    for (let i = 0; i < newLength; i++) {
-                        const srcIndex = i * ratio;
-                        const index = Math.floor(srcIndex);
-                        const fraction = srcIndex - index;
-
-                        if (index + 1 < mergedAudio.length) {
-                            resampled[i] = mergedAudio[index] * (1 - fraction) + mergedAudio[index + 1] * fraction;
-                        } else {
-                            resampled[i] = mergedAudio[index];
-                        }
-                    }
-
-                    console.log('重采样后:', resampled.length, '采样点');
-
-                    // 检查重采样后的音频质量
-                    let resampledRms = 0;
-                    for (let i = 0; i < resampled.length; i++) {
-                        resampledRms += resampled[i] * resampled[i];
-                    }
-                    resampledRms = Math.sqrt(resampledRms / resampled.length);
-                    console.log('重采样后音量 RMS:', resampledRms.toFixed(6));
-
-                    // 转换为 16-bit PCM
-                    const pcmData = floatTo16BitPCM(resampled);
-                    console.log('PCM 数据字节数:', pcmData.buffer.byteLength);
-
-                    // 输出前 20 个 PCM 样本用于调试
-                    console.log('PCM 前 20 个样本:', Array.from(pcmData.slice(0, 20)));
-
-                    // 获取 token 并识别
-                    const accessToken = await getBaiduAccessToken();
-                    const result = await recognizeSpeech(pcmData, accessToken);
-
-                    if (result && onResultCallbackRef.current) {
-                        onResultCallbackRef.current(result);
-                    }
-                } catch (error) {
-                    console.error('处理音频失败:', error);
-                    alert(`语音识别失败: ${error.message}\n请重试或手动输入`);
-                }
-
-                audioContext.close();
-            }, 8000);  // 改为 8 秒
+            // 30秒后自动停止
+            timeoutRef.current = setTimeout(() => {
+                console.log('⏱️ 已达到30秒最大录音时长，自动停止');
+                stopListening();
+            }, 30000);
 
         } catch (error) {
             console.error('启动录音失败:', error);
@@ -284,14 +290,36 @@ export const useVoiceInput = () => {
                 alert(`启动语音识别失败: ${error.message}\n请重试或手动输入`);
             }
         }
-    }, [isListening]);
+    }, [isListening, processCurrentSegment]);
 
     // 停止录音
-    const stopListening = useCallback(() => {
+    const stopListening = useCallback(async () => {
+        if (!isListening) return;
+
+        console.log('🛑 停止录音');
+
         // 清除超时
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
+        }
+
+        // 清除分段识别定时器
+        if (segmentIntervalRef.current) {
+            clearInterval(segmentIntervalRef.current);
+            segmentIntervalRef.current = null;
+        }
+
+        // 停止处理器
+        if (processorRef.current) {
+            processorRef.current.disconnect();
+            processorRef.current = null;
+        }
+
+        // 停止音频源
+        if (sourceRef.current) {
+            sourceRef.current.disconnect();
+            sourceRef.current = null;
         }
 
         // 停止音频流
@@ -301,7 +329,19 @@ export const useVoiceInput = () => {
         }
 
         setIsListening(false);
-    }, []);
+
+        // 处理最后的录音数据
+        await processRecording();
+
+        // 关闭音频上下文
+        if (audioContextRef.current) {
+            audioContextRef.current.close();
+            audioContextRef.current = null;
+        }
+
+        // 重置状态
+        lastProcessedIndexRef.current = 0;
+    }, [isListening, processRecording]);
 
     return {
         isListening,

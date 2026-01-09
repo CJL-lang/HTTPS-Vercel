@@ -11,6 +11,7 @@ import DialogBubbles from '../../components/DialogBubbles';
 import { Mic } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
+import { useVoiceInput } from '../../hooks/useVoiceInput';
 
 // Lottie 动画数据
 const animationsPaths = {
@@ -68,6 +69,9 @@ const ThreeDPage = () => {
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const inputRef = useRef(null);
+    
+    // 语音输入功能
+    const { isListening, startListening, stopListening } = useVoiceInput();
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
@@ -112,6 +116,29 @@ const ThreeDPage = () => {
             setMessages(prev => [...prev, aiMessage]);
             setIsLoading(false);
         }, 800);
+    };
+
+    // 处理语音输入
+    const handleVoiceInput = () => {
+        if (isListening) {
+            // 如果正在录音，停止录音
+            stopListening();
+        } else {
+            // 开始录音
+            startListening((text) => {
+                // 识别结果回调：将识别到的文字添加到输入框
+                if (text && text.trim()) {
+                    setInputValue(prev => {
+                        // 如果输入框已有内容，追加新内容；否则直接设置
+                        return prev ? `${prev} ${text}` : text;
+                    });
+                    // 自动聚焦到输入框
+                    if (inputRef.current) {
+                        inputRef.current.focus();
+                    }
+                }
+            });
+        }
     };
 
     // 对话页面
@@ -163,10 +190,22 @@ const ThreeDPage = () => {
                     <div className="max-w-2xl mx-auto space-y-3">
                         {/* 语音按钮 */}
                         <button
-                            className="w-full h-12 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95"
+                            onClick={handleVoiceInput}
+                            disabled={!selectedChar}
+                            className={cn(
+                                "w-full h-12 rounded-full font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95",
+                                isListening
+                                    ? "bg-gradient-to-r from-red-500 to-red-600 text-white animate-pulse"
+                                    : "bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black",
+                                !selectedChar && "opacity-50 cursor-not-allowed"
+                            )}
                         >
-                            <Mic size={20} strokeWidth={2.5} />
-                            点击说话
+                            <Mic 
+                                size={20} 
+                                strokeWidth={2.5} 
+                                className={isListening ? "animate-pulse" : ""}
+                            />
+                            {isListening ? "正在录音，点击停止" : "点击说话"}
                         </button>
 
                         {/* 文本输入 */}
