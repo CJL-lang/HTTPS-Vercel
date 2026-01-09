@@ -7,6 +7,7 @@ import { TextSection, DynamicSection } from '../../components/reports/ReportShar
 import RadarChart from '../../components/reports/RadarChart';
 import { createAssessment } from '../assessment/utils/assessmentApi';
 import { diagnosesToRadarGradeData } from '../../utils/diagnosesToRadar';
+import { createAIReport, getBackendLang } from './utils/aiReportApi';
 
 const MentalReportDetailPage = ({ onBack, student }) => {
     const { t } = useLanguage();
@@ -18,6 +19,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
     const [expandedMetrics, setExpandedMetrics] = useState({});
     const [continueTestInfo, setContinueTestInfo] = useState(null);
     const [reloadToken, setReloadToken] = useState(0);
+    const [isCreatingAIReport, setIsCreatingAIReport] = useState(false);
     // 用于防止重复加载的 Ref
     const lastFetchedIdRef = useRef(null);
 
@@ -36,7 +38,28 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                 const headers = { 'Authorization': `Bearer ${token}` };
 
                 // 使用新的 AI Report 接口
-                const response = await fetch(`http://localhost:8080/AIReport/${id}`, { headers });
+                const response = await fetch(`/api/AIReport/${id}`, { headers });
+                
+                // 如果返回 404，自动创建 AI 报告
+                if (response.status === 404) {
+                    console.log('[MentalReportDetailPage] AI report not found, creating empty report');
+                    const { createAIReport } = await import('./utils/aiReportApi');
+                    
+                    // 创建空的 AI 报告
+                    const created = await createAIReport(id);
+                    if (created) {
+                        console.log('[MentalReportDetailPage] Empty AI report created, reloading...');
+                        // 重新加载报告数据
+                        setReloadToken(token => token + 1);
+                        return;
+                    } else {
+                        console.error('[MentalReportDetailPage] Failed to create AI report');
+                        setReportData(null);
+                        setLoading(false);
+                        return;
+                    }
+                }
+                
                 if (!response.ok) throw new Error('Failed to fetch AI report data');
 
                 const data = await response.json();
@@ -44,7 +67,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                 // Fetch diagnoses grades for radar chart
                 let diagnosesGradeData = null;
                 try {
-                    const diagnosesRes = await fetch(`http://localhost:8080/diagnoses/${id}`, { headers });
+                    const diagnosesRes = await fetch(`/api/diagnoses/${id}`, { headers });
                     if (diagnosesRes.ok) {
                         const diagnosesJson = await diagnosesRes.json();
                         const mapped = diagnosesToRadarGradeData(diagnosesJson, 'mental');
@@ -216,6 +239,38 @@ const MentalReportDetailPage = ({ onBack, student }) => {
         fetchReportData();
     }, [id, t, reloadToken]);
 
+    const handleGenerateAIReport = async () => {
+        if (!id || loading || isCreatingAIReport) return;
+
+        setIsCreatingAIReport(true);
+        setLoading(true);
+        try {
+            const userJson = localStorage.getItem('user');
+            const user = userJson ? JSON.parse(userJson) : null;
+            const token = user?.token || '';
+            const headers = { 'Authorization': `Bearer ${token}` };
+
+            // 直接使用 singleAssess 接口
+            const response = await fetch(`/api/singleAssess/${id}`, { headers });
+            
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                throw new Error(errorText || `Failed to fetch assessment data (${response.status})`);
+            }
+
+            const data = await response.json();
+            console.log('[MentalReportDetailPage] Single assessment data:', data);
+
+            setReloadToken(token => token + 1);
+        } catch (error) {
+            console.error('Failed to fetch single assessment:', error);
+            alert(error?.message || '生成AI报告失败');
+            setLoading(false);
+        } finally {
+            setIsCreatingAIReport(false);
+        }
+    };
+
     // 检查是否需要继续完整测试
     useEffect(() => {
         const checkContinueTest = () => {
@@ -245,20 +300,20 @@ const MentalReportDetailPage = ({ onBack, student }) => {
 
     const handleContinueNextTest = async () => {
         if (!continueTestInfo) return;
-        
+
         try {
             const TYPE_MAP = ['physical', 'mental', 'skills'];
             const nextType = TYPE_MAP[continueTestInfo.nextPrimary];
             const routeType = nextType === 'skills' ? 'technique' : nextType;
             const studentId = student?.id || continueTestInfo.student?.id;
-            
+
             const userJson = localStorage.getItem('user');
             const user = userJson ? JSON.parse(userJson) : null;
-            
+
             // 关键修改：点击继续下一项之前，先创建 assessment 记录
             const defaultTitle = continueTestInfo.title || (nextType === 'mental' ? t('mentalAssessment') : t('skillsAssessment'));
             const backendLang = t('langCode') || 'cn';
-            
+
             const nextAssessmentId = await createAssessment(
                 studentId,
                 nextType === 'skills' ? 'technique' : nextType,
@@ -325,8 +380,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
     };
 
     const handleRegenerate = () => {
-        setLoading(true);
-        setReloadToken(token => token + 1);
+        handleGenerateAIReport();
     };
 
     if (loading) {
@@ -361,14 +415,25 @@ const MentalReportDetailPage = ({ onBack, student }) => {
     if (!reportData) {
         return (
             <div className="report-empty">
-                <AlertTriangle className="w-12 h-12 text-[#d4af37] mb-4" />
-                <p className="report-empty-title">{t('noAssessmentDetailData')}</p>
-                <button
-                    onClick={handleBack}
-                    className="report-empty-btn"
-                >
-                    {t('backToList')}
-                </button>
+                <Sparkles className="w-12 h-12 text-[#d4af37] mb-4" />
+                <p className="report-empty-title">还未生成AI报告</p>
+                <p className="text-white/60 text-sm mb-6">请点击下方按钮生成智能分析报告</p>
+                <div className="flex gap-3">
+                    <button
+                        onClick={handleBack}
+                        className="px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
+                    >
+                        {t('backToList')}
+                    </button>
+                    <button
+                        onClick={handleGenerateReport}
+                        disabled={generating}
+                        className="px-6 py-3 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm shadow-[0_10px_20px_rgba(212,175,55,0.3)] flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Sparkles className="w-4 h-4" />
+                        <span>{generating ? '生成中...' : '生成AI报告'}</span>
+                    </button>
+                </div>
             </div>
         );
     }
@@ -544,15 +609,17 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                     <div className="max-w-md mx-auto flex gap-3">
                         <button
                             onClick={handleRegenerate}
+                            disabled={loading || isCreatingAIReport}
                             className="flex-1 h-[50px] sm:h-[54px] rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest shadow-lg hover:shadow-xl transition-all active:scale-95"
                         >
                             重新生成
                         </button>
                         <button
-                            onClick={handleSaveAndGoHome}
+                            onClick={handleGenerateAIReport}
+                            disabled={loading || isCreatingAIReport}
                             className="flex-1 h-[50px] sm:h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm sm:text-base uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 transition-all active:scale-95"
                         >
-                            {t('saveAndReturn')}
+                            {t('generateAIReport')}
                         </button>
                     </div>
                 </div>

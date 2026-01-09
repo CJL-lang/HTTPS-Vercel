@@ -268,20 +268,34 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
             console.log('[useAssessmentData] Lazy loading module:', currentModule, 'for ID:', initialAssessmentId);
 
             if (currentModule === 'assessment_data') {
-                const fullRes = await getFullAssessmentData(initialAssessmentId, user);
-                if (seq !== requestSeqRef.current) return;
-                const basicData = fullRes?.assessment_data || null;
-                cacheEntry.assessment_data = basicData;
-                setHasBackendData(prev => ({ ...prev, assessment_data: !!basicData }));
-                applyAssessmentData(basicData);
+                // 采集数据模块不需要从后端加载，会在数据采集步骤中创建或更新
+                // 跳过加载，避免调用不存在的 /singleAssess 接口
+                console.log('[useAssessmentData] Skipping assessment_data load - will be created in data collection step');
+                cacheEntry.assessment_data = null;
+                setHasBackendData(prev => ({ ...prev, assessment_data: false }));
                 return;
             }
 
             if (currentModule === 'diagnosis') {
                 const diagnosisList = await getDiagnosisFromBackend(initialAssessmentId, user);
                 if (seq !== requestSeqRef.current) return;
+                
+                // 如果 GET 返回空（新 assessment 还没有诊断数据），创建一个空记录
+                if (!diagnosisList || diagnosisList.length === 0) {
+                    console.log('[useAssessmentData] No diagnosis data found, creating empty record');
+                    const { saveDiagnosisToBackend } = await import('../utils/assessmentApi');
+                    const TYPE_MAP = ['physical', 'mental', 'skills'];
+                    const type = TYPE_MAP[activePrimary];
+                    const backendLang = localStorage.getItem('language') === 'en' ? 'en' : 'cn';
+                    
+                    // 创建空的诊断记录，避免后续 404
+                    await saveDiagnosisToBackend(type, [], initialAssessmentId, user, null, backendLang);
+                    setHasBackendData(prev => ({ ...prev, diagnosis: false }));
+                } else {
+                    setHasBackendData(prev => ({ ...prev, diagnosis: true }));
+                }
+                
                 cacheEntry.diagnosis = diagnosisList || [];
-                setHasBackendData(prev => ({ ...prev, diagnosis: (diagnosisList && diagnosisList.length > 0) || false }));
                 applyDiagnosis(diagnosisList || []);
                 return;
             }
@@ -289,8 +303,23 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
             if (currentModule === 'plan') {
                 const planList = await getPlanFromBackend(initialAssessmentId, user);
                 if (seq !== requestSeqRef.current) return;
+                
+                // 如果 GET 返回空（新 assessment 还没有训练计划），创建一个空记录
+                if (!planList || planList.length === 0) {
+                    console.log('[useAssessmentData] No plan data found, creating empty record');
+                    const { savePlanToBackend } = await import('../utils/assessmentApi');
+                    const TYPE_MAP = ['physical', 'mental', 'skills'];
+                    const type = TYPE_MAP[activePrimary];
+                    const backendLang = localStorage.getItem('language') === 'en' ? 'en' : 'cn';
+                    
+                    // 创建空的训练计划记录，避免后续 404
+                    await savePlanToBackend(type, [], initialAssessmentId, user, null, '', backendLang);
+                    setHasBackendData(prev => ({ ...prev, plan: false }));
+                } else {
+                    setHasBackendData(prev => ({ ...prev, plan: true }));
+                }
+                
                 cacheEntry.plan = planList || [];
-                setHasBackendData(prev => ({ ...prev, plan: (planList && planList.length > 0) || false }));
                 applyPlans(planList || []);
                 return;
             }
@@ -298,8 +327,23 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
             if (currentModule === 'goal') {
                 const goalList = await getGoalFromBackend(initialAssessmentId, user);
                 if (seq !== requestSeqRef.current) return;
+                
+                // 如果 GET 返回空（新 assessment 还没有目标数据），创建一个空记录
+                if (!goalList || goalList.length === 0) {
+                    console.log('[useAssessmentData] No goal data found, creating empty record');
+                    const { saveGoalToBackend } = await import('../utils/assessmentApi');
+                    const TYPE_MAP = ['physical', 'mental', 'skills'];
+                    const type = TYPE_MAP[activePrimary];
+                    const backendLang = localStorage.getItem('language') === 'en' ? 'en' : 'cn';
+                    
+                    // 创建空的目标记录，避免后续 404
+                    await saveGoalToBackend(type, [], initialAssessmentId, user, null, backendLang);
+                    setHasBackendData(prev => ({ ...prev, goal: false }));
+                } else {
+                    setHasBackendData(prev => ({ ...prev, goal: true }));
+                }
+                
                 cacheEntry.goal = goalList || [];
-                setHasBackendData(prev => ({ ...prev, goal: (goalList && goalList.length > 0) || false }));
                 applyGoals(goalList || []);
             }
         };
