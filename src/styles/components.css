@@ -676,6 +676,29 @@
     @apply absolute top-full left-0 mt-2 w-48 sm:w-56 bg-[#1a1a1a] border border-white/10 rounded-2xl sm:rounded-[32px] shadow-2xl z-[120] flex flex-col overflow-hidden overscroll-contain;
   }
 
+  /* 等级选择器下拉菜单（更小的宽度，确保能完整显示） */
+  .title-selector-dropdown.grade-dropdown {
+    width: 5rem; /* w-20 = 5rem = 80px */
+    min-width: 80px;
+    max-height: 180px; /* 限制最大高度，确保不超出容器 */
+    z-index: 9999 !important;
+  }
+
+  /* 等级选择器下拉菜单向上展开时的样式 */
+  .title-selector-dropdown.grade-dropdown.bottom-full {
+    top: auto !important;
+    bottom: 100% !important;
+    margin-top: 0 !important;
+    margin-bottom: 0.5rem;
+  }
+
+  /* 等级选择器滚动容器 - 更小的高度限制，确保不超出容器 */
+  .grade-dropdown .dropdown-scroll-container {
+    max-height: 200px; /* 技能测评 L1-L9 需要更多空间，限制高度确保不超出容器 */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
   /* 标题选择器选项 */
   .title-selector-option {
     @apply w-full px-3 sm:px-4 py-3 sm:py-4 text-left text-[11px] font-bold text-white/60 hover:bg-[#d4af37] hover:text-black transition-all uppercase tracking-widest border-b border-white/5 last:border-0 focus:outline-none;
@@ -849,6 +872,12 @@
   .dropdown-scroll-container {
     @apply overflow-y-auto max-h-48 sm:max-h-60 custom-scrollbar touch-pan-y focus:outline-none;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 等级选择器滚动容器 - 更小的高度限制 */
+  .grade-dropdown .dropdown-scroll-container {
+    max-height: 160px; /* 限制高度，确保不超出容器 */
+    overflow-y: auto;
   }
 
   /* Styku 输入内容容器 */

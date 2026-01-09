@@ -2,9 +2,9 @@
  * 测评保存逻辑 Hook
  * 负责处理测评数据的保存、提交等业务逻辑
  */
-import { 
-    saveDiagnosisToBackend, 
-    savePlanToBackend, 
+import {
+    saveDiagnosisToBackend,
+    savePlanToBackend,
     saveGoalToBackend,
     saveStykuDataToBackend,
     saveMentalDataToBackend,
@@ -46,10 +46,10 @@ export const useAssessmentSave = ({
     setHasBackendData
 }) => {
     const { language: currentLang } = useLanguage();
-    
+
     // 助手函数：将前端语言代码映射为后端要求的代码
     const getBackendLang = () => {
-        if (currentLang === 'en') return 'en'; 
+        if (currentLang === 'en') return 'en';
         return 'cn'; // 默认或中文返回 cn
     };
 
@@ -99,22 +99,25 @@ export const useAssessmentSave = ({
                 // 技能测评：将 diagnosisData 对象提取为后端要求的数组格式
                 const rawData = recordData.diagnosisData || recordData.skillsDiagnosis || {};
                 const potentialKeys = [
-                    'stance', 'grip', 'coordination', 
-                    'backswing', 'downswing', 'tempo', 
-                    'stability', 'direction', 'power', 
-                    'shortGame', 'greenside', 
-                    'handCoordination', 'bodyUsage'
+                    'stance', 'grip', 'coordination',
+                    'backswing', 'downswing', 'tempo',
+                    'stability', 'direction', 'power',
+                    'shortGame', 'greenside',
+                    'handCoordination', 'bodyUsage',
+                    // 添加球杆类型字段
+                    'clubDriver', 'clubMainIron', 'clubIrons', 'clubWood',
+                    'clubPutting', 'clubScrambling', 'clubFinesseWedges'
                 ];
-                
+
                 diagnosisContent = potentialKeys.map(key => {
                     const content = rawData[key] || '';
                     const grade = rawData[`${key}_level`] || '';
                     // 只要内容不为空，或者等级不是初始值（如果有选择等级）
                     if (content.trim() !== '' || (grade !== '' && grade !== 'L1-L4')) {
-                        return { 
-                            title: t(key) || key, 
-                            grade: grade || 'L1', 
-                            content: content 
+                        return {
+                            title: t(key) || key,
+                            grade: grade || 'L1',
+                            content: content
                         };
                     }
                     return null;
@@ -182,7 +185,7 @@ export const useAssessmentSave = ({
 
             if (currentPlanData && Array.isArray(currentPlanData) && currentPlanData.length > 0) {
                 const cleanContent = currentPlanData.map(({ title, content }) => ({ title, content }));
-                
+
                 if (hasBackendData.plan) {
                     console.log('[useAssessmentSave] Updating existing plans via PATCH');
                     await updatePlanToBackend(currentAssessmentId, cleanContent, user, backendLang);
@@ -222,7 +225,7 @@ export const useAssessmentSave = ({
                     if (recordData.stykuData?.notes) {
                         stykuDataPayload.notes = recordData.stykuData.notes;
                     }
-                    
+
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing styku via PATCH');
                         await updateStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
@@ -242,7 +245,7 @@ export const useAssessmentSave = ({
                         stress: recordData.mentalData?.stress,
                         notes: recordData.mentalData?.notes
                     };
-                    
+
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing mental via PATCH');
                         await updateMentalDataToBackend(finalId, mentalDataPayload, user, backendLang);
@@ -262,7 +265,7 @@ export const useAssessmentSave = ({
                     if (recordData.trackmanData?.notes) {
                         trackmanDataPayload.notes = recordData.trackmanData.notes;
                     }
-                    
+
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing trackman via PATCH');
                         await updateTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);
@@ -320,13 +323,13 @@ export const useAssessmentSave = ({
 
     const handleGenerateAIReport = async (navigate, assessmentData, recordId, isNavigating, setIsNavigating) => {
         if (isNavigating) return;
-        
+
         // 优先使用后端返回的真正的 assessmentId
         const finalRecordId = recordData.assessmentId || recordId;
 
         // 清理本地保存的“上次停留步骤”
         clearAssessmentStep({ userId: user?.id || 'guest', assessmentId: finalRecordId });
-        
+
         // 在生成AI报告前，先调用接口获取单个测评数据
         // finalRecordId 就是 assessment_id，会作为路径参数传递给后端
         if (finalRecordId && user?.token) {
@@ -344,7 +347,7 @@ export const useAssessmentSave = ({
                 // 即使获取失败，也继续执行后续流程
             }
         }
-        
+
         // 清除 showCompleteActions 状态
         try {
             const key = getShowCompleteActionsKey();
@@ -359,7 +362,7 @@ export const useAssessmentSave = ({
         const type = TYPE_MAP[activePrimary];
         const studentId = student?.id || 'no-student';
         const userId = user?.id || 'guest';
-        
+
         // 为每个测评类型单独保存到对应的历史记录
         const completedKey = `completed_${userId}_${studentId}_${type}`;
 
@@ -381,7 +384,7 @@ export const useAssessmentSave = ({
         if (hasNextTest) {
             const nextPrimary = activePrimary + 1;
             const nextType = TYPE_MAP[nextPrimary];
-            
+
             try {
                 sessionStorage.setItem('continueCompleteTest', JSON.stringify({
                     nextPrimary,
@@ -411,7 +414,7 @@ export const useAssessmentSave = ({
                     'technique': '/skills-report'
                 };
                 const basePath = reportPages[type] || '/physical-report';
-                
+
                 // 跳转时携带 title/student，保证详情页能显示正确标题并返回到对应列表
                 const navState = {
                     title: recordData?.title,
@@ -425,7 +428,7 @@ export const useAssessmentSave = ({
                         }
                         : {})
                 };
-                
+
                 // Use the actual finalRecordId when navigating to the report detail
                 const targetId = finalRecordId || recordId;
                 navigate(`${basePath}/${targetId}`, { state: navState });
@@ -463,7 +466,7 @@ export const useAssessmentSave = ({
         const type = TYPE_MAP[activePrimary];
         const studentId = student?.id || 'no-student';
         const userId = user?.id || 'guest';
-        
+
         // 保存到对应类型的已完成列表（稍后生成报告）
         const completedKey = `completed_${userId}_${studentId}_${type}`;
         const completedList = JSON.parse(localStorage.getItem(completedKey) || '[]');
@@ -481,7 +484,7 @@ export const useAssessmentSave = ({
             const nextPrimary = activePrimary + 1;
             const NEXT_ROUTE_MAP = { 1: 'mental', 2: 'technique' };
             const nextType = NEXT_ROUTE_MAP[nextPrimary];
-            
+
             try {
                 // 关键修改：在跳转到下一项之前，先创建下一项的 assessment 记录
                 // 根据类型生成中文标题
@@ -494,7 +497,7 @@ export const useAssessmentSave = ({
                     };
                     defaultTitle = titleMap[nextType] || t('autoAssessment');
                 }
-                
+
                 const nextAssessmentId = await createAssessment(
                     student?.id,
                     nextType,
@@ -507,7 +510,7 @@ export const useAssessmentSave = ({
                     // 清除下一项测评的旧草稿和状态
                     const nextTypeForDraft = nextType === 'technique' ? 'skills' : nextType;
                     localStorage.removeItem(`draft_${userId}_${student?.id}_${nextTypeForDraft}`);
-                    
+
                     // 清除新测评的 showCompleteActions 状态
                     try {
                         const nextTypeForStorage = nextType === 'technique' ? 'technique' : nextType;
@@ -516,20 +519,20 @@ export const useAssessmentSave = ({
                     } catch (e) {
                         console.error('Failed to remove next session storage:', e);
                     }
-                    
+
                     // 跳转到下一个测评的数据采集页面
                     if (navigate) {
-                        const nextAssessmentData = { 
-                            ...assessmentData, 
+                        const nextAssessmentData = {
+                            ...assessmentData,
                             mode: 'complete',
                             type: nextType,
                             id: nextAssessmentId,
                             assessment_id: nextAssessmentId
                         };
                         navigate(`/add-record/${nextType}/data`, {
-                            state: { 
+                            state: {
                                 assessmentData: nextAssessmentData,
-                                student 
+                                student
                             }
                         });
                     }

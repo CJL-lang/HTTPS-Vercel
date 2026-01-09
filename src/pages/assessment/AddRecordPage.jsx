@@ -238,11 +238,26 @@ const AddRecordPage = ({
     }
 
     // 事件处理
-    const handleBack = () => {
+    const handleBack = async () => {
         if (unsavedChanges.hasUnsavedChanges) {
             unsavedChanges.setPendingNavigation({ type: 'back' });
             unsavedChanges.setShowUnsavedDialog(true);
             return;
+        }
+        
+        // 在返回前，更新 assessment 的标题（如果有 assessmentId）
+        const assessmentId = assessmentData_hook.recordData.assessmentId;
+        const currentTitle = assessmentData_hook.recordData.title;
+        
+        if (assessmentId && currentTitle && user?.token) {
+            try {
+                console.log('[AddRecordPage] handleBack: Updating assessment before navigation', { assessmentId, title: currentTitle });
+                await updateAssessment(assessmentId, { title: currentTitle }, user);
+                console.log('[AddRecordPage] handleBack: Assessment updated successfully');
+            } catch (error) {
+                console.error('[AddRecordPage] handleBack: Failed to update assessment', error);
+                // 即使更新失败，也继续执行返回操作
+            }
         }
         
         // 根据当前测评类型返回到对应的历史测评记录页面
@@ -258,7 +273,7 @@ const AddRecordPage = ({
         }
     };
 
-    const executePendingNavigation = () => {
+    const executePendingNavigation = async () => {
         const pending = unsavedChanges.pendingNavigation;
         if (!pending) return;
         
@@ -270,6 +285,21 @@ const AddRecordPage = ({
                 navigate(`/add-record/${type}/${step}`, { state: location.state });
             }
         } else if (pending.type === 'back') {
+            // 在返回前，更新 assessment 的标题（如果有 assessmentId）
+            const assessmentId = assessmentData_hook.recordData.assessmentId;
+            const currentTitle = assessmentData_hook.recordData.title;
+            
+            if (assessmentId && currentTitle && user?.token) {
+                try {
+                    console.log('[AddRecordPage] executePendingNavigation: Updating assessment before navigation', { assessmentId, title: currentTitle });
+                    await updateAssessment(assessmentId, { title: currentTitle }, user);
+                    console.log('[AddRecordPage] executePendingNavigation: Assessment updated successfully');
+                } catch (error) {
+                    console.error('[AddRecordPage] executePendingNavigation: Failed to update assessment', error);
+                    // 即使更新失败，也继续执行返回操作
+                }
+            }
+            
             // 根据当前测评类型返回到对应的历史测评记录页面
             const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
             const reportPage = reportPages[navigation.activePrimary] || 'physical-report';

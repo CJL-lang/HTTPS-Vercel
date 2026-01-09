@@ -40,12 +40,12 @@ const MentalReportDetailPage = ({ onBack, student }) => {
 
                 // 使用新的 AI Report 接口
                 const response = await fetch(`/api/AIReport/${id}`, { headers });
-                
+
                 // 如果返回 404，自动创建 AI 报告
                 if (response.status === 404) {
                     console.log('[MentalReportDetailPage] AI report not found, creating empty report');
                     const { createAIReport } = await import('./utils/aiReportApi');
-                    
+
                     // 创建空的 AI 报告
                     const created = await createAIReport(id);
                     if (created) {
@@ -60,7 +60,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                         return;
                     }
                 }
-                
+
                 if (!response.ok) throw new Error('Failed to fetch AI report data');
 
                 const data = await response.json();
@@ -254,7 +254,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
 
             // 直接使用 singleAssess 接口
             const response = await fetch(`/api/singleAssess/${id}`, { headers });
-            
+
             if (!response.ok) {
                 const errorText = await response.text().catch(() => '');
                 throw new Error(errorText || `Failed to fetch assessment data (${response.status})`);
