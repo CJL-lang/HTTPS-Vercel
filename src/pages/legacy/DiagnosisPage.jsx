@@ -13,7 +13,7 @@ import { useLanguage } from '../../utils/LanguageContext';
 
 const DiagnosisPage = ({ data, setData, onBack, onNext }) => {
     const { t } = useLanguage();
-    const { isListening, startListening } = useVoiceInput();
+    const { isListening, startListening, stopListening } = useVoiceInput();
 
     const updateDiagnosis = (key, val) => {
         setData({
@@ -100,7 +100,13 @@ const DiagnosisPage = ({ data, setData, onBack, onNext }) => {
                                             onChange={e => updateDiagnosis(item.key, e.target.value)}
                                         />
                                         <button
-                                            onClick={() => startListening((text) => updateDiagnosis(item.key, text))}
+                                            onClick={() => {
+                                                if (isListening) {
+                                                    stopListening();
+                                                } else {
+                                                    startListening((text) => updateDiagnosis(item.key, text));
+                                                }
+                                            }}
                                             className="absolute right-2 top-2 p-2 hover:surface rounded-xl transition-colors group/mic"
                                         >
                                             <Mic size={16} className={isListening ? "text-[#d4af37] animate-pulse" : "text-white/60 group-hover/mic:text-[#d4af37] transition-colors"} />

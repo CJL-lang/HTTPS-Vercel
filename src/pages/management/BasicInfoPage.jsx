@@ -14,7 +14,7 @@ import { useLanguage } from '../../utils/LanguageContext'; // 多语言
 
 const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStudents }) => {
     const { t } = useLanguage(); // 翻译函数
-    const { isListening, startListening } = useVoiceInput(); // 语音输入状态和启动函数
+    const { isListening, startListening, stopListening } = useVoiceInput(); // 语音输入状态和启动/停止函数
     const [isSaving, setIsSaving] = useState(false);
 
     // 初始化 manualCheck 对象，确保深度背景字段总是有效
@@ -64,7 +64,7 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
         try {
             // 从 user 对象中获取教练 ID
             const coachId = user?.id || user?.coachId;
-            
+
             const payload = {
                 coach_id: coachId, // 添加教练 ID 字段
                 name: data.name,
@@ -196,7 +196,13 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                             onChange={e => setData({ ...data, name: e.target.value })}
                         />
                         <button
-                            onClick={() => startListening((text) => setData({ ...data, name: text }))}
+                            onClick={() => {
+                                if (isListening) {
+                                    stopListening();
+                                } else {
+                                    startListening((text) => setData({ ...data, name: text }));
+                                }
+                            }}
                             className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 hover:surface rounded-lg sm:rounded-xl transition-colors group"
                         >
                             <Mic size={16} className={`sm:w-[18px] sm:h-[18px] ${isListening ? "text-[#d4af37] animate-pulse" : "text-[#d4af37]/60 group-hover:text-[#d4af37] transition-colors"}`} />
@@ -312,7 +318,13 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                             onChange={e => updateManualCheck('historyFreq', e.target.value)}
                         />
                         <button
-                            onClick={() => startListening((text) => updateManualCheck('historyFreq', (data.manualCheck?.historyFreq || "") + text))}
+                            onClick={() => {
+                                if (isListening) {
+                                    stopListening();
+                                } else {
+                                    startListening((text) => updateManualCheck('historyFreq', (data.manualCheck?.historyFreq || "") + text));
+                                }
+                            }}
                             className="absolute right-0 top-0 p-1.5 sm:p-2 hover:surface rounded-lg sm:rounded-xl transition-colors group"
                         >
                             <Mic size={16} className={`sm:w-[18px] sm:h-[18px] ${isListening ? "text-[#d4af37] animate-pulse" : "text-[#d4af37]/60 group-hover:text-[#d4af37] transition-colors"}`} />
@@ -334,7 +346,13 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                             onChange={e => updateManualCheck('medical', e.target.value)}
                         />
                         <button
-                            onClick={() => startListening((text) => updateManualCheck('medical', text))}
+                            onClick={() => {
+                                if (isListening) {
+                                    stopListening();
+                                } else {
+                                    startListening((text) => updateManualCheck('medical', text));
+                                }
+                            }}
                             className="absolute right-0 top-0 p-1.5 sm:p-2 hover:surface rounded-lg sm:rounded-xl transition-colors group"
                         >
                             <Mic size={16} className={`sm:w-[18px] sm:h-[18px] ${isListening ? "text-[#d4af37] animate-pulse" : "text-[#d4af37]/60 group-hover:text-[#d4af37] transition-colors"}`} />
@@ -356,7 +374,13 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                             onChange={e => updateManualCheck('purpose', e.target.value)}
                         />
                         <button
-                            onClick={() => startListening((text) => updateManualCheck('purpose', text))}
+                            onClick={() => {
+                                if (isListening) {
+                                    stopListening();
+                                } else {
+                                    startListening((text) => updateManualCheck('purpose', text));
+                                }
+                            }}
                             className="absolute right-0 top-0 p-1.5 sm:p-2 hover:surface rounded-lg sm:rounded-xl transition-colors group"
                         >
                             <Mic size={16} className={`sm:w-[18px] sm:h-[18px] ${isListening ? "text-[#d4af37] animate-pulse" : "text-[#d4af37]/60 group-hover:text-[#d4af37] transition-colors"}`} />

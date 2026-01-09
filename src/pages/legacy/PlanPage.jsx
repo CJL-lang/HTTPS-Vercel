@@ -12,7 +12,7 @@ import { useLanguage } from '../../utils/LanguageContext';
 
 const PlanPage = ({ data, setData, onBack, onNext }) => {
     const { t } = useLanguage();
-    const { isListening, startListening } = useVoiceInput();
+    const { isListening, startListening, stopListening } = useVoiceInput();
 
     return (
         <PageWrapper
@@ -68,7 +68,13 @@ const PlanPage = ({ data, setData, onBack, onNext }) => {
                             onChange={e => setData({ ...data, plan: { ...data.plan, point2: e.target.value } })}
                         />
                         <button
-                            onClick={() => startListening((text) => setData({ ...data, plan: { ...data.plan, point2: text } }))}
+                            onClick={() => {
+                                if (isListening) {
+                                    stopListening();
+                                } else {
+                                    startListening((text) => setData({ ...data, plan: { ...data.plan, point2: text } }));
+                                }
+                            }}
                             className="absolute right-2 top-2 p-2 hover:surface rounded-xl transition-colors group"
                         >
                             <Mic size={16} className={isListening ? "text-[#d4af37] animate-pulse" : "text-white/60 group-hover:text-[#d4af37] transition-colors"} />
@@ -85,7 +91,13 @@ const PlanPage = ({ data, setData, onBack, onNext }) => {
                             onChange={e => setData({ ...data, plan: { ...data.plan, extra: e.target.value } })}
                         />
                         <button
-                            onClick={() => startListening((text) => setData({ ...data, plan: { ...data.plan, extra: text } }))}
+                            onClick={() => {
+                                if (isListening) {
+                                    stopListening();
+                                } else {
+                                    startListening((text) => setData({ ...data, plan: { ...data.plan, extra: text } }));
+                                }
+                            }}
                             className="absolute right-2 top-2 p-2 hover:surface rounded-xl transition-colors group"
                         >
                             <Mic size={16} className={isListening ? "text-[#d4af37] animate-pulse" : "text-white/60 group-hover:text-[#d4af37] transition-colors"} />
