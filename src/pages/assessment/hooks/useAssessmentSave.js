@@ -15,7 +15,8 @@ import {
     updateGoalToBackend,
     updateStykuDataToBackend,
     updateMentalDataToBackend,
-    updateTrackmanDataToBackend
+    updateTrackmanDataToBackend,
+    getSingleAssessment
 } from '../utils/assessmentApi';
 import { persistModuleToStudent } from '../utils/assessmentHelpers';
 import { TYPE_MAP } from '../utils/assessmentConstants';
@@ -277,11 +278,29 @@ export const useAssessmentSave = ({
         setShowCompleteActions(true);
     };
 
-    const handleGenerateAIReport = (navigate, assessmentData, recordId, isNavigating, setIsNavigating) => {
+    const handleGenerateAIReport = async (navigate, assessmentData, recordId, isNavigating, setIsNavigating) => {
         if (isNavigating) return;
         
         // 优先使用后端返回的真正的 assessmentId
         const finalRecordId = recordData.assessmentId || recordId;
+        
+        // 在生成AI报告前，先调用接口获取单个测评数据
+        // finalRecordId 就是 assessment_id，会作为路径参数传递给后端
+        if (finalRecordId && user?.token) {
+            try {
+                console.log('[handleGenerateAIReport] Fetching single assessment data for assessment_id:', finalRecordId);
+                const singleAssessmentData = await getSingleAssessment(finalRecordId, user);
+                if (singleAssessmentData) {
+                    console.log('[handleGenerateAIReport] Single assessment data retrieved:', singleAssessmentData);
+                    // 可以在这里处理返回的数据，比如更新 recordData 或传递给报告页面
+                } else {
+                    console.warn('[handleGenerateAIReport] Failed to fetch single assessment data');
+                }
+            } catch (error) {
+                console.error('[handleGenerateAIReport] Error fetching single assessment:', error);
+                // 即使获取失败，也继续执行后续流程
+            }
+        }
         
         // 清除 showCompleteActions 状态
         try {

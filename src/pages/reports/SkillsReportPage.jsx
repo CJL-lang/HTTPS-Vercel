@@ -28,14 +28,14 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
             const targetId = id || student?.id;
 
             if (!targetId || !user?.token) return;
-            
+
             // 如果已经加载过这个目标的记录，不再重复加载
             const fetchKey = `${targetId}_${user.token}`;
             if (lastFetchedRef.current === fetchKey) return;
             lastFetchedRef.current = fetchKey;
 
             setLoading(true);
-            
+
             // 1. 从后端获取记录
             let completed = [];
             try {
@@ -60,22 +60,22 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
             } finally {
                 setLoading(false);
             }
-            
+
             const allRecords = (completed || [])
                 .sort((a, b) => new Date(b.sortTime || b.lastModified || b.completedAt) - new Date(a.sortTime || a.lastModified || a.completedAt));
-            
+
             setRecords(allRecords);
         };
 
         fetchRecords();
     }, [user?.token, student?.id]);
-    
+
     const handleRecordClick = (record) => {
         if (record.status === 'draft') {
             const stepMap = ['data', 'diagnosis', 'plan', 'goal'];
             if (navigate) {
-                navigate(`/add-record/technique/${stepMap[record.currentStep || 0]}`, { 
-                    state: { 
+                navigate(`/add-record/technique/${stepMap[record.currentStep || 0]}`, {
+                    state: {
                         student,
                         assessmentData: {
                             id: record.id,
@@ -84,7 +84,7 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                             mode: 'single',
                             type: 'skills'
                         }
-                    } 
+                    }
                 });
             }
         } else if (navigate) {
@@ -92,14 +92,14 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
             navigate(`/skills-report/${record.id}`);
         }
     };
-    
+
     const handleAddRecord = () => {
         confirmCreateNewRecord();
     };
-    
+
     const confirmCreateNewRecord = async () => {
         if (creating) return;
-        
+
         const studentId = student?.id || id;
         if (!studentId) {
             alert("未找到学员信息");
@@ -111,16 +111,16 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
             // 使用默认标题，不再使用日期
             const defaultTitle = t('skillsAssessment');
             const assessmentId = await createAssessment(studentId, 'skills', user, defaultTitle, backendLang);
-            
+
             if (assessmentId) {
                 // 清除旧草稿（保持本地存储清洁）
                 const userId = user?.id || 'guest';
                 localStorage.removeItem(`draft_${userId}_${studentId}_skills`);
                 localStorage.removeItem(`draft_${userId}_${studentId}_technique`);
-                
+
                 if (navigate) {
-                    navigate('/add-record/technique/data', { 
-                        state: { 
+                    navigate('/add-record/technique/data', {
+                        state: {
                             student,
                             assessmentData: {
                                 assessment_id: assessmentId,
@@ -130,7 +130,7 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                 type: 'skills',
                                 date: new Date().toISOString().split('T')[0]
                             }
-                        } 
+                        }
                     });
                 }
             } else {
@@ -168,11 +168,10 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                         <div
                             key={record.id}
                             onClick={() => handleRecordClick(record)}
-                            className={`relative group overflow-hidden rounded-2xl sm:rounded-[32px] p-4 sm:p-6 text-left transition-all duration-500 border border-[#d4af37]/30 surface-strong hover:border-[#d4af37]/60 shadow-2xl shadow-black/50 cursor-pointer ${
-                                record.status === 'draft' 
-                                    ? '' 
+                            className={`relative group overflow-hidden rounded-2xl sm:rounded-[32px] p-4 sm:p-6 text-left transition-all duration-500 border border-[#d4af37]/30 surface-strong hover:border-[#d4af37]/60 shadow-2xl shadow-black/50 cursor-pointer ${record.status === 'draft'
+                                    ? ''
                                     : ''
-                            }`}
+                                }`}
                         >
                             <div className="flex justify-between items-start mb-4">
                                 <div className="px-2 sm:px-3 py-1 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/20">
