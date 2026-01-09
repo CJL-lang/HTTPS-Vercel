@@ -13,6 +13,19 @@ export default defineConfig({
                 target: 'http://localhost:8080',
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, '')
+            },
+            // 百度语音识别 API 代理
+            '/baidu-token': {
+                target: 'https://aip.baidubce.com',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/baidu-token/, '/oauth/2.0/token'),
+                secure: false
+            },
+            '/baidu-asr': {
+                target: 'https://vop.baidu.com',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/baidu-asr/, '/server_api'),
+                secure: false
             }
         }
     },
