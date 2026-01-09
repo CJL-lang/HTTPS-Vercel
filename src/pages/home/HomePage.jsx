@@ -239,7 +239,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => handleNavigate(card.path)}
                                 className={cn(
-                                    "relative bg-[#161a23] border border-[#2a2f3a] rounded-3xl p-5 text-left transition-all duration-300 hover:border-[#d4af37]/40 shadow-xl group overflow-hidden flex flex-col justify-between min-h-[160px]",
+                                    "relative surface-strong border-[#d4af37]/20 rounded-3xl p-5 text-left transition-all duration-300 hover:border-[#d4af37]/40 shadow-xl group overflow-hidden flex flex-col justify-between min-h-[160px]",
                                     card.isFull ? "col-span-2" : "col-span-1"
                                 )}
                             >
@@ -248,7 +248,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                     
                                     {/* 标题区 */}
                                     <div className="flex items-center gap-3 mb-5">
-                                        <div className="w-10 h-10 rounded-xl bg-[#1e2430] border border-[#3a425c] flex items-center justify-center text-[#d4af37] group-hover:scale-110 transition-transform duration-500 shrink-0">
+                                        <div className="w-10 h-10 rounded-xl surface-weak flex items-center justify-center text-[#d4af37] group-hover:scale-110 transition-transform duration-500 shrink-0">
                                             <Icon size={20} />
                                         </div>
                                         <div className="flex flex-col min-w-0">
@@ -335,7 +335,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                         <div className="flex items-center gap-4 mb-5">
                                             <div className="flex-1">
                                                 <svg viewBox="0 0 110 110" className="w-full h-full drop-shadow-[0_0_8px_rgba(212,175,55,0.2)]">
-                                                    <polygon points="55,10 95,35 80,85 30,85 15,35" fill="none" stroke="#2a2f3a" strokeWidth="1.5" />
+                                                    <polygon points="55,10 95,35 80,85 30,85 15,35" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
                                                     <polygon points="55,25 85,45 75,75 35,75 25,45" fill="rgba(212,175,55,0.08)" stroke="#d4af37" strokeWidth="1.5" className="group-hover:fill-[#d4af37]/20 transition-all duration-500" />
                                                     <g fill="#d4af37">
                                                         <circle cx="55" cy="25" r="2.5" />

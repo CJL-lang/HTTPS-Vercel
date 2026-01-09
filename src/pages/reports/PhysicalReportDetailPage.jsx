@@ -348,7 +348,15 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
             const user = userJson ? JSON.parse(userJson) : null;
 
             // 关键修改：点击继续下一项之前，先创建 assessment 记录
-            const defaultTitle = continueTestInfo.title || (nextType === 'mental' ? t('mentalAssessment') : t('skillsAssessment'));
+            let defaultTitle = continueTestInfo.title;
+            if (!defaultTitle) {
+                const titleMap = {
+                    'mental': '心理测评',
+                    'skills': '技能测评',
+                    'technique': '技能测评'
+                };
+                defaultTitle = titleMap[nextType] || (nextType === 'mental' ? t('mentalAssessment') : t('skillsAssessment'));
+            }
             const backendLang = t('langCode') || 'cn';
 
             const nextAssessmentId = await createAssessment(

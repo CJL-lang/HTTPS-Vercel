@@ -18,8 +18,11 @@ const translations = {
 
         // Navigation
         physicalAssessment: "身体素质测评",
+        physicalAssessmentFull: "身体素质测评",
         mentalAssessment: "心理测评",
+        mentalAssessmentFull: "心理测评",
         skillsAssessment: "技能测评",
+        skillsAssessmentFull: "技能测评",
         dataCollection: "数据采集",
         skillsDiagnosis: "技能诊断",
         trainingPlan: "训练方案",
@@ -695,8 +698,11 @@ const translations = {
 
         // Navigation
         physicalAssessment: "Physical",
+        physicalAssessmentFull: "Physical Assessment",
         mentalAssessment: "Mental",
+        mentalAssessmentFull: "Mental Assessment",
         skillsAssessment: "Skills",
+        skillsAssessmentFull: "Skills Assessment",
         dataCollection: "Data",
         skillsDiagnosis: "Diagnosis",
         trainingPlan: "Plan",
