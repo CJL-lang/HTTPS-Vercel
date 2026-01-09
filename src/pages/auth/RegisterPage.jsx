@@ -27,10 +27,10 @@ const RegisterPage = ({ onRegister, navigate }) => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const roles = [
-        { id: 'coach', label: '教练' },
-        { id: 'student', label: '学员' },
-        { id: 'parent', label: '家长' },
-        { id: 'assistant', label: '助教' }
+        { id: 'coach', labelKey: 'coachRole' },
+        { id: 'student', labelKey: 'studentRole' },
+        { id: 'parent', labelKey: 'parentRole' },
+        { id: 'assistant', labelKey: 'assistantRole' }
     ];
 
     const handleChange = (e) => {
@@ -167,7 +167,7 @@ const RegisterPage = ({ onRegister, navigate }) => {
                                             : "surface-weak text-white/40 border-white/10 hover:border-white/20"
                                     )}
                                 >
-                                    {r.label}
+                                    {t(r.labelKey)}
                                 </button>
                             ))}
                         </div>
