@@ -12,7 +12,7 @@ import SectionTitle from '../../components/SectionTitle'; // 标题
 import { useVoiceInput } from '../../hooks/useVoiceInput'; // 语音输入hook
 import { useLanguage } from '../../utils/LanguageContext'; // 多语言
 
-const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user }) => {
+const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStudents }) => {
     const { t } = useLanguage(); // 翻译函数
     const { isListening, startListening } = useVoiceInput(); // 语音输入状态和启动函数
     const [isSaving, setIsSaving] = useState(false);
@@ -112,7 +112,8 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user }) => {
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
-            const res = await fetch('http://localhost:8080/students', {
+            // 使用代理路径，自动带入 Token 并避免跨域问题
+            const res = await fetch('/api/students', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify(payload),
@@ -143,6 +144,15 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user }) => {
 
             // success
             alert('学员已保存！');
+
+            // 刷新学员列表，确保新学员立刻出现在列表中
+            if (typeof refreshStudents === 'function') {
+                try {
+                    await refreshStudents();
+                } catch (e) {
+                    // ignore refresh errors
+                }
+            }
 
             // 如果返回了学员ID，跳转到该学员的主页，否则跳转到列表页
             if (result.student_user_id) {

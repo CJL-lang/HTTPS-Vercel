@@ -28,6 +28,7 @@
   body {
     @apply bg-black text-white antialiased;
     font-family: var(--font-sans);
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -59,10 +60,12 @@
     @apply rounded-2xl p-4 text-white focus:outline-none focus:border-[#d4af37]/50 focus:ring-4 focus:ring-[#d4af37]/10 transition-all duration-500 w-full placeholder:text-white/40 placeholder:font-normal font-normal;
     background-color: var(--apple-surface-weak);
     border: 1px solid var(--apple-border);
+    -webkit-tap-highlight-color: transparent;
   }
 
   .textarea-dark {
     @apply bg-transparent border-none focus:outline-none focus:ring-0 text-white placeholder:text-white/40 placeholder:font-normal resize-none scrollbar-hide transition-all duration-500 w-full;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .label-gold {

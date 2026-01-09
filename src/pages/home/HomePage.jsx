@@ -26,16 +26,49 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
     };
 
     useEffect(() => {
-        // 直接使用从 App.jsx 传下来的学员基础数据
+        // 先使用从 App.jsx 传下来的学员基础数据（如果已存在且ID匹配）
         if (id && initialStudent && String(initialStudent.id) === String(id)) {
             setStudent({
                 ...initialStudent,
                 gender: typeof initialStudent.gender === 'number'
                     ? (initialStudent.gender === 0 ? t('female') : t('male'))
                     : initialStudent.gender,
-                yearsOfGolf: initialStudent.years_of_golf || initialStudent.yearsOfGolf
+                yearsOfGolf: initialStudent.years_of_golf || initialStudent.yearsOfGolf,
+                history: initialStudent.bio || initialStudent.history
             });
             setLoading(false);
+            return;
+        }
+
+        // 如果没有初始学员或ID不匹配，则主动 GET 学员详情
+        if (id && (!student || String(student?.id) !== String(id))) {
+            const saved = localStorage.getItem('user');
+            let token = null;
+            try {
+                token = saved ? JSON.parse(saved)?.token : null;
+            } catch (e) {
+                token = null;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            setLoading(true);
+            fetch(`/api/students/${id}`, { method: 'GET', headers })
+                .then(async (res) => {
+                    if (!res.ok) throw new Error(`GET /api/students/${id} failed: ${res.status}`);
+                    const data = await res.json();
+                    setStudent({
+                        ...data,
+                        gender: typeof data.gender === 'number' ? (data.gender === 0 ? t('female') : t('male')) : data.gender,
+                        yearsOfGolf: data.years_of_golf || data.yearsOfGolf,
+                        history: data.bio || data.history
+                    });
+                })
+                .catch(() => {
+                    // 保守降级：如果获取失败，保持加载结束以避免卡住
+                })
+                .finally(() => setLoading(false));
         }
     }, [id, initialStudent, t]);
 
@@ -164,41 +197,132 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                     <p className="student-info-value tracking-tight relative z-10 break-words px-1">{displayStudent.purpose}</p>
                 </div>
 
-                {/* Main Action Cards */}
+                {/* Main Action Cards - 优化设计 */}
                 <div className="grid grid-cols-2 gap-3 mb-6 sm:mb-8">
                     {mainCards.map((card, idx) => {
                         const Icon = card.icon;
+                        // 为每个卡片模拟数据
+                        const cardData = {
+                            'physical-report': {
+                                subtitle: 'STYKU 3D DATA',
+                                indicators: [
+                                    { label: '爆发力', value: '85%' },
+                                    { label: '核心稳定', value: '70%' },
+                                    { label: '柔韧度', value: '90%' }
+                                ],
+                                waveData: { d1: "M0 30 Q40 10 80 30 T160 30 T240 30 T320 30", fill: 60 }
+                            },
+                            'mental-report': {
+                                subtitle: 'MENTAL STABILITY',
+                                indicators: [
+                                    { label: '压力管理', value: '75%' },
+                                    { label: '专注度', value: '80%' },
+                                    { label: '心理韧性', value: '85%' }
+                                ],
+                                waveData: { d1: "M0 35 Q50 15 100 35 T200 35 T300 35", fill: 75 }
+                            },
+                            'skills-report': {
+                                subtitle: 'TRACKMAN PARAMETERS',
+                                indicators: [
+                                    { label: '准确度', value: '88%' },
+                                    { label: '距离控制', value: '92%' },
+                                    { label: '挥杆稳定', value: '79%' }
+                                ],
+                                waveData: { d1: "M0 32 Q45 12 90 32 T180 32 T270 32", fill: 80 }
+                            }
+                        };
+                        const data = cardData[card.path];
+                        
                         return (
                             <motion.button
                                 key={idx}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => handleNavigate(card.path)}
                                 className={cn(
-                                    "relative group overflow-hidden rounded-2xl sm:rounded-[32px] p-4 sm:p-6 text-left transition-all duration-500",
-                                    "border border-[#d4af37]/30 surface-strong hover:border-[#d4af37]/60 shadow-2xl shadow-black/50",
-                                    card.isFull ? "col-span-2 py-6 sm:py-8" : "col-span-1"
+                                    "report-card-optimized relative group text-left transition-all duration-500",
+                                    card.isFull ? "col-span-2" : "col-span-1"
                                 )}
                             >
-                                <div className="relative z-10 flex flex-col h-full justify-between">
-                                    <div className="flex justify-between items-start mb-3 sm:mb-4">
-                                        <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-[#d4af37]/10 text-[#d4af37] flex-shrink-0 border border-[#d4af37]/20">
-                                            <Icon size={20} className="sm:w-6 sm:h-6" />
+                                {/* 头部 */}
+                                <div className="report-card-header-optimized">
+                                    <div className="flex flex-col gap-1 flex-1">
+                                        <div className="report-card-icon-container">
+                                            <Icon size={20} className="sm:w-5 sm:h-5" />
                                         </div>
-                                        {/* 为身体素质测评卡片添加装饰图 - 调大尺寸并优化响应式 */}
-                                        {card.path === 'physical-report' && (
-                                            <div className="absolute -top-6 -right-6 w-44 h-44 sm:w-72 sm:h-72 opacity-30 sm:opacity-40 group-hover:opacity-50 sm:group-hover:opacity-60 group-hover:scale-110 transition-all duration-1000 pointer-events-none select-none overflow-hidden">
-                                                <img
-                                                    src="/img1.png"
-                                                    alt="decoration"
-                                                    className="w-full h-full object-contain filter brightness-200 contrast-200"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="min-w-0 relative z-20">
-                                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-white uppercase truncate drop-shadow-md">{card.title}</h3>
                                     </div>
                                 </div>
+
+                                {/* 内容 */}
+                                <div className="report-card-content">
+                                    {/* 标题区 */}
+                                    <div className="flex flex-col gap-1">
+                                        <p className="report-card-subtitle">{data?.subtitle}</p>
+                                        <h3 className="report-card-title-optimized">{card.title}</h3>
+                                    </div>
+
+                                    {/* 雷达图 + 指标 */}
+                                    <div className="report-card-top-content">
+                                        {/* 雷达图 */}
+                                        <div className="radar-chart-wrapper">
+                                            <svg width="80" height="80" viewBox="0 0 110 110" className="w-full h-full">
+                                                <polygon points="55,10 95,35 80,85 30,85 15,35"
+                                                         fill="none"
+                                                         stroke="#3a425c"
+                                                         strokeWidth="1.5"/>
+                                                <polygon points="55,25 85,45 75,75 35,75 25,45"
+                                                         fill="rgba(255,215,100,.15)"
+                                                         stroke="#f5d36a"
+                                                         strokeWidth="1.5"/>
+                                                <g fill="#f5d36a">
+                                                    <circle cx="55" cy="25" r="2.5"/>
+                                                    <circle cx="85" cy="45" r="2.5"/>
+                                                    <circle cx="75" cy="75" r="2.5"/>
+                                                    <circle cx="35" cy="75" r="2.5"/>
+                                                    <circle cx="25" cy="45" r="2.5"/>
+                                                </g>
+                                            </svg>
+                                        </div>
+
+                                        {/* 指标 */}
+                                        <div className="report-indicators-wrapper">
+                                            {data?.indicators.map((ind, i) => (
+                                                <div key={i} className="report-indicator">
+                                                    <div className="report-indicator-label">
+                                                        <span>{ind.label}</span>
+                                                        <span className="report-indicator-value">{ind.value}</span>
+                                                    </div>
+                                                    <div className="progress-bar-bg">
+                                                        <div className="progress-bar-fill" style={{width: ind.value}}></div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 波浪线和指示器 */}
+                                    <div className="report-card-bottom">
+                                        <svg className="wave-line" viewBox="0 0 300 60" preserveAspectRatio="none">
+                                            <path d={data?.waveData.d1}
+                                                  className="wave-line-path"/>
+                                        </svg>
+                                        <div className="report-bottom-indicator">
+                                            <div className="indicator-bar">
+                                                <div className="indicator-bar-fill" style={{width: data?.waveData.fill + '%'}}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 装饰 - 仅物理测评 */}
+                                {card.path === 'physical-report' && (
+                                    <div className="absolute -top-6 -right-6 w-44 h-44 sm:w-72 sm:h-72 opacity-20 sm:opacity-30 group-hover:opacity-40 sm:group-hover:opacity-50 group-hover:scale-110 transition-all duration-1000 pointer-events-none select-none overflow-hidden">
+                                        <img
+                                            src="/img1.png"
+                                            alt="decoration"
+                                            className="w-full h-full object-contain filter brightness-200 contrast-200"
+                                        />
+                                    </div>
+                                )}
                             </motion.button>
                         );
                     })}

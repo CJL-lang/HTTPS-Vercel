@@ -132,49 +132,44 @@ export default function App() {
     const [students, setStudents] = useState([]);
     const lastFetchedStudentsTokenRef = useRef(null);
 
-    // Fetch students when logged in (只在验证完成后才执行)
-    useEffect(() => {
-        if (isCheckingAuth) return; // 正在验证时，不获取学生列表
+    // 集中刷新学生列表的函数，可在创建新学员后调用
+    const refreshStudents = React.useCallback(async () => {
+        if (!isLoggedIn || !currentUser?.token) return;
+        try {
+            const response = await fetch('/api/students', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentUser.token}`
+                },
+            });
 
-        const fetchStudents = async () => {
-            if (isLoggedIn && currentUser?.token) {
-                // 防止重复加载学生列表
-                if (lastFetchedStudentsTokenRef.current === currentUser.token) return;
-                lastFetchedStudentsTokenRef.current = currentUser.token;
-
-                try {
-                    const response = await fetch('/api/students', {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${currentUser.token}`
-                        },
-
-                    });
-
-                    if (response.ok) {
-                        const studentsData = await response.json();
-
-                        if (Array.isArray(studentsData)) {
-                            const mappedStudents = studentsData.map(student => ({
-                                ...student,
-                                gender: student.gender === 0 ? '女性' : student.gender === 1 ? '男性' : '未知',
-                                displayId: student.id ? student.id.slice(-6) : '未知',
-                                yearsOfGolf: student.years_of_golf || student.yearsOfGolf,
-                                history: student.bio || student.history // 将后端的 bio 映射为前端展示用的 history
-                            }));
-                            setStudents(mappedStudents);
-                        }
-                    } else {
-
-                    }
-                } catch (error) {
-
+            if (response.ok) {
+                const studentsData = await response.json();
+                if (Array.isArray(studentsData)) {
+                    const mappedStudents = studentsData.map(student => ({
+                        ...student,
+                        gender: student.gender === 0 ? '女性' : student.gender === 1 ? '男性' : '未知',
+                        displayId: student.id ? student.id.slice(-6) : '未知',
+                        yearsOfGolf: student.years_of_golf || student.yearsOfGolf,
+                        history: student.bio || student.history
+                    }));
+                    setStudents(mappedStudents);
                 }
             }
-        };
-        fetchStudents();
-    }, [isLoggedIn, currentUser?.token, isCheckingAuth]);
+        } catch (error) {
+            // 忽略错误，保持现有列表
+        }
+    }, [isLoggedIn, currentUser?.token]);
+
+    // 首次登录后加载学生列表（避免重复拉取）
+    useEffect(() => {
+        if (isCheckingAuth) return;
+        if (isLoggedIn && currentUser?.token && lastFetchedStudentsTokenRef.current !== currentUser.token) {
+            lastFetchedStudentsTokenRef.current = currentUser.token;
+            refreshStudents();
+        }
+    }, [isLoggedIn, currentUser?.token, isCheckingAuth, refreshStudents]);
 
     const [currentStudentIndex, setCurrentStudentIndex] = useState(null);
 
@@ -645,6 +640,7 @@ export default function App() {
                                     students={students}
                                     onSelectStudent={selectStudent}
                                     onAddStudent={startAddStudent}
+                                    refreshStudents={refreshStudents}
                                     handleStartPhysicalAssessment={handleStartPhysicalAssessment}
                                     handleStartMentalAssessment={handleStartMentalAssessment}
                                     handleStartSkillsAssessment={handleStartSkillsAssessment}
