@@ -5,6 +5,130 @@
 
 @layer components {
 
+  /* ========================
+   * 优化后的报告卡片设计
+   * ======================== */
+
+  /* 报告卡片容器 - 参考深色渐变设计 */
+  .report-card-optimized {
+    @apply relative rounded-2xl sm:rounded-[32px] overflow-hidden shadow-2xl transition-all duration-500 border;
+    background: linear-gradient(180deg, #1a2132, #111726);
+    border-color: rgba(255, 215, 100, 0.15);
+    box-shadow: 0 0 0 1px rgba(255, 215, 100, 0.15), 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+
+  .report-card-optimized:hover {
+    border-color: rgba(255, 215, 100, 0.3);
+    box-shadow: 0 0 0 1px rgba(255, 215, 100, 0.3), 0 25px 70px rgba(0, 0, 0, 0.7);
+  }
+
+  /* 报告卡片头部 - 带图标和标题 */
+  .report-card-header-optimized {
+    @apply flex justify-between items-start p-4 sm:p-6 pb-3 sm:pb-4;
+  }
+
+  /* 报告卡片头部左侧 - 图标容器 */
+  .report-card-icon-container {
+    @apply w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-2xl bg-[#d4af37]/10 flex items-center justify-center text-[#d4af37] flex-shrink-0 border border-[#d4af37]/20;
+  }
+
+  /* 报告卡片标题 */
+  .report-card-title-optimized {
+    @apply text-lg sm:text-xl md:text-2xl font-bold text-white uppercase tracking-tight truncate drop-shadow-md;
+  }
+
+  /* 报告卡片子标题 */
+  .report-card-subtitle {
+    @apply text-[10px] sm:text-[11px] font-bold text-[#d4af37] uppercase tracking-[0.2em] opacity-60;
+  }
+
+  /* 报告卡片内容主体 */
+  .report-card-content {
+    @apply p-4 sm:p-6 pt-2 sm:pt-3 flex flex-col gap-4 sm:gap-6;
+  }
+
+  /* 报告顶部内容区 - 雷达图 + 指标 */
+  .report-card-top-content {
+    @apply flex gap-4 sm:gap-6 items-start;
+  }
+
+  /* 雷达图容器 */
+  .radar-chart-wrapper {
+    @apply flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-lg sm:rounded-2xl flex items-center justify-center relative;
+    background: radial-gradient(circle, #1e2638, #121827);
+    border: 1px solid rgba(212, 175, 55, 0.1);
+  }
+
+  /* 指标容器 */
+  .report-indicators-wrapper {
+    @apply flex-1 space-y-2 sm:space-y-3;
+  }
+
+  /* 单个指标 */
+  .report-indicator {
+    @apply space-y-1;
+  }
+
+  /* 指标标签 */
+  .report-indicator-label {
+    @apply text-[10px] sm:text-[11px] font-bold text-white/70 uppercase tracking-wider flex justify-between;
+  }
+
+  /* 指标值 */
+  .report-indicator-value {
+    @apply text-[11px] sm:text-[12px] font-bold text-white/60;
+  }
+
+  /* 进度条背景 */
+  .progress-bar-bg {
+    @apply h-1.5 sm:h-2 w-full rounded-full overflow-hidden;
+    background: #2a3248;
+  }
+
+  /* 进度条填充 - 黄金渐变 */
+  .progress-bar-fill {
+    @apply h-full rounded-full transition-all duration-1000;
+    background: linear-gradient(90deg, #f5d36a, #d4a82f);
+    box-shadow: 0 0 12px rgba(255, 215, 120, 0.6);
+  }
+
+  /* 报告卡片底部 - 波浪线容器 */
+  .report-card-bottom {
+    @apply relative pt-3 sm:pt-4 border-t border-white/5;
+  }
+
+  /* 波浪线SVG */
+  .wave-line {
+    @apply w-full h-12 sm:h-16;
+  }
+
+  /* 波浪线路径 */
+  .wave-line-path {
+    fill: none;
+    stroke: #f5d36a;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* 底部指示器区域 */
+  .report-bottom-indicator {
+    @apply flex items-center gap-2 mt-2 sm:mt-3;
+  }
+
+  /* 指示器条 */
+  .indicator-bar {
+    @apply h-1.5 sm:h-2 flex-1 rounded-full overflow-hidden;
+    background: #26304a;
+  }
+
+  /* 指示器条填充 */
+  .indicator-bar-fill {
+    @apply h-full rounded-full transition-all duration-1000;
+    background: linear-gradient(90deg, #5cc7ff, #3a8fdc);
+    box-shadow: 0 0 10px rgba(80, 180, 255, 0.7);
+  }
+
   /* =========================
    * Report Detail Pages
    * ========================= */
@@ -52,7 +176,14 @@
 
   /* Shared “glass” container used by report cards */
   .report-card {
-    @apply glass-card border border-white/10 surface-strong rounded-2xl sm:rounded-[32px] overflow-hidden shadow-xl;
+    @apply border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] overflow-hidden shadow-lg transition-all duration-300;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .report-card:hover {
+    @apply border-[#d4af37]/40;
   }
 
   /* Report list card (goals/diagnosis/assessment lists) */
@@ -103,7 +234,14 @@
   }
 
   .report-metric-card {
-    @apply glass-card p-4 sm:p-6 border border-white/10 surface-strong rounded-2xl sm:rounded-[32px] flex items-center justify-between transition-all;
+    @apply p-4 sm:p-6 border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] flex items-center justify-between transition-all shadow-lg;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .report-metric-card:hover {
+    @apply border-[#d4af37]/40;
   }
 
   .report-metric-left {
@@ -120,7 +258,14 @@
 
   /* Accordion groups (Styku/Trackman groups) */
   .report-group-card {
-    @apply glass-card border border-white/10 surface-strong rounded-2xl sm:rounded-[32px] overflow-hidden shadow-lg;
+    @apply border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] overflow-hidden shadow-lg transition-all duration-300;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .report-group-card:hover {
+    @apply border-[#d4af37]/40;
   }
 
   .report-group-toggle {
@@ -145,12 +290,26 @@
 
   .report-group-item {
     /* 对齐 styku-input-card（统一卡片视觉） */
-    @apply surface-strong border border-white/5 rounded-2xl sm:rounded-[32px] p-4 sm:p-6 shadow-2xl shadow-black/50 flex flex-col;
+    @apply border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] p-4 sm:p-6 shadow-lg flex flex-col transition-all duration-300;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .report-group-item:hover {
+    @apply border-[#d4af37]/40;
   }
 
   /* Outlook quote card */
   .report-outlook-card {
-    @apply glass-card p-7 border border-white/10 surface-strong rounded-2xl sm:rounded-[32px] relative overflow-hidden shadow-xl;
+    @apply p-7 border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] relative overflow-hidden shadow-lg transition-all duration-300;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .report-outlook-card:hover {
+    @apply border-[#d4af37]/40;
   }
 
   .report-outlook-quote {
@@ -159,6 +318,86 @@
 
   .report-outlook-text {
     @apply text-white/70 text-[15px] leading-[1.8] font-light relative z-10;
+  }
+
+  /* 报告内容卡片头部 */
+  .report-content-header {
+    @apply flex justify-between items-start mb-4 sm:mb-6;
+  }
+
+  /* 报告头部标题区 */
+  .report-header-left {
+    @apply flex items-start gap-3 flex-1;
+  }
+
+  /* 报告子标题（STYKU等） */
+  .report-subtitle {
+    @apply text-[10px] sm:text-[11px] font-bold text-[#d4af37] uppercase tracking-[0.2em] opacity-60;
+  }
+
+  /* 报告主标题 */
+  .report-main-title {
+    @apply text-lg sm:text-xl md:text-2xl font-bold text-white uppercase tracking-tight truncate;
+  }
+
+  /* 报告评级标签 */
+  .report-rating-badge {
+    @apply px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-bold bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] flex items-center gap-1 shrink-0;
+  }
+
+  /* 报告评级指示灯 */
+  .report-rating-indicator {
+    @apply w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse;
+  }
+
+  /* 报告内容主体 */
+  .report-content-body {
+    @apply flex gap-4 sm:gap-6 mb-4 sm:mb-6;
+  }
+
+  /* 雷达图容器 */
+  .radar-chart-container {
+    @apply flex-shrink-0 w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center relative;
+  }
+
+  /* 报告指标容器 */
+  .report-metrics-container {
+    @apply flex-1 space-y-2 sm:space-y-3;
+  }
+
+  /* 报告指标项 */
+  .report-metric-item {
+    @apply space-y-1;
+  }
+
+  /* 报告指标标签 */
+  .report-metric-label {
+    @apply flex justify-between text-[11px] sm:text-[12px] font-bold text-white/70 uppercase tracking-wider;
+  }
+
+  /* 报告进度条 */
+  .report-progress-bar {
+    @apply h-1.5 w-full bg-white/10 rounded-full overflow-hidden border border-white/5;
+  }
+
+  /* 报告进度填充 */
+  .report-progress-fill {
+    @apply h-full bg-gradient-to-r from-[#d4af37]/40 to-[#d4af37] rounded-full shadow-[0_0_8px_rgba(212,175,55,0.4)];
+  }
+
+  /* 报告底部信息 */
+  .report-bottom-info {
+    @apply flex justify-between items-center pt-3 sm:pt-4 border-t border-white/5;
+  }
+
+  /* 报告更新时间 */
+  .report-update-time {
+    @apply text-[11px] sm:text-[12px] text-white/40 font-medium;
+  }
+
+  /* 报告详情链接 */
+  .report-detail-link {
+    @apply flex items-center text-[11px] sm:text-[12px] text-[#d4af37] font-bold gap-1 hover:gap-2 transition-all cursor-pointer;
   }
 
   .report-footer {
@@ -171,7 +410,14 @@
 
   /* 数据卡片容器 */
   .data-card {
-    @apply surface-strong p-4 sm:p-6 border border-white/5 rounded-2xl sm:rounded-[32px] flex items-center justify-between transition-all shadow-2xl shadow-black/50 gap-3;
+    @apply p-4 sm:p-6 border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] flex items-center justify-between transition-all shadow-lg gap-3;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .data-card:hover {
+    @apply border-[#d4af37]/40;
   }
 
   /* 指标卡片内容区域 */
@@ -237,12 +483,19 @@
 
   /* 目标卡片 */
   .goal-card {
-    @apply surface-strong p-4 sm:p-6 border border-white/5 rounded-2xl sm:rounded-[32px] transition-all duration-300 relative shadow-2xl shadow-black/50;
+    @apply p-4 sm:p-6 border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] transition-all duration-300 relative shadow-lg;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .goal-card:hover {
+    @apply border-[#d4af37]/40;
   }
 
   .goal-card:focus-within {
     @apply border-[#d4af37]/50;
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
   }
 
   /* 目标卡片头部 */
@@ -377,12 +630,19 @@
 
   /* 诊断卡片 */
   .diagnosis-card {
-    @apply surface-strong p-4 sm:p-6 border border-white/5 rounded-2xl sm:rounded-[32px] transition-all duration-300 relative shadow-2xl shadow-black/50;
+    @apply p-4 sm:p-6 border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] transition-all duration-300 relative overflow-hidden shadow-lg;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .diagnosis-card:hover {
+    @apply border-[#d4af37]/40;
   }
 
   .diagnosis-card:focus-within {
     @apply border-[#d4af37]/50;
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
   }
 
   .diagnosis-card.selector-open {
@@ -429,7 +689,14 @@
 
   /* 计划指南卡片 */
   .plan-guide-card {
-    @apply p-4 sm:p-6 surface-strong border border-[#d4af37]/20 bg-[#d4af37]/5 rounded-2xl sm:rounded-[32px] shadow-2xl shadow-black/50;
+    @apply p-4 sm:p-6 border border-[#d4af37]/20 rounded-2xl sm:rounded-[32px] transition-all duration-300 relative overflow-hidden shadow-lg;
+    background-color: rgba(20, 20, 20, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .plan-guide-card:hover {
+    @apply border-[#d4af37]/40;
   }
 
   /* 计划指南图标容器 */
