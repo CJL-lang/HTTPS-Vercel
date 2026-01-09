@@ -208,7 +208,7 @@ export const updateDiagnosisToBackend = async (assessmentId, content, user, lang
     }
 };
 
-export const saveStykuDataToBackend = async (assessmentId, stykuData, user) => {
+export const saveStykuDataToBackend = async (assessmentId, stykuData, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return null;
 
     try {
@@ -224,8 +224,13 @@ export const saveStykuDataToBackend = async (assessmentId, stykuData, user) => {
             upper_arm: parseFloat(stykuData.upperLimbs?.upperArm) || 0,
             forearm: parseFloat(stykuData.upperLimbs?.forearm) || 0,
             thigh: parseFloat(stykuData.lowerLimbs?.thigh) || 0,
-            calf: parseFloat(stykuData.lowerLimbs?.calf) || 0
+            calf: parseFloat(stykuData.lowerLimbs?.calf) || 0,
+            language: language
         };
+        // 只在有备注时添加 notes 字段
+        if (stykuData.notes) {
+            payload.notes = stykuData.notes;
+        }
 
         console.log('[API] POST /styku payload:', payload);
 
@@ -255,7 +260,7 @@ export const saveStykuDataToBackend = async (assessmentId, stykuData, user) => {
     }
 };
 
-export const saveMentalDataToBackend = async (assessmentId, mentalData, user) => {
+export const saveMentalDataToBackend = async (assessmentId, mentalData, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return null;
 
     try {
@@ -263,7 +268,8 @@ export const saveMentalDataToBackend = async (assessmentId, mentalData, user) =>
             assessment_id: assessmentId,
             focus: parseInt(mentalData.focus) || 0,
             stability: parseInt(mentalData.stability) || 0,
-            confidence: parseInt(mentalData.confidence) || 0
+            confidence: parseInt(mentalData.confidence) || 0,
+            language: language
         };
 
         console.log('[API] POST /mental payload:', payload);
@@ -293,7 +299,7 @@ export const saveMentalDataToBackend = async (assessmentId, mentalData, user) =>
     }
 };
 
-export const saveTrackmanDataToBackend = async (assessmentId, trackmanData, user) => {
+export const saveTrackmanDataToBackend = async (assessmentId, trackmanData, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return null;
 
     try {
@@ -318,8 +324,13 @@ export const saveTrackmanDataToBackend = async (assessmentId, trackmanData, user
             spin_loft: parseFloat(trackmanData.layerB?.spinLoft) || 0,
             low_point: trackmanData.layerC?.lowPoint || "",
             impact_offset: trackmanData.layerC?.impactOffset || "",
-            indexing: trackmanData.layerC?.indexing || ""
+            indexing: trackmanData.layerC?.indexing || "",
+            language: language
         };
+        // 只在有备注时添加 notes 字段
+        if (trackmanData.notes) {
+            payload.notes = trackmanData.notes;
+        }
 
         console.log('[API] POST /trackman payload:', payload);
 
@@ -403,10 +414,22 @@ export const createAssessment = async (studentId, type, user, title = '', langua
 
         const backendType = typeMapping[type] || type;
 
+        // 如果没有提供标题或标题为空，生成默认中文标题
+        let finalTitle = title;
+        if (!finalTitle || !finalTitle.trim()) {
+            const defaultTitleMap = {
+                'physical': '身体素质测评',
+                'mental': '心理测评',
+                'technique': '技能测评',
+                'skills': '技能测评'
+            };
+            finalTitle = defaultTitleMap[type] || '新测评';
+        }
+
         const payload = {
             student_user_id: studentId.toString(),
             type: backendType,
-            title: title || '新测评',
+            title: finalTitle,
             language: language
         };
 
@@ -588,7 +611,7 @@ export const getFullAssessmentData = async (assessmentId, user) => {
 /**
  * 更新 Trackman 数据 (PATCH)
  */
-export const updateTrackmanDataToBackend = async (assessmentId, data, user) => {
+export const updateTrackmanDataToBackend = async (assessmentId, data, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
     try {
         // 后端 PATCH 使用 DisallowUnknownFields：不能传 layerA/layerB/layerC 等未知字段
@@ -613,8 +636,13 @@ export const updateTrackmanDataToBackend = async (assessmentId, data, user) => {
             spin_loft: parseFloat(data?.spin_loft ?? data?.layerB?.spinLoft) || 0,
             low_point: (data?.low_point ?? data?.layerC?.lowPoint) || "",
             impact_offset: (data?.impact_offset ?? data?.layerC?.impactOffset) || "",
-            indexing: (data?.indexing ?? data?.layerC?.indexing) || ""
+            indexing: (data?.indexing ?? data?.layerC?.indexing) || "",
+            language: language
         };
+        // 只在有备注时添加 notes 字段
+        if (data?.notes) {
+            payload.notes = data.notes;
+        }
 
         const response = await fetch('/api/trackman', {
             method: 'PATCH',
@@ -638,7 +666,7 @@ export const updateTrackmanDataToBackend = async (assessmentId, data, user) => {
 /**
  * 更新 Mental 数据 (PATCH)
  */
-export const updateMentalDataToBackend = async (assessmentId, data, user) => {
+export const updateMentalDataToBackend = async (assessmentId, data, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
     try {
         // 后端 PATCH 使用 DisallowUnknownFields：只发送后端 struct 支持的字段
@@ -647,7 +675,8 @@ export const updateMentalDataToBackend = async (assessmentId, data, user) => {
             assessment_id: assessmentId,
             focus: parseInt(data?.focus) || 0,
             stability: parseInt(data?.stability) || 0,
-            confidence: parseInt(data?.confidence) || 0
+            confidence: parseInt(data?.confidence) || 0,
+            language: language
         };
 
         const response = await fetch('/api/mental', {
@@ -672,7 +701,7 @@ export const updateMentalDataToBackend = async (assessmentId, data, user) => {
 /**
  * 更新 Styku 数据 (PATCH)
  */
-export const updateStykuDataToBackend = async (assessmentId, data, user) => {
+export const updateStykuDataToBackend = async (assessmentId, data, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
     try {
         // 后端 PATCH 使用 DisallowUnknownFields：不能传 torso/upperLimbs/lowerLimbs 等未知字段
@@ -689,8 +718,13 @@ export const updateStykuDataToBackend = async (assessmentId, data, user) => {
             upper_arm: parseFloat(data?.upper_arm ?? data?.upperLimbs?.upperArm) || 0,
             forearm: parseFloat(data?.forearm ?? data?.upperLimbs?.forearm) || 0,
             thigh: parseFloat(data?.thigh ?? data?.lowerLimbs?.thigh) || 0,
-            calf: parseFloat(data?.calf ?? data?.lowerLimbs?.calf) || 0
+            calf: parseFloat(data?.calf ?? data?.lowerLimbs?.calf) || 0,
+            language: language
         };
+        // 只在有备注时添加 notes 字段
+        if (data?.notes) {
+            payload.notes = data.notes;
+        }
 
         const response = await fetch('/api/styku', {
             method: 'PATCH',

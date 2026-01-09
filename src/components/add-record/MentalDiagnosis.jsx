@@ -56,9 +56,6 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
     // 当外部 title 改变时（比如从下拉菜单选择），同步显示状态和输入框的值
     useEffect(() => {
         setDisplayTitle(item.title);
-        if (inputRef.current && !item.isCustom) {
-            inputRef.current.value = item.title;
-        }
     }, [item.title, item.isCustom]);
 
     return (
@@ -118,8 +115,8 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                 <input
                                     ref={inputRef}
                                     type="text"
-                                    defaultValue={item.title}
-                                    onInput={(e) => setDisplayTitle(e.target.value)}
+                                    value={displayTitle}
+                                    onChange={(e) => setDisplayTitle(e.target.value)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             e.currentTarget.blur();

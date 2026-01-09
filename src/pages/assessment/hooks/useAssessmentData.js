@@ -27,9 +27,13 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
     // 按 assessmentId 缓存已加载的数据，避免重复请求（含 StrictMode 双执行）
     const moduleCacheRef = useRef({});
 
-    const createEmptyRecordData = (assessmentId, title = '') => ({
+    const createEmptyRecordData = (assessmentId, title = '', activePrimaryForDefault = 0, tForDefault = (k)=>k) => ({
         assessmentId: assessmentId,
-        title: title || '',
+        title: title || ({
+            0: tForDefault('physicalAssessment'),
+            1: tForDefault('mentalAssessment'),
+            2: tForDefault('skillsAssessment')
+        }[activePrimaryForDefault] || ''),
         stykuData: {
             height: '', weight: '', sittingHeight: '', bmi: '',
             torso: { chest: '', waist: '', hip: '' },
@@ -77,7 +81,7 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
         }
     });
 
-    const [recordData, setRecordData] = useState(() => createEmptyRecordData(initialAssessmentId, assessmentData?.title || ''));
+    const [recordData, setRecordData] = useState(() => createEmptyRecordData(initialAssessmentId, assessmentData?.title || '', activePrimary, t));
 
     // 当切换到另一份报告（assessmentId 变化）时：立即清空旧 state，避免先展示上一份数据
     useEffect(() => {
@@ -90,7 +94,7 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
         });
 
         // 清空旧数据并同步标题
-        setRecordData(createEmptyRecordData(initialAssessmentId, assessmentData?.title || ''));
+        setRecordData(createEmptyRecordData(initialAssessmentId, assessmentData?.title || '', activePrimary, t));
 
         // 重置缓存
         if (initialAssessmentId) {
@@ -351,17 +355,7 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
         loadModule();
     }, [initialAssessmentId, user?.token, activePrimary, activeSecondary, assessmentData?.title]);
 
-    // 设置默认标题
-    useEffect(() => {
-        const defaultTitles = {
-            0: t('physicalAssessment'),
-            1: t('mentalAssessment'),
-            2: t('skillsAssessment')
-        };
-        if (!recordData.title) {
-            setRecordData(prev => ({ ...prev, title: defaultTitles[activePrimary] }));
-        }
-    }, [activePrimary, t]);
+    // NOTE: default title is now applied during initial state creation
 
     const updateRecordData = (path, val) => {
         const keys = path.split('.');

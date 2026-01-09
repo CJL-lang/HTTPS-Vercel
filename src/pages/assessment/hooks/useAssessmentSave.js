@@ -56,6 +56,29 @@ export const useAssessmentSave = ({
     const backendLang = getBackendLang();
 
     const handleSave = async (navigateToSecondary) => {
+        // DEBUG: 打印 recordData / 快照以便验证默认值是否进入数据模型
+        try {
+            console.debug('[DEBUG useAssessmentSave] recordData before save:', JSON.parse(JSON.stringify(recordData)));
+        } catch (e) {
+            console.debug('[DEBUG useAssessmentSave] recordData (raw):', recordData);
+        }
+
+        // SAVE-TIME Fallback: 确保 title 一定存在（最后一道防线，避免 useEffect 竞态）
+        try {
+            const defaultTitles = {
+                0: t('physicalAssessment'),
+                1: t('mentalAssessment'),
+                2: t('skillsAssessment')
+            };
+            if (!recordData.title || !recordData.title.toString().trim()) {
+                const fallback = defaultTitles[activePrimary] || t('autoAssessment') || '';
+                console.info('[useAssessmentSave] title empty, applying fallback:', fallback);
+                setRecordData(prev => ({ ...prev, title: fallback }));
+            }
+        } catch (e) {
+            // ignore
+        }
+
         // 保存草稿
         saveDraft(activeSecondary);
 
@@ -192,12 +215,20 @@ export const useAssessmentSave = ({
             if (finalId) {
                 // 如果是身体素质测评，额外保存一份到专门的 styku 接口
                 if (activePrimary === 0) {
+                    const stykuDataPayload = {
+                        ...recordData.stykuData
+                    };
+                    // 只在有备注时添加 notes 字段
+                    if (recordData.stykuData?.notes) {
+                        stykuDataPayload.notes = recordData.stykuData.notes;
+                    }
+                    
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing styku via PATCH');
-                        await updateStykuDataToBackend(finalId, recordData.stykuData, user);
+                        await updateStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
                     } else {
                         console.log('[useAssessmentSave] Creating new styku via POST');
-                        await saveStykuDataToBackend(finalId, recordData.stykuData, user);
+                        await saveStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
                         setHasBackendData(prev => ({ ...prev, assessment_data: true }));
                     }
                 }
@@ -214,22 +245,30 @@ export const useAssessmentSave = ({
                     
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing mental via PATCH');
-                        await updateMentalDataToBackend(finalId, mentalDataPayload, user);
+                        await updateMentalDataToBackend(finalId, mentalDataPayload, user, backendLang);
                     } else {
                         console.log('[useAssessmentSave] Creating new mental via POST');
-                        await saveMentalDataToBackend(finalId, mentalDataPayload, user);
+                        await saveMentalDataToBackend(finalId, mentalDataPayload, user, backendLang);
                         setHasBackendData(prev => ({ ...prev, assessment_data: true }));
                     }
                 }
 
                 // 如果是技能测评，保存 Trackman 数据
                 if (activePrimary === 2) {
+                    const trackmanDataPayload = {
+                        ...recordData.trackmanData
+                    };
+                    // 只在有备注时添加 notes 字段
+                    if (recordData.trackmanData?.notes) {
+                        trackmanDataPayload.notes = recordData.trackmanData.notes;
+                    }
+                    
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing trackman via PATCH');
-                        await updateTrackmanDataToBackend(finalId, recordData.trackmanData, user);
+                        await updateTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);
                     } else {
                         console.log('[useAssessmentSave] Creating new trackman via POST');
-                        await saveTrackmanDataToBackend(finalId, recordData.trackmanData, user);
+                        await saveTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);
                         setHasBackendData(prev => ({ ...prev, assessment_data: true }));
                     }
                 }
@@ -445,7 +484,17 @@ export const useAssessmentSave = ({
             
             try {
                 // 关键修改：在跳转到下一项之前，先创建下一项的 assessment 记录
-                const defaultTitle = recordData.title || t('autoAssessment');
+                // 根据类型生成中文标题
+                let defaultTitle = recordData.title;
+                if (!defaultTitle) {
+                    const titleMap = {
+                        'physical': '身体素质测评',
+                        'mental': '心理测评',
+                        'technique': '技能测评'
+                    };
+                    defaultTitle = titleMap[nextType] || t('autoAssessment');
+                }
+                
                 const nextAssessmentId = await createAssessment(
                     student?.id,
                     nextType,

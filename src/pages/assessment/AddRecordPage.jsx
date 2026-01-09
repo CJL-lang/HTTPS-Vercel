@@ -192,6 +192,29 @@ const AddRecordPage = ({
         setHasBackendData: assessmentData_hook.setHasBackendData
     });
 
+    // 开发辅助：如果 URL 包含 ?autoSave=1，则在页面加载后自动触发保存（用于自动化验证）
+    useEffect(() => {
+        try {
+            const params = new URLSearchParams(location.search);
+            const auto = params.get('autoSave');
+            if (auto === '1' && process.env.NODE_ENV !== 'production') {
+                // 延迟一点时间以便页面和数据初始化完成
+                const timer = setTimeout(async () => {
+                    try {
+                        console.info('[AutoSave] autoSave=1 detected, triggering save...');
+                        await save.handleSave(navigation.navigateToSecondary);
+                        console.info('[AutoSave] save triggered');
+                    } catch (e) {
+                        console.error('[AutoSave] save failed', e);
+                    }
+                }, 1200);
+                return () => clearTimeout(timer);
+            }
+        } catch (e) {
+            // ignore
+        }
+    }, [location.search, save, navigation.navigateToSecondary]);
+
     // 学员信息验证
     useEffect(() => {
         if (!student || !student.id) {
@@ -273,10 +296,21 @@ const AddRecordPage = ({
 
     const handleTitleSave = async () => {
         const assessmentId = assessmentData_hook.recordData.assessmentId;
-        const newTitle = assessmentData_hook.recordData.title;
-        
+        let newTitle = assessmentData_hook.recordData.title;
+
+        // 如果标题为空，使用默认标题并同步到前端 state
+        if (!newTitle || !newTitle.trim()) {
+            const titleMap = {
+                0: '身体素质测评',
+                1: '心理测评',
+                2: '技能测评'
+            };
+            newTitle = titleMap[navigation.activePrimary] || t('autoAssessment');
+            assessmentData_hook.updateRecordData('title', newTitle);
+        }
+
         console.log('[AddRecordPage] handleTitleSave called', { assessmentId, newTitle });
-        
+
         if (assessmentId && newTitle) {
             const success = await updateAssessment(assessmentId, { title: newTitle }, user);
             console.log('[AddRecordPage] updateAssessment result:', success);

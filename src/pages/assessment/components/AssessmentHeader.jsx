@@ -51,17 +51,16 @@ const AssessmentHeader = ({
                         value={title}
                         onChange={(e) => onTitleChange(e.target.value)}
                         onBlur={() => {
-                            // 给点击 √ 留出足够的时间，不要因为失焦立即销毁组件
-                            setTimeout(() => {
-                                setIsEditingTitle((current) => {
-                                    // 如果还在编辑模式（说明没有点击 √ 触发 handleSave），则由 blur 负责关闭
-                                    return false;
-                                });
-                            }, 200);
+                            // 失去焦点时始终尝试保存（页面层会补默认标题）
+                            handleSave();
+                            setIsEditingTitle(false);
                         }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 handleSave();
+                                setIsEditingTitle(false);
+                            } else if (e.key === 'Escape') {
+                                setIsEditingTitle(false);
                             }
                         }}
                     />
@@ -76,7 +75,7 @@ const AssessmentHeader = ({
                 <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer flex-1 min-w-0" onClick={() => setIsEditingTitle(true)}>
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                         <h1 className="title-workbench">
-                            {title || t('addRecordTitle')}
+                            {title}
                         </h1>
                         <Edit2 size={18} className="text-[#d4af37] opacity-40 group-hover:opacity-100 transition-opacity shrink-0 sm:w-5 sm:h-5" />
                     </div>

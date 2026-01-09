@@ -364,7 +364,18 @@ export default function App() {
             // 确定要创建的类型：如果是完整测评则默认为 physical
             const currentType = assessmentData?.mode === 'complete' ? 'physical' : (assessmentData?.type || 'physical');
             const backendType = typeMap[currentType] || 'physical';
-            const defaultTitle = assessmentData?.title || (language === 'en' ? 'New Assessment' : '新测评');
+            
+            // 根据类型生成中文标题
+            let defaultTitle = assessmentData?.title;
+            if (!defaultTitle) {
+                const titleMap = {
+                    'physical': '身体素质测评',
+                    'mental': '心理测评',
+                    'technique': '技能测评',
+                    'skills': '技能测评'
+                };
+                defaultTitle = titleMap[currentType] || (language === 'en' ? 'New Assessment' : '新测评');
+            }
 
             // 预先创建 assessment 记录
             const assessmentId = await createAssessment(
