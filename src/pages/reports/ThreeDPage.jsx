@@ -73,49 +73,180 @@ const ThreeDPage = () => {
     // 语音输入功能
     const { isListening, startListening, stopListening } = useVoiceInput();
 
+    // AI 对话采集相关状态
+    const FIELD_LABELS = {
+        name: '姓名',
+        email: '邮箱',
+        gender: '性别',
+        age: '年龄',
+        years_of_golf: '球龄',
+        height: '身高(cm)',
+        weight: '体重(kg)',
+        golf_history: '高尔夫历史',
+        medical_history: '伤病历史',
+        purpose: '个人训练目的',
+    };
+
+    // 前端必填字段白名单（优先检查顺序）
+    const REQUIRED_FIELDS = ['name', 'email'];
+
+    const [currentInfo, setCurrentInfo] = useState({});
+    const [nextField, setNextField] = useState(null);
+    const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
+
+    // 简单邮箱校验
+    const isValidEmail = (email) => {
+        if (!email) return false;
+        try {
+            const e = String(email).trim();
+            // 简单正则：存在 @ 且格式合理
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+        } catch (e) {
+            return false;
+        }
+    };
+
     const handleConfirm = () => {
         setSelectedChar(tempChar);
         setIsSelecting(false);
-        setMessages([{ 
-            id: 1, 
-            sender: 'ai', 
-            text: `你好！我是 ${tempChar.name}。${tempChar.description}`, 
-            timestamp: Date.now() 
-        }]);
+        // 保持现有角色开场，然后输出固定欢迎语并初始化表单式对话流程
+        const intro = `你好！我是 ${tempChar.name}。${tempChar.description}`;
+        const welcome = `欢迎来到 AI 学员信息注册助手 😊\n我会一步一步了解你的情况，帮助我们更好地制定训练方案。\n我们先开始吧：请输入你的姓名`;
+
+        setMessages([
+            { id: 1, sender: 'ai', text: intro, timestamp: Date.now() },
+            { id: 2, sender: 'ai', text: welcome, timestamp: Date.now() + 1 }
+        ]);
+
+        // 初始化表单数据与流程控制，后续每次用户输入都会调用 /AIDialog
+        setCurrentInfo({});
+        setNextField('name');
     };
 
-    const generateAIResponse = (userMessage) => {
-        const responses = [
-            `我理解。${userMessage}`,
-            `这个问题很有意思。我的看法是：${userMessage}`,
-            `你说得好，让我帮你分析一下${userMessage}`,
-            `很感谢你的提问。关于这个，${userMessage}`,
-            `我想从另一个角度来看待这个问题。${userMessage}`,
-        ];
-        return responses[Math.floor(Math.random() * responses.length)];
-    };
+    // NOTE: Removed local/random AI response generator to enforce real /AIDialog usage.
 
-    const handleSendMessage = async () => {
-        if (!inputValue.trim() || !selectedChar) return;
-        const userMessage = { 
-            id: messages.length + 1, 
-            sender: 'user', 
-            text: inputValue, 
-            timestamp: Date.now() 
-        };
-        setMessages(prev => [...prev, userMessage]);
+    // 发送用户消息到 /AIDialog 并处理 AI 返回（res.reply, res.is_valid, res.updated_info, res.next_field）
+    const handleSendMessage = async (overrideText) => {
+        const text = (typeof overrideText === 'string' ? overrideText : inputValue).trim();
+        if (!text || !selectedChar) return;
+
+        // Append user message (use functional updater to avoid stale state)
+        setMessages(prev => {
+            const lastId = prev.length ? prev[prev.length - 1].id : 0;
+            return [...prev, { id: lastId + 1, sender: 'user', text, timestamp: Date.now() }];
+        });
         setInputValue('');
         setIsLoading(true);
-        setTimeout(() => {
-            const aiMessage = { 
-                id: messages.length + 2, 
-                sender: 'ai', 
-                text: generateAIResponse(inputValue), 
-                timestamp: Date.now() 
+
+        try {
+            const payload = { current_info: currentInfo, last_user_message: text };
+            // build headers (include auth if available)
+            const savedUser = (() => {
+                try { const s = localStorage.getItem('user'); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+            })();
+            const token = savedUser?.token || null;
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const resp = await fetch(`/api/AIDialog`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload)
+            });
+
+            if (!resp.ok) {
+                throw new Error(`AIDialog HTTP ${resp.status}`);
+            }
+
+            const res = await resp.json();
+
+            // Merge updated_info into currentInfo (single source of truth)
+            const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
+            const mergedInfo = { ...(currentInfo || {}), ...updatedInfo };
+            setCurrentInfo(mergedInfo);
+
+            // Decide nextField and whether to display the AI reply.
+            const returnedNext = res.next_field || null;
+
+            // Helper to find next missing field (prefer REQUIRED_FIELDS then others)
+            const getNextMissing = () => {
+                for (const f of REQUIRED_FIELDS) {
+                    if (!mergedInfo[f] || String(mergedInfo[f]).trim() === '') return f;
+                }
+                for (const f of Object.keys(FIELD_LABELS)) {
+                    if (!mergedInfo[f] || String(mergedInfo[f]).trim() === '') return f;
+                }
+                return null;
             };
-            setMessages(prev => [...prev, aiMessage]);
+
+            // If backend indicates 'done', ensure email exists/valid before completing
+            if (returnedNext === 'done') {
+                if (!isValidEmail(mergedInfo?.email)) {
+                    // Ask for email explicitly, do not complete
+                    setMessages(prev => {
+                        const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                        return [...prev, { id: lastId + 1, sender: 'ai', text: '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。', timestamp: Date.now() }];
+                    });
+                    setNextField('email');
+                } else {
+                    // All good, append AI reply and mark done
+                    setMessages(prev => {
+                        const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                        return [...prev, { id: lastId + 1, sender: 'ai', text: res.reply || '已完成信息收集。', timestamp: Date.now() }];
+                    });
+                    setNextField('done');
+                    console.log('学员信息采集完成', mergedInfo);
+                }
+                return;
+            }
+
+            // If backend asks for a field we already have, do NOT repeat the question.
+            if (returnedNext && mergedInfo[returnedNext] !== undefined && mergedInfo[returnedNext] !== null && String(mergedInfo[returnedNext]).trim() !== '') {
+                // find the next truly missing field
+                const missing = getNextMissing();
+                if (missing) {
+                    setMessages(prev => {
+                        const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                        return [...prev, { id: lastId + 1, sender: 'ai', text: `已记录你的${FIELD_LABELS[returnedNext] || returnedNext}，接下来请提供${FIELD_LABELS[missing] || missing}。`, timestamp: Date.now() }];
+                    });
+                    setNextField(missing);
+                } else {
+                    // nothing missing -> treat as done (email already validated earlier in flow will block if necessary)
+                    if (!isValidEmail(mergedInfo?.email)) {
+                        setMessages(prev => {
+                            const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                            return [...prev, { id: lastId + 1, sender: 'ai', text: '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。', timestamp: Date.now() }];
+                        });
+                        setNextField('email');
+                    } else {
+                        setMessages(prev => {
+                            const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                            return [...prev, { id: lastId + 1, sender: 'ai', text: res.reply || '已完成信息收集。', timestamp: Date.now() }];
+                        });
+                        setNextField('done');
+                    }
+                }
+                return;
+            }
+
+            // Default: append AI reply and set nextField as returned
+            setMessages(prev => {
+                const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                return [...prev, { id: lastId + 1, sender: 'ai', text: res.reply || '...', timestamp: Date.now() }];
+            });
+            setNextField(returnedNext);
+        } catch (err) {
+            console.error('AIDialog request failed', err);
+            // Basic fallback UI feedback
+            setMessages(prev => {
+                const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                return [...prev, { id: lastId + 1, sender: 'ai', text: '网络或服务暂不可用，请稍后再试。', timestamp: Date.now() }];
+            });
+            // Minimal user-facing alert
+            try { alert('网络或服务暂不可用，请稍后再试。'); } catch (e) { /* ignore in non-browser env */ }
+        } finally {
             setIsLoading(false);
-        }, 800);
+        }
     };
 
     // 处理语音输入
@@ -140,6 +271,192 @@ const ThreeDPage = () => {
             });
         }
     };
+
+    // 启动 AI 对话（用于角色确认后立即发起会话）
+    async function startAIDialog() {
+        setIsLoading(true);
+        try {
+            // build headers like other API calls
+            const savedUser = (() => {
+                try { const s = localStorage.getItem('user'); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+            })();
+            const token = savedUser?.token || null;
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(`/api/AIDialog`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ current_info: {}, last_user_message: 'start' })
+            }).then(r => r.json()).catch(() => null);
+
+            if (!res) {
+                // 后端不可用的回退提示
+                setMessages(prev => [...prev, { sender: 'ai', text: `你好！我是 ${tempChar?.name}。${tempChar?.description}` , timestamp: Date.now() }]);
+                setCurrentInfo({});
+                setNextField(null);
+            } else {
+                // Merge updated_info into currentInfo
+                const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
+                const mergedInfo = { ...(currentInfo || {}), ...updatedInfo };
+                setCurrentInfo(mergedInfo);
+
+                // Determine next missing field
+                const findNextMissing = () => {
+                    for (const f of REQUIRED_FIELDS) {
+                        if (!mergedInfo[f] || String(mergedInfo[f]).trim() === '') return f;
+                    }
+                    for (const f of Object.keys(FIELD_LABELS)) {
+                        if (!mergedInfo[f] || String(mergedInfo[f]).trim() === '') return f;
+                    }
+                    return null;
+                };
+
+                if (res.next_field === 'done') {
+                    if (!isValidEmail(mergedInfo?.email)) {
+                        setMessages(prev => [...prev, { sender: 'ai', text: '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。', timestamp: Date.now() }]);
+                        setNextField('email');
+                    } else {
+                        setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
+                        setNextField('done');
+                    }
+                } else if (res.next_field && mergedInfo[res.next_field] !== undefined && mergedInfo[res.next_field] !== null && String(mergedInfo[res.next_field]).trim() !== '') {
+                    const missing = findNextMissing();
+                    if (missing) {
+                        setMessages(prev => [...prev, { sender: 'ai', text: `已记录。接下来请提供${FIELD_LABELS[missing] || missing}。`, timestamp: Date.now() }]);
+                        setNextField(missing);
+                    } else {
+                        if (!isValidEmail(mergedInfo?.email)) {
+                            setMessages(prev => [...prev, { sender: 'ai', text: '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。', timestamp: Date.now() }]);
+                            setNextField('email');
+                        } else {
+                            setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
+                            setNextField('done');
+                        }
+                    }
+                } else {
+                    setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
+                    setNextField(res.next_field || null);
+                }
+            }
+        } catch (err) {
+            console.error('startAIDialog failed', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    // 监听完成状态
+    useEffect(() => {
+        if (nextField === 'done') {
+            // 学员信息采集完成 -> 在创建前兜底校验 email
+            const emailToCheck = currentInfo?.email;
+            if (!isValidEmail(emailToCheck)) {
+                // 不调用 /students，改由 AI 继续询问邮箱
+                setMessages(prev => {
+                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                    return [...prev, { id: lastId + 1, sender: 'ai', text: '请提供你的邮箱地址，我们需要发送训练资料和通知。', timestamp: Date.now() }];
+                });
+                setNextField('email');
+                return;
+            }
+
+            // 通过校验后再真正提交
+            if (!isSubmittingStudent) {
+                createStudent();
+            }
+        }
+    }, [nextField, currentInfo]);
+
+    // 创建学员并在对话中反馈结果（真实调用 POST /students，携带 Authorization）
+    async function createStudent() {
+        setIsSubmittingStudent(true);
+        try {
+            // 构造 payload，兼容 currentInfo 中不同命名（golf_history / history）
+            const userRaw = (() => {
+                try {
+                    const saved = localStorage.getItem('user');
+                    return saved ? JSON.parse(saved) : null;
+                } catch (e) { return null; }
+            })();
+
+            const coachId = userRaw?.id || userRaw?.coachId || null;
+            const token = userRaw?.token || null;
+
+            const genderRaw = currentInfo.gender;
+            const gender = (() => {
+                if (genderRaw === undefined || genderRaw === null) return undefined;
+                const gs = String(genderRaw).toLowerCase();
+                if (gs.includes('男') || gs.includes('male')) return 1;
+                if (gs.includes('女') || gs.includes('female')) return 0;
+                return undefined;
+            })();
+
+            const payload = {
+                coach_id: coachId,
+                name: currentInfo.name,
+                email: currentInfo.email,
+                gender: gender,
+                age: currentInfo.age ? Number(currentInfo.age) : undefined,
+                years_of_golf: currentInfo.years_of_golf || currentInfo.yearsOfGolf || undefined,
+                height: currentInfo.height ? Number(currentInfo.height) : undefined,
+                weight: currentInfo.weight ? Number(currentInfo.weight) : undefined,
+                history: currentInfo.history || currentInfo.golf_history || undefined,
+                medical_history: currentInfo.medical_history || undefined,
+                purpose: currentInfo.purpose || undefined,
+            };
+
+            // 最后兜底校验：绝不在缺少或非法 email 时调用后端创建接口
+            if (!isValidEmail(payload.email)) {
+                setMessages(prev => {
+                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                    return [...prev, { id: lastId + 1, sender: 'ai', text: '我还需要你的邮箱地址才能为你创建学员档案，请输入你的邮箱。', timestamp: Date.now() }];
+                });
+                setNextField('email');
+                return;
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch('/api/students', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(payload),
+            });
+
+            const result = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                console.error('Create student failed', res.status, result);
+                // 不直接向用户展示 HTTP 错误或“创建失败”字样，改为温和提示并记录日志
+                setMessages(prev => {
+                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                    return [...prev, { id: lastId + 1, sender: 'ai', text: '保存学员时遇到问题，我会稍后再试。如需立即重试，请在对话中输入“重试”。', timestamp: Date.now() }];
+                });
+                return;
+            }
+
+            // 成功：展示成功提示，并处理 student_user_id
+            setMessages(prev => {
+                const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                const successText = `太好了！你的学员信息已经成功创建 🎉\n接下来我们可以开始评估与训练计划了 ⛳`;
+                return [...prev, { id: lastId + 1, sender: 'ai', text: successText, timestamp: Date.now() }];
+            });
+
+            if (result.student_user_id) {
+                console.log('新学员 ID:', result.student_user_id);
+            }
+        } catch (err) {
+            console.error('createStudent error', err);
+            setMessages(prev => {
+                const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                return [...prev, { id: lastId + 1, sender: 'ai', text: '保存学员时出现异常，我会稍后重试。', timestamp: Date.now() }];
+            });
+        } finally {
+            setIsSubmittingStudent(false);
+        }
+    }
 
     // 对话页面
     if (selectedChar) {
