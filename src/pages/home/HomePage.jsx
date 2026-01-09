@@ -186,7 +186,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                     {displayStudent.history.length > 0 && (
                         <div className="student-info-card p-3 sm:p-4 w-full">
                             <p className="text-xs sm:text-sm font-bold text-[#d4af37] uppercase tracking-widest mb-1">{t('detailedHistory')}</p>
-                            <p className="student-info-value break-words px-1">"{displayStudent.history}"</p>
+                            <p className="student-info-value break-words px-1">{displayStudent.history}</p>
                         </div>
                     )}
                 </div>
@@ -239,88 +239,150 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => handleNavigate(card.path)}
                                 className={cn(
-                                    "report-card-optimized relative group text-left transition-all duration-500",
+                                    "relative bg-[#161a23] border border-[#2a2f3a] rounded-3xl p-5 text-left transition-all duration-300 hover:border-[#d4af37]/40 shadow-xl group overflow-hidden flex flex-col justify-between min-h-[160px]",
                                     card.isFull ? "col-span-2" : "col-span-1"
                                 )}
                             >
-                                {/* 头部 */}
-                                <div className="report-card-header-optimized">
-                                    <div className="flex flex-col gap-1 flex-1">
-                                        <div className="report-card-icon-container">
-                                            <Icon size={20} className="sm:w-5 sm:h-5" />
+                                <div className="w-full">
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#d4af37]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    
+                                    {/* 标题区 */}
+                                    <div className="flex items-center gap-3 mb-5">
+                                        <div className="w-10 h-10 rounded-xl bg-[#1e2430] border border-[#3a425c] flex items-center justify-center text-[#d4af37] group-hover:scale-110 transition-transform duration-500 shrink-0">
+                                            <Icon size={20} />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <h3 className="text-lg font-black text-white group-hover:text-[#d4af37] transition-colors duration-300 leading-tight truncate">{card.title}</h3>
+                                            <p className="text-[9px] font-bold text-[#6c7281] uppercase tracking-[0.15em] mb-0.5 whitespace-normal break-words">{data?.subtitle}</p>
                                         </div>
                                     </div>
-                                </div>
 
-                                {/* 内容 */}
-                                <div className="report-card-content">
-                                    {/* 标题区 */}
-                                    <div className="flex flex-col gap-1">
-                                        <p className="report-card-subtitle">{data?.subtitle}</p>
-                                        <h3 className="report-card-title-optimized">{card.title}</h3>
-                                    </div>
-
-                                    {/* 雷达图 + 指标 */}
-                                    <div className="report-card-top-content">
-                                        {/* 雷达图 */}
-                                        <div className="radar-chart-wrapper">
-                                            <svg width="80" height="80" viewBox="0 0 110 110" className="w-full h-full">
-                                                <polygon points="55,10 95,35 80,85 30,85 15,35"
-                                                         fill="none"
-                                                         stroke="#3a425c"
-                                                         strokeWidth="1.5"/>
-                                                <polygon points="55,25 85,45 75,75 35,75 25,45"
-                                                         fill="rgba(255,215,100,.15)"
-                                                         stroke="#f5d36a"
-                                                         strokeWidth="1.5"/>
-                                                <g fill="#f5d36a">
-                                                    <circle cx="55" cy="25" r="2.5"/>
-                                                    <circle cx="85" cy="45" r="2.5"/>
-                                                    <circle cx="75" cy="75" r="2.5"/>
-                                                    <circle cx="35" cy="75" r="2.5"/>
-                                                    <circle cx="25" cy="45" r="2.5"/>
-                                                </g>
+                                    {/* 心理卡片波浪线动画 */}
+                                    {card.path === 'mental-report' && (
+                                        <div className="flex justify-center items-center h-16 mb-2 relative">
+                                            <svg className="w-full h-12 overflow-visible" viewBox="0 0 160 30" preserveAspectRatio="none">
+                                                <defs>
+                                                    <filter id="wave-glow-mental" x="-20%" y="-20%" width="140%" height="140%">
+                                                        <feGaussianBlur stdDeviation="1.5" result="blur" />
+                                                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                                                    </filter>
+                                                </defs>
+                                                <motion.path
+                                                    d="M10 15 Q40 0 80 15 T150 15"
+                                                    fill="none"
+                                                    stroke="#d4af37"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    filter="url(#wave-glow-mental)"
+                                                    animate={{ d: ["M10 15 Q40 5 80 15 T150 15", "M10 15 Q40 25 80 15 T150 15", "M10 15 Q40 5 80 15 T150 15"] }}
+                                                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                                    className="opacity-80"
+                                                />
+                                                <motion.path
+                                                    d="M10 15 Q40 30 80 15 T150 15"
+                                                    fill="none"
+                                                    stroke="#d4af37"
+                                                    strokeWidth="1"
+                                                    strokeLinecap="round"
+                                                    filter="url(#wave-glow-mental)"
+                                                    animate={{ d: ["M10 15 Q40 25 80 15 T150 15", "M10 15 Q40 5 80 15 T150 15", "M10 15 Q40 25 80 15 T150 15"] }}
+                                                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                                    className="opacity-40"
+                                                />
                                             </svg>
                                         </div>
+                                    )}
 
-                                        {/* 指标 */}
-                                        <div className="report-indicators-wrapper">
-                                            {data?.indicators.map((ind, i) => (
-                                                <div key={i} className="report-indicator">
-                                                    <div className="report-indicator-label">
-                                                        <span>{ind.label}</span>
-                                                        <span className="report-indicator-value">{ind.value}</span>
-                                                    </div>
-                                                    <div className="progress-bar-bg">
-                                                        <div className="progress-bar-fill" style={{width: ind.value}}></div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                    {/* 技能卡片特殊动画 */}
+                                    {card.path === 'skills-report' && (
+                                        <div className="flex justify-center items-center h-16 mb-2 relative">
+                                            <svg className="w-full h-12 overflow-visible" viewBox="0 0 160 40" preserveAspectRatio="none">
+                                                <defs>
+                                                    <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                                        <feGaussianBlur stdDeviation="3" result="blur" />
+                                                        <feMerge>
+                                                            <feMergeNode in="blur" />
+                                                            <feMergeNode in="SourceGraphic" />
+                                                        </feMerge>
+                                                    </filter>
+                                                </defs>
+                                                <motion.path
+                                                    d="M10 30 Q60 5 140 10"
+                                                    fill="none"
+                                                    stroke="#d4af37"
+                                                    strokeWidth="2"
+                                                    strokeLinecap="round"
+                                                    className="opacity-80"
+                                                    initial={{ pathLength: 0 }}
+                                                    animate={{ pathLength: 1 }}
+                                                    transition={{ duration: 2, ease: "easeOut" }}
+                                                />
+                                                <motion.circle
+                                                    cx="140"
+                                                    cy="10"
+                                                    r="4"
+                                                    fill="#d4af37"
+                                                    filter="url(#dot-glow)"
+                                                    animate={{ r: [3, 5, 3], opacity: [0.6, 1, 0.6] }}
+                                                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                                                />
+                                            </svg>
                                         </div>
-                                    </div>
+                                    )}
 
-                                    {/* 波浪线和指示器 */}
-                                    <div className="report-card-bottom">
-                                        <svg className="wave-line" viewBox="0 0 300 60" preserveAspectRatio="none">
-                                            <path d={data?.waveData.d1}
-                                                  className="wave-line-path"/>
-                                        </svg>
-                                        <div className="report-bottom-indicator">
-                                            <div className="indicator-bar">
-                                                <div className="indicator-bar-fill" style={{width: data?.waveData.fill + '%'}}></div>
+                                    {/* 指标 - 仅物理卡片 */}
+                                    {card.path === 'physical-report' && (
+                                        <div className="flex items-center gap-4 mb-5">
+                                            <div className="flex-1">
+                                                <svg viewBox="0 0 110 110" className="w-full h-full drop-shadow-[0_0_8px_rgba(212,175,55,0.2)]">
+                                                    <polygon points="55,10 95,35 80,85 30,85 15,35" fill="none" stroke="#2a2f3a" strokeWidth="1.5" />
+                                                    <polygon points="55,25 85,45 75,75 35,75 25,45" fill="rgba(212,175,55,0.08)" stroke="#d4af37" strokeWidth="1.5" className="group-hover:fill-[#d4af37]/20 transition-all duration-500" />
+                                                    <g fill="#d4af37">
+                                                        <circle cx="55" cy="25" r="2.5" />
+                                                        <circle cx="85" cy="45" r="2.5" />
+                                                        <circle cx="75" cy="75" r="2.5" />
+                                                        <circle cx="35" cy="75" r="2.5" />
+                                                        <circle cx="25" cy="45" r="2.5" />
+                                                    </g>
+                                                </svg>
+                                            </div>
+
+                                            {/* 指标 */}
+                                            <div className="flex-1 space-y-2.5">
+                                                {data?.indicators.map((ind, i) => (
+                                                    <div key={i} className="space-y-1">
+                                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+                                                            <span className="text-gray-500">{ind.label}</span>
+                                                            <span className="text-[#d4af37]">{ind.value}</span>
+                                                        </div>
+                                                        <div className="h-[3px] bg-[#1e2430] rounded-full overflow-hidden">
+                                                            <motion.div 
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: ind.value }}
+                                                                className="h-full bg-gradient-to-r from-[#d4af37] to-[#b8860b]"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
+                                    )}
+                                </div>
+
+                                {/* 波浪线 */}
+                                <div className="relative h-10 -mx-5 -mb-5 mt-auto overflow-hidden opacity-40 group-hover:opacity-100 transition-opacity">
+                                    <svg className="w-full h-full" viewBox="0 0 300 60" preserveAspectRatio="none">
+                                        <path d={data?.waveData.d1} fill="none" stroke="#d4af37" strokeWidth="2" className="animate-[pulse_3s_ease-in-out_infinite]" />
+                                    </svg>
+                                    <div className="absolute bottom-0 left-0 w-full h-1 bg-[#1e2430]">
+                                        <div className="h-full bg-[#d4af37]" style={{ width: `${data?.waveData.fill}%` }}></div>
                                     </div>
                                 </div>
 
-                                {/* 装饰 - 仅物理测评 */}
+                                {/* 装饰图标 - 仅物理测评 */}
                                 {card.path === 'physical-report' && (
-                                    <div className="absolute -top-6 -right-6 w-44 h-44 sm:w-72 sm:h-72 opacity-20 sm:opacity-30 group-hover:opacity-40 sm:group-hover:opacity-50 group-hover:scale-110 transition-all duration-1000 pointer-events-none select-none overflow-hidden">
-                                        <img
-                                            src="/img1.png"
-                                            alt="decoration"
-                                            className="w-full h-full object-contain filter brightness-200 contrast-200"
-                                        />
+                                    <div className="absolute -top-10 -right-10 w-48 h-48 opacity-[0.03] group-hover:opacity-10 pointer-events-none transition-all duration-1000 rotate-12 group-hover:scale-110">
+                                        <Icon size={150} />
                                     </div>
                                 )}
                             </motion.button>

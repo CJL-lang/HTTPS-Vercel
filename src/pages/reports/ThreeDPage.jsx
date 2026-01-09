@@ -1,14 +1,14 @@
 /**
- * AI 对话页面
- * 功能：选择3D卡通人物角色进行AI对话
+ * AI 对话页面 (Ted AI Assistant - Lottie 集成版)
+ * 参考：gemini-pulse-ai 架构 + 文档规范
+ * 功能：选择 Lottie 角色进行 AI 对话
  * 路由：/three-d
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
-import PageWrapper from '../../components/PageWrapper';
 import DialogBubbles from '../../components/DialogBubbles';
-import { X, Check, Send, RotateCcw, Mic } from 'lucide-react';
+import { Mic } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
 
@@ -67,17 +67,18 @@ const ThreeDPage = () => {
     const [messages, setMessages] = useState([]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const messagesEndRef = useRef(null);
+    const inputRef = useRef(null);
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
         setIsSelecting(false);
-        setMessages([{ id: 1, sender: 'ai', text: `你好！我是 ${tempChar.name}。${tempChar.description}`, timestamp: new Date() }]);
+        setMessages([{ 
+            id: 1, 
+            sender: 'ai', 
+            text: `你好！我是 ${tempChar.name}。${tempChar.description}`, 
+            timestamp: Date.now() 
+        }]);
     };
-
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
 
     const generateAIResponse = (userMessage) => {
         const responses = [
@@ -92,230 +93,190 @@ const ThreeDPage = () => {
 
     const handleSendMessage = async () => {
         if (!inputValue.trim() || !selectedChar) return;
-        const userMessage = { id: messages.length + 1, sender: 'user', text: inputValue, timestamp: new Date() };
+        const userMessage = { 
+            id: messages.length + 1, 
+            sender: 'user', 
+            text: inputValue, 
+            timestamp: Date.now() 
+        };
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
         setIsLoading(true);
         setTimeout(() => {
-            const aiMessage = { id: messages.length + 2, sender: 'ai', text: generateAIResponse(inputValue), timestamp: new Date() };
+            const aiMessage = { 
+                id: messages.length + 2, 
+                sender: 'ai', 
+                text: generateAIResponse(inputValue), 
+                timestamp: Date.now() 
+            };
             setMessages(prev => [...prev, aiMessage]);
             setIsLoading(false);
         }, 800);
     };
 
-    const handleChangeCharacter = () => {
-        setTempChar(selectedChar);
-        setIsSelecting(true);
-    };
-
-    const handleResetChat = () => {
-        setMessages([{ id: 1, sender: 'ai', text: `你好！我是 ${selectedChar.name}。${selectedChar.description}`, timestamp: new Date() }]);
-        setInputValue('');
-    };
-
     // 对话页面
     if (selectedChar) {
         return (
-            <PageWrapper title={t('threeDTitle')}>
-                <div className="flex flex-col h-screen max-h-[calc(100vh-80px)] relative bg-transparent overflow-hidden">
-                    {/* 上半部分：大动画显示 + 对话气泡 */}
-                    <div className="flex-1 flex flex-col items-center justify-start relative overflow-hidden pt-8">
-                        {/* 背景光晕 */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-96 h-96 bg-[#d4af37]/10 rounded-full blur-[100px] animate-pulse"></div>
-                        </div>
-                        
-                        {/* 大动画容器 */}
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.8 }} 
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="relative z-10 flex-shrink-0"
-                        >
-                            <div className="w-72 h-72 sm:w-80 sm:h-80 rounded-full bg-white/5 flex items-center justify-center border-4 border-white/10 overflow-hidden shadow-2xl">
-                                <AnimationPlayer animationKey={selectedChar.animationKey} size="w-72 h-72 sm:w-80 sm:h-80" />
-                                <motion.div 
-                                    className="absolute inset-0 border-4 border-[#d4af37]/20 rounded-full" 
-                                    animate={{ rotate: 360 }} 
-                                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }} 
-                                />
-                            </div>
-                        </motion.div>
-
-                        {/* 对话气泡组件：位于动画下方，内部滚动（含淡出遮罩） */}
-                        <div className="w-full max-w-md px-4 mt-6 flex-shrink-0">
-                            <DialogBubbles messages={messages} className="h-44 sm:h-48 border border-white/10 bg-transparent" />
-                        </div>
+            <div className="h-[100dvh] bg-transparent flex flex-col relative overflow-hidden text-white">
+                {/* 顶部导航 */}
+                <header className="h-14 px-4 flex items-center justify-between shrink-0 z-20 border-b border-white/5">
+                    <button
+                        onClick={() => setSelectedChar(null)}
+                        className="p-2 text-slate-300 hover:text-white transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <div className="flex-1 text-center">
+                        <h1 className="text-white font-bold text-sm">{selectedChar.name}</h1>
                     </div>
-                </div>
+                    <div className="w-6 h-3 rounded-full bg-gradient-to-r from-green-400/60 to-emerald-500/60"></div>
+                </header>
 
-                {/* 固定在导航栏上方的输入区域 */}
-                <div className="fixed bottom-24 left-0 right-0 z-20 px-4 sm:px-6">
-                    <div className="max-w-md mx-auto space-y-3">
-                        {/* 语音按钮 */}
-                        <motion.button 
-                            initial={{ opacity: 0, scale: 0.8 }} 
+                {/* 中间内容区 - 可滚动 */}
+                <main className="flex-1 overflow-y-auto px-4 z-10 pt-4 pb-24">
+                    {/* 顶部角色展示 */}
+                    <div className="flex flex-col items-center mb-8">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-lg sm:text-xl shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group"
+                            className="relative"
                         >
-                            <Mic size={26} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
-                            <span>语音输入</span>
-                        </motion.button>
-
-                        {/* 文字输入框 */}
-                        <motion.div 
-                            initial={{ opacity: 0, y: 20 }} 
-                            animate={{ opacity: 1, y: 0 }}
-                            className="w-full h-[54px] rounded-full bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg flex items-center gap-3 px-5"
-                        >
-                            <input 
-                                type="text" 
-                                value={inputValue} 
-                                onChange={(e) => setInputValue(e.target.value)} 
-                                onKeyPress={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }} 
-                                placeholder="输入消息..." 
-                                className="flex-1 bg-transparent text-white placeholder-white/40 focus:outline-none text-base sm:text-lg"
+                            <div className="w-40 h-40 rounded-full bg-white/5 flex items-center justify-center border-2 border-white/10 overflow-hidden shadow-2xl">
+                                <AnimationPlayer animationKey={selectedChar.animationKey} size="w-40 h-40" />
+                            </div>
+                            <motion.div
+                                className="absolute inset-0 border-2 border-[#d4af37]/20 rounded-full"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
                             />
-                            
-                            <button 
-                                onClick={handleSendMessage} 
-                                disabled={!inputValue.trim() || isLoading} 
+                        </motion.div>
+                    </div>
+
+                    {/* 对话气泡 */}
+                    <div className="w-full max-w-2xl mx-auto h-80 bg-transparent">
+                        <DialogBubbles messages={messages} className="h-full" />
+                    </div>
+                </main>
+
+                {/* 底部输入区 */}
+                <footer className="fixed bottom-24 left-0 right-0 p-4 z-20">
+                    <div className="max-w-2xl mx-auto space-y-3">
+                        {/* 语音按钮 */}
+                        <button
+                            className="w-full h-12 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-95"
+                        >
+                            <Mic size={20} strokeWidth={2.5} />
+                            点击说话
+                        </button>
+
+                        {/* 文本输入 */}
+                        <div className="bg-slate-500/20 backdrop-blur-xl rounded-2xl p-1.5 flex items-end gap-2 border border-white/10 focus-within:border-white/20 transition-all shadow-2xl">
+                            <textarea
+                                ref={inputRef}
+                                value={inputValue}
+                                onChange={(e) => {
+                                    setInputValue(e.target.value);
+                                    if (inputRef.current) {
+                                        inputRef.current.style.height = 'auto';
+                                        inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+                                    }
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendMessage();
+                                    }
+                                }}
+                                placeholder="输入消息..."
+                                rows={1}
+                                disabled={isLoading}
+                                className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] text-white placeholder-slate-400/60 resize-none max-h-32 py-2.5 px-3"
+                            />
+                            <button
+                                onClick={handleSendMessage}
+                                disabled={!inputValue.trim() || isLoading}
                                 className={cn(
-                                    "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-all",
+                                    'h-10 w-10 flex-shrink-0 rounded-xl flex items-center justify-center transition-all',
                                     inputValue.trim() && !isLoading
-                                        ? "bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black hover:scale-110 active:scale-95 shadow-lg"
-                                        : "bg-white/5 text-white/30 cursor-not-allowed"
+                                        ? 'bg-white text-[#1B3D5E] shadow-lg active:scale-90'
+                                        : 'bg-white/5 text-white/20'
                                 )}
                             >
-                                <Send size={20} />
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>
                             </button>
-                        </motion.div>
+                        </div>
                     </div>
-                </div>
-
-                {/* Modal */}
-                <AnimatePresence>
-                    {isSelecting && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-24 bg-black/85" onClick={() => setIsSelecting(false)}>
-                            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="w-full max-w-md bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_-10px_50px_rgba(0,0,0,0.8)]" onClick={(e) => e.stopPropagation()}>
-                                <div className="p-10">
-                                    <div className="flex justify-between items-center mb-10">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-white uppercase tracking-tighter">选择角色</h3>
-                                            <p className="text-[11px] text-[#d4af37] font-bold uppercase tracking-widest mt-1">选择你想聊天的AI助手</p>
-                                        </div>
-                                        <button onClick={() => setIsSelecting(false)} className="w-12 h-12 rounded-2xl surface-weak flex items-center justify-center text-white/60 hover:surface hover:text-white transition-all border border-white/5 active:scale-90">
-                                            <X size={24} />
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-5 max-h-[45vh] overflow-y-auto pr-3 scrollbar-hide">
-                                        {characters.map((char) => (
-                                            <button key={char.id} onClick={() => setTempChar(char)} className={cn("flex flex-col items-center gap-4 p-5 rounded-[32px] border transition-all duration-500 relative group/item", tempChar?.id === char.id ? "bg-[#d4af37]/15 border-[#d4af37] scale-105 shadow-[0_0_20px_rgba(212,175,55,0.2)]" : "surface-weak border-white/5 hover:border-white/20 hover:surface")}>
-                                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center shadow-xl relative overflow-hidden transition-transform duration-500 group-hover/item:scale-110 border-2 border-white/10">
-                                                    <AnimationPlayer animationKey={char.animationKey} size="w-16 h-16" />
-                                                </div>
-                                                <span className={cn("text-[11px] font-bold uppercase tracking-widest text-center leading-tight transition-colors", tempChar?.id === char.id ? "text-[#d4af37]" : "text-white/40")}>
-                                                    {char.name}
-                                                </span>
-                                                <span className="text-[9px] text-white/40 text-center leading-tight">{char.description}</span>
-                                                {tempChar?.id === char.id && (
-                                                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#d4af37] flex items-center justify-center text-black border-2 border-[#1a1a1a]">
-                                                        <Check size={14} strokeWidth={4} />
-                                                    </motion.div>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="mt-10 pt-8 border-t border-white/5">
-                                        <button onClick={handleConfirm} disabled={!tempChar} className={cn("w-full py-5 rounded-[32px] flex items-center justify-center gap-4 font-bold uppercase tracking-[0.3em] transition-all duration-500", tempChar ? "bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black shadow-[0_15px_30px_rgba(212,175,55,0.3)] hover:scale-[1.02] active:scale-95" : "surface-weak text-white/10 cursor-not-allowed")}>
-                                            <span className="text-lg">确认选择</span>
-                                            <Check size={24} strokeWidth={4} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </PageWrapper>
+                </footer>
+            </div>
         );
     }
 
-    // 初始页面
+    // 初始选择页面
     return (
-        <PageWrapper title={t('threeDTitle')}>
-            <div className="flex flex-col items-center justify-between min-h-[70vh] py-10 relative">
-                <div className="relative flex-1 flex items-center justify-center w-full">
-                    <div className="absolute w-80 h-80 bg-[#d4af37]/15 rounded-full blur-[100px] animate-pulse"></div>
-                    <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} onClick={() => { setTempChar(null); setIsSelecting(true); }} className="relative z-10 w-64 h-64 sm:w-72 sm:h-72 rounded-full border-2 border-white/20 surface-weak flex items-center justify-center overflow-hidden cursor-pointer hover:border-[#d4af37]/50 transition-all duration-500 group shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-                        <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center gap-4 relative z-20">
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-[#d4af37] to-[#b8860b] flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-500 border-4 border-black/20">
-                                <span className="text-3xl sm:text-4xl font-bold text-black">AI</span>
-                            </div>
-                            <div className="text-center">
-                                <h3 className="text-white font-bold uppercase tracking-[0.3em] text-xs sm:text-sm mb-1">选择你的AI助手</h3>
-                                <p className="text-[#d4af37]/60 text-[11px] sm:text-[12px] uppercase font-bold tracking-widest">点击开始对话</p>
-                            </div>
-                        </motion.div>
-                        <motion.div className="absolute inset-0 border-2 border-[#d4af37]/20 rounded-full z-10" animate={{ rotate: 360 }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} />
-                        <motion.div className="absolute inset-4 border border-white/10 rounded-full z-10" animate={{ rotate: -360 }} transition={{ duration: 15, repeat: Infinity, ease: "linear" }} />
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
-                    </motion.div>
-                    <motion.div className="abbsolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#d4af37] to-transparent z-20 pointer-events-none shadow-[0_0_15px_#d4af37]" animate={{ top: ['30%', '70%'] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
-                </div>
-                <div className="w-full space-y-10 px-8 mt-12">
-                    <div className="bg-gradient-to-r from-white/5 to-white/0 border border-white/10 rounded-2xl p-8">
-                        <h3 className="text-white font-bold uppercase tracking-widest text-sm mb-4">✨ AI 对话助手</h3>
-                        <p className="text-white/70 text-xs leading-relaxed">
-                            选择你喜欢的卡通角色，与我们的AI助手开始智能对话。每个角色都有独特的个性和风格，为你提供个性化的聊天体验。
-                        </p>
-                    </div>
-                </div>
+        <div className="h-[100dvh] bg-transparent flex flex-col items-center justify-center relative text-white overflow-hidden">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center"
+            >
+                <h2 className="text-2xl font-bold mb-4">选择你的对话伙伴</h2>
+                <button
+                    onClick={() => setIsSelecting(true)}
+                    className="px-8 py-3 bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all"
+                >
+                    开始对话
+                </button>
+            </motion.div>
 
-                <AnimatePresence>
-                    {isSelecting && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-24 bg-black/85" onClick={() => setIsSelecting(false)}>
-                            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 200 }} className="w-full max-w-md bg-gradient-to-b from-[#1a1a1a] to-[#0a0a0a] border border-white/10 rounded-[32px] overflow-hidden shadow-[0_-10px_50px_rgba(0,0,0,0.8)]" onClick={(e) => e.stopPropagation()}>
-                                <div className="p-10">
-                                    <div className="flex justify-between items-center mb-10">
-                                        <div>
-                                            <h3 className="text-2xl font-bold text-white uppercase tracking-tighter">选择角色</h3>
-                                            <p className="text-[11px] text-[#d4af37] font-bold uppercase tracking-widest mt-1">选择你想聊天的AI助手</p>
+            <AnimatePresence>
+                {isSelecting && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start"
+                        onClick={() => setIsSelecting(false)}
+                    >
+                        <motion.div
+                            initial={{ y: "-100%" }}
+                            animate={{ y: 0 }}
+                            exit={{ y: "-100%" }}
+                            className="w-full bg-slate-500/20 backdrop-blur-xl border-b border-white/10 rounded-b-3xl p-6 pb-8 max-h-[85vh] flex flex-col mt-16 shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h3 className="text-white text-lg font-bold mb-4">选择对话伙伴</h3>
+                            <div className="grid grid-cols-2 gap-3 max-h-[55vh] overflow-y-auto flex-1">
+                                {characters.map(char => (
+                                    <motion.button
+                                        key={char.id}
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setTempChar(char)}
+                                        className={cn(
+                                            'p-4 bg-white/5 backdrop-blur-md border rounded-2xl transition-all',
+                                            tempChar?.id === char.id ? 'border-[#d4af37] bg-[#d4af37]/15' : 'border-white/10'
+                                        )}
+                                    >
+                                        <div className="w-full h-20 mb-2 rounded-lg bg-white/5 flex items-center justify-center">
+                                            <AnimationPlayer animationKey={char.animationKey} size="w-20 h-20" />
                                         </div>
-                                        <button onClick={() => setIsSelecting(false)} className="w-12 h-12 rounded-2xl surface-weak flex items-center justify-center text-white/60 hover:surface hover:text-white transition-all border border-white/5 active:scale-90">
-                                            <X size={24} />
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-5 max-h-[45vh] overflow-y-auto pr-3 scrollbar-hide">
-                                        {characters.map((char) => (
-                                            <button key={char.id} onClick={() => setTempChar(char)} className={cn("flex flex-col items-center gap-4 p-5 rounded-[32px] border transition-all duration-500 relative group/item", tempChar?.id === char.id ? "bg-[#d4af37]/15 border-[#d4af37] scale-105 shadow-[0_0_20px_rgba(212,175,55,0.2)]" : "surface-weak border-white/5 hover:border-white/20 hover:surface")}>
-                                                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center shadow-xl relative overflow-hidden transition-transform duration-500 group-hover/item:scale-110 border-2 border-white/10">
-                                                    <AnimationPlayer animationKey={char.animationKey} size="w-16 h-16" />
-                                                </div>
-                                                <span className={cn("text-[11px] font-bold uppercase tracking-widest text-center leading-tight transition-colors", tempChar?.id === char.id ? "text-[#d4af37]" : "text-white/40")}>
-                                                    {char.name}
-                                                </span>
-                                                <span className="text-[9px] text-white/40 text-center leading-tight">{char.description}</span>
-                                                {tempChar?.id === char.id && (
-                                                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#d4af37] flex items-center justify-center text-black border-2 border-[#1a1a1a]">
-                                                        <Check size={14} strokeWidth={4} />
-                                                    </motion.div>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="mt-10 pt-8 border-t border-white/5">
-                                        <button onClick={handleConfirm} disabled={!tempChar} className={cn("w-full py-5 rounded-[32px] flex items-center justify-center gap-4 font-bold uppercase tracking-[0.3em] transition-all duration-500", tempChar ? "bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black shadow-[0_15px_30px_rgba(212,175,55,0.3)] hover:scale-[1.02] active:scale-95" : "surface-weak text-white/10 cursor-not-allowed")}>
-                                            <span className="text-lg">开始对话</span>
-                                            <Check size={24} strokeWidth={4} />
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
+                                        <p className="text-white font-semibold text-xs">{char.name}</p>
+                                        <p className="text-slate-400 text-[10px] mt-1">{char.description}</p>
+                                    </motion.button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={handleConfirm}
+                                disabled={!tempChar}
+                                className="w-full mt-8 h-10 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold disabled:opacity-50"
+                            >
+                                确认
+                            </button>
                         </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-        </PageWrapper>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 };
 
