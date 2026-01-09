@@ -109,21 +109,26 @@ export const saveDiagnosisToBackend = async (type, content, currentId, user, stu
             language: language
         };
 
+        console.log('[API] POST /diagnosis payload:', requestBody);
+
         const response = await fetch('/api/diagnosis', {
             method: 'POST',
             headers,
             body: JSON.stringify(requestBody),
         });
 
+        console.log('[API] POST /diagnosis response status:', response.status);
+
         if (response.ok) {
             const resData = await response.json();
+            console.log('[API] POST /diagnosis success:', resData);
             return resData.assessment_id || resData.assessmentId || null;
         }
 
         const txt = await response.text();
-        console.error('Failed to save diagnosis:', txt);
+        console.error('[API] POST /diagnosis failed:', response.status, txt);
     } catch (error) {
-        console.error('Error saving diagnosis:', error);
+        console.error('[API] POST /diagnosis error:', error);
     }
     return null;
 };
@@ -133,7 +138,7 @@ export const saveDiagnosisToBackend = async (type, content, currentId, user, stu
  */
 export const getDiagnosisFromBackend = async (assessmentId, user) => {
     if (!user?.token || !assessmentId) return null;
-    
+
     try {
         const response = await fetch(`/api/diagnoses/${assessmentId}`, {
             method: 'GET',
@@ -141,15 +146,24 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
                 'Authorization': `Bearer ${user.token}`
             }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
+            console.log('[API] GET /diagnoses success:', data);
             // 后端返回的对象包含 content 数组
             return data.content || [];
         }
+
+        // 404 是正常的（新 assessment 还没有诊断数据）
+        if (response.status === 404) {
+            console.log('[API] GET /diagnoses: No data yet (404) - this is normal for new assessments');
+            return [];
+        }
+
+        console.warn('[API] GET /diagnoses unexpected status:', response.status);
         return null;
     } catch (error) {
-        console.error('Error fetching diagnosis:', error);
+        console.error('[API] GET /diagnoses error:', error);
         return null;
     }
 };
@@ -159,7 +173,7 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
  */
 export const updateDiagnosisToBackend = async (assessmentId, content, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
-    
+
     try {
         const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
             title: item.title || item.name || '',
@@ -213,6 +227,8 @@ export const saveStykuDataToBackend = async (assessmentId, stykuData, user) => {
             calf: parseFloat(stykuData.lowerLimbs?.calf) || 0
         };
 
+        console.log('[API] POST /styku payload:', payload);
+
         const response = await fetch('/api/styku', {
             method: 'POST',
             headers: {
@@ -222,16 +238,19 @@ export const saveStykuDataToBackend = async (assessmentId, stykuData, user) => {
             body: JSON.stringify(payload),
         });
 
+        console.log('[API] POST /styku response status:', response.status);
+
         if (response.ok) {
             const result = await response.json();
+            console.log('[API] POST /styku success:', result);
             return result;
         } else {
             const errData = await response.text();
-            console.error('Failed to save Styku data:', errData);
+            console.error('[API] POST /styku failed:', response.status, errData);
             return null;
         }
     } catch (error) {
-        console.error('Error saving Styku data:', error);
+        console.error('[API] POST /styku error:', error);
         return null;
     }
 };
@@ -247,6 +266,7 @@ export const saveMentalDataToBackend = async (assessmentId, mentalData, user) =>
             confidence: parseInt(mentalData.confidence) || 0
         };
 
+        console.log('[API] POST /mental payload:', payload);
 
         const response = await fetch('/api/mental', {
             method: 'POST',
@@ -257,15 +277,18 @@ export const saveMentalDataToBackend = async (assessmentId, mentalData, user) =>
             body: JSON.stringify(payload),
         });
 
+        console.log('[API] POST /mental response status:', response.status);
+
         if (response.ok) {
+            console.log('[API] POST /mental success');
             return assessmentId;
         } else {
             const errData = await response.text();
-            console.error('Failed to save mental data:', errData);
+            console.error('[API] POST /mental failed:', response.status, errData);
             return null;
         }
     } catch (error) {
-        console.error('Error saving mental data:', error);
+        console.error('[API] POST /mental error:', error);
         return null;
     }
 };
@@ -298,6 +321,8 @@ export const saveTrackmanDataToBackend = async (assessmentId, trackmanData, user
             indexing: trackmanData.layerC?.indexing || ""
         };
 
+        console.log('[API] POST /trackman payload:', payload);
+
         const response = await fetch('/api/trackman', {
             method: 'POST',
             headers: {
@@ -307,15 +332,18 @@ export const saveTrackmanDataToBackend = async (assessmentId, trackmanData, user
             body: JSON.stringify(payload),
         });
 
+        console.log('[API] POST /trackman response status:', response.status);
+
         if (response.ok) {
+            console.log('[API] POST /trackman success');
             return assessmentId;
         } else {
             const errData = await response.text();
-            console.error('Failed to save trackman data:', errData);
+            console.error('[API] POST /trackman failed:', response.status, errData);
             return null;
         }
     } catch (error) {
-        console.error('Error saving trackman data:', error);
+        console.error('[API] POST /trackman error:', error);
         return null;
     }
 };
@@ -326,15 +354,15 @@ export const updateAssessment = async (assessmentId, updateData, user) => {
         console.warn('[API] updateAssessment aborted: missing token or id', { assessmentId, hasToken: !!user?.token });
         return false;
     }
-    
+
     try {
         const payload = {
             assessment_id: assessmentId.toString(),
             ...updateData
         };
-        
+
         console.log('[API] PATCH /assessment payload:', payload);
-        
+
         const response = await fetch('/api/assessment', {
             method: 'PATCH',
             headers: {
@@ -343,9 +371,9 @@ export const updateAssessment = async (assessmentId, updateData, user) => {
             },
             body: JSON.stringify(payload),
         });
-        
+
         console.log('[API] PATCH /assessment response status:', response.status);
-        
+
         if (response.ok) {
             return true;
         } else {
@@ -360,7 +388,10 @@ export const updateAssessment = async (assessmentId, updateData, user) => {
 };
 
 export const createAssessment = async (studentId, type, user, title = '', language = 'cn') => {
-    if (!user?.token || !studentId) return null;
+    if (!user?.token || !studentId) {
+        console.error('[API] createAssessment: Missing token or studentId');
+        return null;
+    }
 
     try {
         const typeMapping = {
@@ -378,7 +409,9 @@ export const createAssessment = async (studentId, type, user, title = '', langua
             title: title || '新测评',
             language: language
         };
-        
+
+        console.log('[API] POST /assessment payload:', payload);
+
         const response = await fetch('/api/assessment', {
             method: 'POST',
             headers: {
@@ -388,16 +421,19 @@ export const createAssessment = async (studentId, type, user, title = '', langua
             body: JSON.stringify(payload),
         });
 
+        console.log('[API] POST /assessment response status:', response.status);
+
         if (response.ok) {
             const data = await response.json();
+            console.log('[API] POST /assessment success:', data);
             return data.assessment_id;
         } else {
             const errData = await response.text();
-            console.error('Failed to create assessment:', errData);
+            console.error('[API] POST /assessment failed:', response.status, errData);
             return null;
         }
     } catch (error) {
-        console.error('Error creating assessment:', error);
+        console.error('[API] POST /assessment error:', error);
         return null;
     }
 };
@@ -407,7 +443,7 @@ export const createAssessment = async (studentId, type, user, title = '', langua
  */
 export const getPlanFromBackend = async (assessmentId, user) => {
     if (!user?.token || !assessmentId) return null;
-    
+
     try {
         const response = await fetch(`/api/plans/${assessmentId}`, {
             method: 'GET',
@@ -415,14 +451,23 @@ export const getPlanFromBackend = async (assessmentId, user) => {
                 'Authorization': `Bearer ${user.token}`
             }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
+            console.log('[API] GET /plans success:', data);
             return data.content || [];
         }
+
+        // 404 是正常的（新 assessment 还没有训练计划数据）
+        if (response.status === 404) {
+            console.log('[API] GET /plans: No data yet (404) - this is normal for new assessments');
+            return [];
+        }
+
+        console.warn('[API] GET /plans unexpected status:', response.status);
         return null;
     } catch (error) {
-        console.error('Error fetching plans:', error);
+        console.error('[API] GET /plans error:', error);
         return null;
     }
 };
@@ -432,7 +477,7 @@ export const getPlanFromBackend = async (assessmentId, user) => {
  */
 export const updatePlanToBackend = async (assessmentId, content, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
-    
+
     try {
         const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
             title: item.title || item.name || '',
@@ -466,7 +511,7 @@ export const updatePlanToBackend = async (assessmentId, content, user, language 
  */
 export const getGoalFromBackend = async (assessmentId, user) => {
     if (!user?.token || !assessmentId) return null;
-    
+
     try {
         const response = await fetch(`/api/goals/${assessmentId}`, {
             method: 'GET',
@@ -474,14 +519,23 @@ export const getGoalFromBackend = async (assessmentId, user) => {
                 'Authorization': `Bearer ${user.token}`
             }
         });
-        
+
         if (response.ok) {
             const data = await response.json();
+            console.log('[API] GET /goals success:', data);
             return data.content || [];
         }
+
+        // 404 是正常的（新 assessment 还没有目标数据）
+        if (response.status === 404) {
+            console.log('[API] GET /goals: No data yet (404) - this is normal for new assessments');
+            return [];
+        }
+
+        console.warn('[API] GET /goals unexpected status:', response.status);
         return null;
     } catch (error) {
-        console.error('Error fetching goals:', error);
+        console.error('[API] GET /goals error:', error);
         return null;
     }
 };
@@ -491,7 +545,7 @@ export const getGoalFromBackend = async (assessmentId, user) => {
  */
 export const updateGoalToBackend = async (assessmentId, content, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
-    
+
     try {
         const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
             title: item.title || item.name || '',
@@ -522,26 +576,13 @@ export const updateGoalToBackend = async (assessmentId, content, user, language 
 
 /**
  * 获取单项测评全量数据 (采集数据 + 诊断 + 方案 + 目标)
+ * 注意：后端没有 /singleAssess 接口，需要分别获取各模块数据
+ * 此函数已废弃，请使用 getDiagnosisFromBackend, getPlanFromBackend, getGoalFromBackend 等分别获取
+ * @deprecated Use individual API calls instead
  */
 export const getFullAssessmentData = async (assessmentId, user) => {
-    if (!user?.token || !assessmentId) return null;
-    
-    try {
-        const response = await fetch(`/api/singleAssess/${assessmentId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${user.token}`
-            }
-        });
-
-        if (response.ok) {
-            return await response.json();
-        }
-        return null;
-    } catch (error) {
-        console.error('Error fetching full assessment data:', error);
-        return null;
-    }
+    console.warn('[DEPRECATED] getFullAssessmentData: Please use individual API calls');
+    return null;
 };
 
 /**
@@ -667,5 +708,41 @@ export const updateStykuDataToBackend = async (assessmentId, data, user) => {
     } catch (error) {
         console.error('Error patching styku data:', error);
         return false;
+    }
+};
+
+/**
+ * 获取单个测评数据
+ * GET /singleAssess/:ass_id
+ * @param {string} assessmentId - 测评ID，对应后端的 assessment_id 字段
+ * @param {object} user - 用户对象，包含 token
+ */
+export const getSingleAssessment = async (assessmentId, user) => {
+    if (!user?.token || !assessmentId) {
+        console.error('[API] getSingleAssessment: Missing token or assessment_id');
+        return null;
+    }
+
+    try {
+        // 将 assessment_id 作为路径参数传递给后端
+        const response = await fetch(`/api/singleAssess/${assessmentId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${user.token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('[API] GET /singleAssess success:', data);
+            return data;
+        }
+
+        const errText = await response.text();
+        console.error('[API] GET /singleAssess failed:', response.status, errText);
+        return null;
+    } catch (error) {
+        console.error('[API] GET /singleAssess error:', error);
+        return null;
     }
 };
