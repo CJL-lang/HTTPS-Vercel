@@ -93,8 +93,6 @@ const ThreeDPage = () => {
     // 前端必填字段白名单（优先检查顺序）
     const REQUIRED_FIELDS = ['name', 'email'];
 
-    const [currentInfo, setCurrentInfo] = useState({});
-    const [nextField, setNextField] = useState(null);
     const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
 
     // 简单邮箱校验
