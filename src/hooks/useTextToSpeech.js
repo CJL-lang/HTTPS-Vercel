@@ -103,14 +103,17 @@ export const useTextToSpeech = () => {
 
     // 播放文本
     const speak = async (text, options = {}) => {
-        if (isSpeaking) {
-            console.warn('语音正在播放中');
-            return;
-        }
-
         if (!text || text.trim().length === 0) {
             console.warn('文本为空，无法合成语音');
             return;
+        }
+
+        // 如果正在播放，先停止之前的播放
+        if (audioRef.current) {
+            console.log('🛑 停止之前的语音播放');
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current = null;
         }
 
         try {
@@ -153,9 +156,9 @@ export const useTextToSpeech = () => {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
             audioRef.current = null;
-            setIsSpeaking(false);
-            console.log('🛑 停止语音播放');
         }
+        setIsSpeaking(false);
+        console.log('🛑 停止语音播放');
     };
 
     return {

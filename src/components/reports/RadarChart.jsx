@@ -191,16 +191,16 @@ const convertLevelToScore = (value, type) => {
 };
 
 /**
- * 通用雷达图组件
+ * 通用雷达图组件 - 支持动态项目数量
  * @param {Object} props
- * @param {Object} props.data - 评分数据对象
- *   - 心理: {focus: 0-100, stability: 0-100, confidence: 0-100}
- *   - 体能: {flexibility: L1-L4, upperBodyStrength: L1-L4, ...}
- *   - 技能: {driver: L1-L9, mainIron: L1-L9, ...}
+ * @param {Object|Array} props.data - 评分数据
+ *   - 如果是对象: {labels: string[], values: (string|number)[]}
+ *   - 兼容旧格式对象
  * @param {'mental'|'physical'|'skills'} props.type - 报告类型
  * @param {string} props.className - 可选的自定义样式类
+ * @param {string} props.title - 可选的图表标题，如果不提供则使用默认标题
  */
-const RadarChart = ({ data, type, className = '' }) => {
+const RadarChart = ({ data, type, className = '', title }) => {
     const { language, t } = useLanguage();
 
     // Keep chart fonts consistent with app fonts (CSS :lang controls --font-sans).
@@ -210,97 +210,65 @@ const RadarChart = ({ data, type, className = '' }) => {
         defaults.font.family = cssVar || "'Inter', system-ui, -apple-system, sans-serif";
     }, [language]);
 
-    // 获取对应类型的配置（使用i18n，使用useMemo缓存）
-    const config = useMemo(() => {
-        if (type === 'mental') {
-            return {
-                labels: [t('focusAbility'), t('mentalResilience'), t('confidenceAndMotivation')],
-                fields: ['focus', 'stability', 'confidence'],
-                title: t('mentalQualityEvaluation'),
-                scoreType: 'percentage' // 0-100分
-            };
-        } else if (type === 'physical') {
-            return {
-                labels: [
-                    t('flexibility'),
-                    t('upperBodyStrength'),
-                    t('lowerBodyStrength'),
-                    t('coordination'),
-                    t('coreStability'),
-                    t('explosiveness'),
-                    t('cardio')
-                ],
-                fields: [
-                    'flexibility',
-                    'upperBodyStrength',
-                    'lowerBodyStrength',
-                    'coordination',
-                    'coreStability',
-                    'explosiveness',
-                    'cardio'
-                ],
-                title: t('physicalQualityAssessment'),
-                scoreType: 'level' // L1-L4
-            };
-        } else if (type === 'skills') {
-            return {
-                labels: [
-                    t('clubDriver'),
-                    t('clubMainIron'),
-                    t('clubWood'),
-                    t('clubPutting'),
-                    t('clubScrambling'),
-                    t('clubFinesseWedges'),
-                    t('clubIrons')
-                ],
-                fields: [
-                    'driver',
-                    'mainIron',
-                    'wood',
-                    'putting',
-                    'scrambling',
-                    'finesseWedges',
-                    'irons'
-                ],
-                title: t('skillsLevelAssessment'),
-                scoreType: 'level' // L1-L9
-            };
-        }
-        return null;
+    // 获取默认标题
+    const defaultTitle = useMemo(() => {
+        if (type === 'mental') return t('mentalQualityEvaluation');
+        if (type === 'physical') return t('physicalQualityAssessment');
+        if (type === 'skills') return t('skillsLevelAssessment');
+        return '';
     }, [type, t]);
 
-    if (!config) {
-        console.warn(`Invalid radar chart type: ${type}`);
-        return null;
-    }
+    const chartTitle = title || defaultTitle;
 
     // 提取并验证数据
     const chartData = useMemo(() => {
         // 如果完全没有数据，标记为空
         if (!data) return { isEmpty: true };
 
-        // Backends sometimes return gradeData as JSON string, and/or snake_case keys.
-        const normalized = parseMaybeJson(data);
-        if (!normalized || typeof normalized !== 'object' || Array.isArray(normalized)) {
+        // 解析数据格式
+        let labels = [];
+        let rawValues = [];
+
+        if (Array.isArray(data)) {
+            // 如果传入的是数组，暂时不支持（需要labels）
+            console.warn('RadarChart: data should be an object with labels and values');
+            return { isEmpty: true };
+        } else if (typeof data === 'object') {
+            // 新格式: {labels: [], values: []}
+            if (data.labels && data.values) {
+                labels = data.labels;
+                rawValues = data.values;
+            } else {
+                // 旧格式兼容：尝试解析为对象格式
+                const normalized = parseMaybeJson(data);
+                if (!normalized || typeof normalized !== 'object') {
+                    return { isEmpty: true };
+                }
+
+                // 如果是旧的对象格式，提取所有键值对
+                labels = Object.keys(normalized);
+                rawValues = Object.values(normalized);
+            }
+        }
+
+        // 验证数据
+        if (!labels.length || !rawValues.length || labels.length !== rawValues.length) {
             return { isEmpty: true };
         }
 
-        const values = config.fields.map(field => {
-            const value = getFieldValue(normalized, field);
-            // 根据类型转换评分
-            return convertLevelToScore(value, type);
-        });
+        // 转换值
+        const values = rawValues.map(value => convertLevelToScore(value, type));
 
-        // 如果所有值都是0，标记为未填写（而不是返回null）
+        // 如果所有值都是0，标记为未填写
         if (values.every(v => v === 0)) {
             return { isEmpty: true };
         }
 
         return {
-            labels: config.labels,
+            labels,
             datasets: [
                 {
-                    label: config.title,
+                    label: chartTitle,
                     data: values,
                     // Gold gradient fill (scriptable) + glow via plugin
                     backgroundColor: (ctx) => getGoldAreaGradient(ctx.chart),
@@ -316,7 +284,7 @@ const RadarChart = ({ data, type, className = '' }) => {
                 }
             ]
         };
-    }, [data, config, type]);
+    }, [data, chartTitle, type]);
 
     // 如果数据为空（完全没有数据或都是0），显示提示信息
     if (chartData?.isEmpty) {
@@ -324,7 +292,7 @@ const RadarChart = ({ data, type, className = '' }) => {
             <div className={`mb-10 ${className}`}>
                 <div className="mb-4 sm:mb-8 flex flex-col gap-1">
                     <h2 className="text-[16px] sm:text-[20px] font-semibold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[#d4af37]">
-                        {config.title}
+                        {chartTitle}
                     </h2>
                     <div className="h-[2px] w-12 sm:w-20 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
                 </div>
@@ -455,7 +423,7 @@ const RadarChart = ({ data, type, className = '' }) => {
         <div className={`mb-10 ${className}`}>
             <div className="mb-4 sm:mb-8 flex flex-col gap-1">
                 <h2 className="text-[16px] sm:text-[20px] font-semibold uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[#d4af37]">
-                    {config.title}
+                    {chartTitle}
                 </h2>
                 <div className="h-[2px] w-12 sm:w-20 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
             </div>
