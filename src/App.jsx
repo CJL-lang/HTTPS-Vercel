@@ -179,7 +179,7 @@ export default function App() {
             // 匹配多种路径模式: /student/:id, /physical-report/:id, /mental-report/:id, etc.
             // 注意：报告详情页的 ID 是 assessment_id，我们需要通过报告数据反查学生，或者匹配包含 student 的路径
             const path = location.pathname;
-            
+
             // 1. 直接匹配 /student/:id
             let match = path.match(/\/student\/([^/]+)/);
             let studentId = match ? match[1] : null;
@@ -240,8 +240,8 @@ export default function App() {
         setCurrentStudentIndex(index);
         const studentId = students[index].id;
         navigate(`/student/${studentId}`);
-        // 滚动到页面顶部 - 直接跳转，不使用平滑滚动
-        window.scrollTo({ top: 0, behavior: 'auto' });
+        // 滚动到页面顶部
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // 新测评入口：导航到测评类型选择页面
@@ -253,7 +253,7 @@ export default function App() {
     const handleStartCompleteAssessment = async () => {
         const student = students[currentStudentIndex];
         const studentId = student?.id;
-        
+
         if (!studentId) {
             alert(language === 'en' ? 'Please select a student first' : '请先选择学员');
             return;
@@ -265,10 +265,10 @@ export default function App() {
 
             // 1. 立即创建 physical 类型的 assessment
             const assessmentId = await createAssessment(
-                studentId, 
-                'physical', 
-                currentUser, 
-                defaultTitle, 
+                studentId,
+                'physical',
+                currentUser,
+                defaultTitle,
                 backendLang
             );
 
@@ -294,11 +294,11 @@ export default function App() {
                 };
                 setInitialPrimaryTab(0);
                 setCurrentAssessmentData(assessmentData);
-                navigate('/add-record/physical/data', { 
-                    state: { 
+                navigate('/add-record/physical/data', {
+                    state: {
                         assessmentData,
-                        student: student 
-                    } 
+                        student: student
+                    }
                 });
             } else {
                 alert(language === 'en' ? 'Failed to create assessment' : '创建测评记录失败');
@@ -350,10 +350,10 @@ export default function App() {
     // 从新测评页开始具体测评（带入类型/时间/备注等数据）
     const handleStartAssessment = async (typeIndex, assessmentData) => {
         setInitialPrimaryTab(typeIndex);
-        
+
         const student = students[currentStudentIndex];
         const studentId = student?.id;
-        
+
         if (!studentId) {
             alert(language === 'en' ? 'Please select a student first' : '请先选择学员');
             return;
@@ -362,11 +362,11 @@ export default function App() {
         try {
             const backendLang = language === 'en' ? 'en' : 'cn';
             const typeMap = { physical: 'physical', mental: 'mental', technique: 'technique', skills: 'technique' };
-            
+
             // 确定要创建的类型：如果是完整测评则默认为 physical
             const currentType = assessmentData?.mode === 'complete' ? 'physical' : (assessmentData?.type || 'physical');
             const backendType = typeMap[currentType] || 'physical';
-            
+
             // 根据类型生成中文标题
             let defaultTitle = assessmentData?.title;
             if (!defaultTitle) {
@@ -381,10 +381,10 @@ export default function App() {
 
             // 预先创建 assessment 记录
             const assessmentId = await createAssessment(
-                studentId, 
-                backendType, 
-                currentUser, 
-                defaultTitle, 
+                studentId,
+                backendType,
+                currentUser,
+                defaultTitle,
                 backendLang
             );
 
@@ -394,7 +394,7 @@ export default function App() {
                 const typeForStorage = backendType === 'technique' ? 'skills' : backendType;
                 localStorage.removeItem(`draft_${userId}_${studentId}_${typeForStorage}`);
                 sessionStorage.removeItem(`showCompleteActions_${studentId}_${backendType}`);
-                
+
                 // 如果是完整测评，清除所有相关草稿
                 if (assessmentData?.mode === 'complete') {
                     localStorage.removeItem(`draft_${userId}_${studentId}_mental`);
@@ -413,10 +413,10 @@ export default function App() {
                 };
 
                 setCurrentAssessmentData(finalAssessmentData);
-                
+
                 const routeType = typeMap[currentType] || 'physical';
-                navigate(`/add-record/${routeType}/data`, { 
-                    state: { assessmentData: finalAssessmentData, student } 
+                navigate(`/add-record/${routeType}/data`, {
+                    state: { assessmentData: finalAssessmentData, student }
                 });
             } else {
                 alert(language === 'en' ? 'Failed to create assessment' : '创建测评记录失败');
@@ -424,7 +424,7 @@ export default function App() {
         } catch (error) {
             console.error('Failed to pre-create assessment:', error);
         }
-    };    const startAddStudent = () => {
+    }; const startAddStudent = () => {
         setCurrentStudentIndex(null);
         setTempStudent({
             name: '',
@@ -578,7 +578,7 @@ export default function App() {
     const handleRegister = (regData) => {
         // 注册成功后的逻辑，自动登录并跳转到学员列表页
         console.log('handleRegister 被调用，接收到的数据:', regData);
-        
+
         if (regData && regData.token) {
             console.log('检测到 token，保存用户信息并跳转到学员列表页');
             setCurrentUser(regData);
@@ -604,7 +604,7 @@ export default function App() {
         const path = typeof target === 'string' ? (target.startsWith('/') ? target : `/${target}`) : '/students';
         navigate(path);
         // 滚动到页面顶部
-        window.scrollTo({ top: 0, behavior: 'auto' });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [navigate]);
 
     // 全局 Fetch 拦截器：处理 401 Token 失效并统一注入 Token
@@ -654,49 +654,51 @@ export default function App() {
                             <div className="text-white text-lg">加载中...</div>
                         </div>
                     ) : (
-                        <div key={location.pathname} className="relative">
-                            <AppRoutes
-                                isLoggedIn={isLoggedIn}
-                                location={location}
-                                student={currentData}
-                                data={currentData}
-                                setData={updateCurrentStudent}
-                                onLogin={handleLogin}
-                                onRegister={handleRegister}
-                                onLogout={handleLogout}
-                                user={currentUser}
-                                userRole={currentUser?.role}
-                                navigate={(path, options) => navigate(path.startsWith('/') ? path : `/${path}`, options)}
-                                onBack={handleSmartBack}
-                                onNext={handleNext}
-                                students={students}
-                                onSelectStudent={selectStudent}
-                                onAddStudent={startAddStudent}
-                                refreshStudents={refreshStudents}
-                                handleStartPhysicalAssessment={handleStartPhysicalAssessment}
-                                handleStartMentalAssessment={handleStartMentalAssessment}
-                                handleStartSkillsAssessment={handleStartSkillsAssessment}
-                                handleStartCompleteAssessment={handleStartCompleteAssessment}
-                                handleStartNewAssessment={handleStartNewAssessment}
-                                onStartNewAssessment={handleStartNewAssessment}
-                                onStartAssessment={handleStartAssessment}
-                                onReset={resetData}
-                                initialPrimary={initialPrimaryTab}
-                                setInitialPrimaryTab={setInitialPrimaryTab}
-                                assessmentData={currentAssessmentData}
-                            />
-                        </div>
+                        <AnimatePresence mode="popLayout">
+                            <motion.div layout key={location.pathname} className="relative">
+                                <AppRoutes
+                                    isLoggedIn={isLoggedIn}
+                                    location={location}
+                                    student={currentData}
+                                    data={currentData}
+                                    setData={updateCurrentStudent}
+                                    onLogin={handleLogin}
+                                    onRegister={handleRegister}
+                                    onLogout={handleLogout}
+                                    user={currentUser}
+                                    userRole={currentUser?.role}
+                                    navigate={(path, options) => navigate(path.startsWith('/') ? path : `/${path}`, options)}
+                                    onBack={handleSmartBack}
+                                    onNext={handleNext}
+                                    students={students}
+                                    onSelectStudent={selectStudent}
+                                    onAddStudent={startAddStudent}
+                                    refreshStudents={refreshStudents}
+                                    handleStartPhysicalAssessment={handleStartPhysicalAssessment}
+                                    handleStartMentalAssessment={handleStartMentalAssessment}
+                                    handleStartSkillsAssessment={handleStartSkillsAssessment}
+                                    handleStartCompleteAssessment={handleStartCompleteAssessment}
+                                    handleStartNewAssessment={handleStartNewAssessment}
+                                    onStartNewAssessment={handleStartNewAssessment}
+                                    onStartAssessment={handleStartAssessment}
+                                    onReset={resetData}
+                                    initialPrimary={initialPrimaryTab}
+                                    setInitialPrimaryTab={setInitialPrimaryTab}
+                                    assessmentData={currentAssessmentData}
+                                />
+                            </motion.div>
+                        </AnimatePresence>
                     )}
 
                     {/* Bottom Navigation - show on all pages except specific ones like addRecord and login */}
-                    {isLoggedIn && !['add-record', 'assessment-type', 'new-assessment', 'single-assessment', 'ai-report', 'login', 'register'].includes(currentPage) && 
-                     !location.pathname.match(/\/(physical-report|mental-report|skills-report)\/[^/]+$/) && (
-                        <BottomNav
-                            currentPage={currentPage}
-                            onNavigate={(path) => navigate(`/${path}`)}
-                            userRole={currentUser?.role}
-                        />
-                    )}
+                    {isLoggedIn && !['add-record', 'assessment-type', 'new-assessment', 'single-assessment', 'ai-report', 'login', 'register'].includes(currentPage) &&
+                        !location.pathname.match(/\/(physical-report|mental-report|skills-report)\/[^/]+$/) && (
+                            <BottomNav
+                                currentPage={currentPage}
+                                onNavigate={(path) => navigate(`/${path}`)}
+                                userRole={currentUser?.role}
+                            />
+                        )}
                 </div>
             </div>
         </div>

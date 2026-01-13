@@ -25,7 +25,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
     const location = useLocation();
     const mode = assessmentData?.mode || 'complete'; // 'complete' | 'single'
     const isSingleMode = mode === 'single';
-    
+
     // 从路由state获取学员信息
     const student = location.state?.student || data;
 
@@ -107,7 +107,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
         }
     }, [activePrimary]);
     const [completedAssessments, setCompletedAssessments] = useState([]);
-    
+
     // 使用 sessionStorage 持久化 showCompleteActions 状态，避免组件重新挂载时丢失
     const getShowCompleteActionsKey = () => {
         const typeMap = { 0: 'physical', 1: 'mental', 2: 'skills' };
@@ -115,7 +115,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
         const studentId = student?.id || 'no-student';
         return `showCompleteActions_${studentId}_${type}`;
     };
-    
+
     const [showCompleteActions, setShowCompleteActionsState] = useState(() => {
         try {
             const key = getShowCompleteActionsKey();
@@ -125,7 +125,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
             return false;
         }
     });
-    
+
     const setShowCompleteActions = (value) => {
         setShowCompleteActionsState(value);
         try {
@@ -135,7 +135,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
 
         }
     };
-    
+
     const [isNavigating, setIsNavigating] = useState(false);
 
     // 记录ID和草稿跟踪
@@ -211,7 +211,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
         const studentId = student?.id || 'no-student';
         const userId = user?.id || 'guest';
         const storageKey = `draft_${userId}_${studentId}_${type}`;
-        
+
         // 尝试加载现有草稿
         const savedDraft = localStorage.getItem(storageKey);
         if (savedDraft) {
@@ -225,7 +225,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
 
             }
         }
-        
+
         // 创建新记录ID
         const newId = `record_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         setRecordId(newId);
@@ -284,12 +284,12 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
 
     // 根据当前测评类型动态调整二级导航标签
     const secondaryTabs = useMemo(() => {
-        const diagnosisLabel = activePrimary === 0 
+        const diagnosisLabel = activePrimary === 0
             ? t('bodyDiagnosis')
-            : activePrimary === 1 
+            : activePrimary === 1
                 ? t('mentalDiagnosis')
                 : t('skillsDiagnosis');
-        
+
         return [
             { id: 0, label: t('dataCollection'), path: 'data' },
             { id: 1, label: diagnosisLabel, path: 'diagnosis' },
@@ -312,7 +312,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
             setShowUnsavedDialog(true);
             return;
         }
-        
+
         const type = routeMap[activePrimary];
         const step = secondaryTabs[secondaryId].path;
         if (navigate) {
@@ -323,7 +323,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
     // 执行待定的导航
     const executePendingNavigation = () => {
         if (!pendingNavigation) return;
-        
+
         if (pendingNavigation.type === 'secondary') {
             const type = routeMap[activePrimary];
             const step = secondaryTabs[pendingNavigation.target].path;
@@ -334,7 +334,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
             // 返回到对应的历史测评记录页面
             const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
             const reportPage = reportPages[activePrimary] || 'physical-report';
-            
+
             if (navigate && student?.id) {
                 navigate(`/student/${student.id}/${reportPage}`);
             } else if (onBack) {
@@ -343,7 +343,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                 navigate(`/${reportPage}`);
             }
         }
-        
+
         setPendingNavigation(null);
         setShowUnsavedDialog(false);
     };
@@ -386,20 +386,20 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
     // 检查当前测评类型是否至少有一项数据被填写
     const checkHasAnyData = () => {
         if (activePrimary === 0) {
-            return hasAnyValue(recordData.stykuData) || 
-                   hasAnyValue(recordData.physicalDiagnosis) || 
-                   hasAnyValue(recordData.physicalPlan) || 
-                   hasAnyValue(recordData.physicalGoals);
+            return hasAnyValue(recordData.stykuData) ||
+                hasAnyValue(recordData.physicalDiagnosis) ||
+                hasAnyValue(recordData.physicalPlan) ||
+                hasAnyValue(recordData.physicalGoals);
         } else if (activePrimary === 1) {
-            return hasAnyValue(recordData.mentalData) || 
-                   hasAnyValue(recordData.mentalDiagnosis) || 
-                   hasAnyValue(recordData.mentalPlan) || 
-                   hasAnyValue(recordData.mentalGoals);
+            return hasAnyValue(recordData.mentalData) ||
+                hasAnyValue(recordData.mentalDiagnosis) ||
+                hasAnyValue(recordData.mentalPlan) ||
+                hasAnyValue(recordData.mentalGoals);
         } else if (activePrimary === 2) {
-            return hasAnyValue(recordData.trackmanData) || 
-                   hasAnyValue(recordData.diagnosisData) || 
-                   hasAnyValue(recordData.planData) || 
-                   hasAnyValue(recordData.skillsGoals);
+            return hasAnyValue(recordData.trackmanData) ||
+                hasAnyValue(recordData.diagnosisData) ||
+                hasAnyValue(recordData.planData) ||
+                hasAnyValue(recordData.skillsGoals);
         }
         return false;
     };
@@ -408,7 +408,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
         if (isNavigating) {
             return;
         }
-        
+
         // 清除 showCompleteActions 状态
         try {
             const key = getShowCompleteActionsKey();
@@ -416,7 +416,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
         } catch (e) {
 
         }
-        
+
         // 删除草稿并标记为已完成
         const typeMap = { 0: 'physical', 1: 'mental', 2: 'skills' };
         const type = typeMap[activePrimary];
@@ -425,15 +425,15 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
         const storageKey = `draft_${userId}_${studentId}_${type}`;
         const listKey = `drafts_${userId}_${studentId}`;
         const completedKey = `completed_${userId}_${studentId}`;
-        
+
         // 删除草稿
         localStorage.removeItem(storageKey);
-        
+
         // 从草稿列表中删除
         const draftsList = JSON.parse(localStorage.getItem(listKey) || '[]');
         const updatedDrafts = draftsList.filter(d => !(d.id === recordId && d.type === type));
         localStorage.setItem(listKey, JSON.stringify(updatedDrafts));
-        
+
         // 添加到已完成列表
         const completedList = JSON.parse(localStorage.getItem(completedKey) || '[]');
         completedList.push({
@@ -462,7 +462,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
 
         // 设置导航状态并执行跳转
         setIsNavigating(true);
-        
+
         if (navigate) {
             navigate('/ai-report', { state });
         } else if (typeof window !== 'undefined') {
@@ -473,7 +473,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
     const savePlanToBackend = async (type, content, currentId) => {
         if (!user?.token) return null;
         try {
-            const response = await fetch('http://localhost:8080/plans', {
+            const response = await fetch('http://192.168.31.233:8080/plans', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -486,7 +486,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                     content: content
                 }),
             });
-            
+
             if (response.ok) {
                 const resData = await response.json();
                 return resData.assessment_id;
@@ -505,7 +505,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
             if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
 
             const candidateUrls = [
-                'http://localhost:8080/diagnosis' // alternate route bound to same handler
+                'http://192.168.31.233:8080/diagnosis' // alternate route bound to same handler
             ];
 
             // If there's no token, avoid calling protected endpoints that will return 401
@@ -553,7 +553,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
 
     const handleSave = async () => {
         if (!recordId) return;
-        
+
         // 保存草稿到localStorage
         const typeMap = { 0: 'physical', 1: 'mental', 2: 'skills' };
         const type = typeMap[activePrimary];
@@ -561,7 +561,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
         const userId = user?.id || 'guest';
         const storageKey = `draft_${userId}_${studentId}_${type}`;
         const listKey = `drafts_${userId}_${studentId}`;
-        
+
         const draftData = {
             id: recordId,
             type: type,
@@ -570,14 +570,14 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
             lastModified: new Date().toISOString(),
             data: recordData
         };
-        
+
         // 保存单个草稿
         localStorage.setItem(storageKey, JSON.stringify(draftData));
-        
+
         // 更新草稿列表
         const draftsList = JSON.parse(localStorage.getItem(listKey) || '[]');
         const existingIndex = draftsList.findIndex(d => d.id === recordId && d.type === type);
-        
+
         const listItem = {
             id: recordId,
             type: type,
@@ -586,15 +586,15 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
             lastModified: new Date().toISOString(),
             sortTime: new Date().toISOString()
         };
-        
+
         if (existingIndex >= 0) {
             draftsList[existingIndex] = listItem;
         } else {
             draftsList.push(listItem);
         }
-        
+
         localStorage.setItem(listKey, JSON.stringify(draftsList));
-        
+
         // 重置变化标记
         setHasUnsavedChanges(false);
         setInitialDataSnapshot(JSON.stringify(recordData));
@@ -691,7 +691,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                     return;
                 }
 
-                const response = await fetch('http://localhost:8080/figuredata', {
+                const response = await fetch('http://192.168.31.233:8080/figuredata', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -704,7 +704,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                 }
 
                 const result = await response.json();
-                
+
                 // 保存 assessment_id 到 recordData
                 if (result.assessment_id) {
                     setRecordData(prev => ({ ...prev, assessmentId: result.assessment_id }));
@@ -808,11 +808,11 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                             setShowUnsavedDialog(true);
                             return;
                         }
-                        
+
                         // 返回到对应的历史测评记录页面
                         const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
                         const reportPage = reportPages[activePrimary] || 'physical-report';
-                        
+
                         if (navigate && student?.id) {
                             navigate(`/student/${student.id}/${reportPage}`);
                         } else if (onBack) {
@@ -825,7 +825,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                 >
                     <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
                 </button>
-                
+
                 {isEditingTitle ? (
                     <div className="flex items-center gap-2 flex-1 px-2 sm:px-4 min-w-0">
                         <input
@@ -950,7 +950,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                             className="w-full h-[50px] sm:h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-base sm:text-lg uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 sm:gap-3 group transition-all px-4"
                         >
                             <span className="truncate">
-                                {activeSecondary < 3 
+                                {activeSecondary < 3
                                     ? t('saveAndContinue')
                                     : t('completeAssessment')}
                             </span>
@@ -962,7 +962,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                                 onClick={async () => {
                                     if (!isNavigating) {
                                         setIsNavigating(true);
-                                        
+
                                         // 清除 showCompleteActions 状态
                                         try {
                                             const key = getShowCompleteActionsKey();
@@ -970,13 +970,13 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                                         } catch (e) {
 
                                         }
-                                        
+
                                         await handleSave();
-                                        
+
                                         // 返回到对应的历史测评记录页面
                                         const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
                                         const reportPage = reportPages[activePrimary] || 'physical-report';
-                                        
+
                                         if (navigate && student?.id) {
                                             navigate(`/student/${student.id}/${reportPage}`);
                                         } else if (navigate) {
@@ -1008,7 +1008,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                     <div className="surface-strong border-2 border-[#d4af37]/30 rounded-3xl p-8 max-w-sm w-full">
                         <h3 className="text-xl font-bold text-white mb-4 text-center">{t('unsavedChangesTitle')}</h3>
                         <p className="text-white/60 text-sm mb-8 text-center">{t('unsavedChangesMessage')}</p>
-                        
+
                         <div className="flex flex-col gap-3">
                             <button
                                 onClick={async () => {

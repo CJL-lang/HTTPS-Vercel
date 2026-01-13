@@ -20,8 +20,8 @@ const TrackManPage = ({ data, setData, onBack, onNext, onLogout }) => {
         setIsTesting(true);
         try {
             // 从后端 API 获取最新的 trackman 数据
-            const response = await fetch('http://localhost:8080/trackman/latest');
-            
+            const response = await fetch('http://192.168.31.233:8080/trackman/latest');
+
             if (!response.ok) {
                 throw new Error(`API error: ${response.status}`);
             }

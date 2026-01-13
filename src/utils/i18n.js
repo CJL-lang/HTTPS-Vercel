@@ -309,7 +309,7 @@ const translations = {
 
         // Physical Data (Styku)
         stykuTitle: "Styku 3D 自动采集",
-        stykuSubtitle: "系统将自动同步 3D 扫描仪数据",
+        stykuSubtitle: "自动同步 3D 扫描仪数据",
         analyzingModel: "正在分析 3D 身体模型...",
         modelGenerated: "3D 模型已生成",
         systemEncrypted: "系统状态: 已加密",

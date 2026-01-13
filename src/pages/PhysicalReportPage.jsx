@@ -11,7 +11,7 @@ import { useLanguage } from '../utils/LanguageContext';
 const PhysicalReportPage = ({ onBack, onAddRecord }) => {
     const { studentId } = useParams();
     const { t } = useLanguage();
-    
+
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -25,7 +25,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord }) => {
         const fetchStykuData = async () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const response = await fetch(`http://localhost:8080/students/${studentId}/styku`, {
+                const response = await fetch(`http://192.168.31.233:8080/students/${studentId}/styku`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -37,7 +37,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord }) => {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                
+
                 // 假设 data 是数组，映射到 records 格式
                 const mappedRecords = data.map((item, index) => ({
                     id: item.id || index + 1,
@@ -47,7 +47,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord }) => {
                     statusColor: item.status === 'completed' ? 'text-green-400' : 'text-yellow-400',
                     action: t('next')
                 }));
-                
+
                 setRecords(mappedRecords);
             } catch (err) {
                 setError(err.message);

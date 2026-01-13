@@ -333,7 +333,7 @@ export const useVoiceInput = () => {
                     try {
                         const msg = JSON.parse(event.data);
                         console.log('📩 解析后:', msg);
-                        
+
                         // 处理中间结果 MID_TEXT - 保存当前片段的最新文本
                         if (msg.type === 'MID_TEXT' && msg.result && msg.err_no === 0) {
                             const text = typeof msg.result === 'string' ? msg.result : (Array.isArray(msg.result) ? msg.result.join('') : '');
@@ -342,7 +342,7 @@ export const useVoiceInput = () => {
                                 console.log('🎤 中间结果:', text);
                             }
                         }
-                        
+
                         // 处理最终结果 FIN_TEXT - 实时返回
                         if (msg.type === 'FIN_TEXT') {
                             let finalText = '';
@@ -354,19 +354,19 @@ export const useVoiceInput = () => {
                                 finalText = currentSegmentTextRef.current;
                                 console.log('⚠️ FIN_TEXT 无结果，使用中间结果:', finalText);
                             }
-                            
+
                             if (finalText && onResultCallbackRef.current) {
                                 console.log('✅ 实时返回:', finalText);
                                 onResultCallbackRef.current(finalText); // 立即回调
                             }
                             currentSegmentTextRef.current = ''; // 重置当前片段
                         }
-                        
+
                         // 处理错误（忽略 -3005 未检测到语音）
                         if (msg.err_no && msg.err_no !== 0 && msg.err_no !== -3005) {
                             console.warn('⚠️ 识别错误:', msg.err_msg);
                         }
-                        
+
                         if (msg.type === 'FINISH') {
                             console.log('🏁 WS 收到 FINISH，关闭连接');
                             ws.close();
@@ -453,7 +453,7 @@ export const useVoiceInput = () => {
             } catch (e) {
                 console.warn('发送 FINISH 失败:', e);
             }
-            
+
             // 等待 500ms 让百度返回最后的结果
             await new Promise(resolve => setTimeout(resolve, 500));
         }

@@ -296,14 +296,14 @@ server.listen(8080)
 ```
 
 You can get the message by running this command in your terminal,
- or navigating to `127.0.0.1:8080` in a web browser.
+ or navigating to `192.168.31.233:8080` in a web browser.
 ```bash
-curl http://127.0.0.1:8080
+curl http://192.168.31.233:8080
 ```
 
 You can set the message by sending it a `PATCH` request via this command:
 ```bash
-curl http://127.0.0.1:8080/api/set-message -X PATCH -H "Content-Type: application/json" -d '{"value":"Cats!"}'
+curl http://192.168.31.233:8080/api/set-message -X PATCH -H "Content-Type: application/json" -d '{"value":"Cats!"}'
 ```
 
 ### Example using mergeParams
@@ -353,9 +353,9 @@ server.listen(8080)
 
 Now you can get the type, or what path you are requesting:
 ```bash
-curl http://127.0.0.1:8080
+curl http://192.168.31.233:8080
 > kitten
-curl http://127.0.0.1:8080/such_path
+curl http://192.168.31.233:8080/such_path
 > such_path
 ```
 

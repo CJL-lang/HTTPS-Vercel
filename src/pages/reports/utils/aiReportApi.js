@@ -2,7 +2,7 @@
  * Reports API helpers (AIReport).
  *
  * Backend is proxied by Vite:
- * - /api/* -> http://localhost:8080/*
+ * - /api/* -> http://192.168.31.233:8080/*
  */
 
 const getToken = () => {

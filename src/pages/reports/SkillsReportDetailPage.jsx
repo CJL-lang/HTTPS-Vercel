@@ -146,10 +146,8 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                     if (diagnosesRes.ok) {
                         const diagnosesJson = await diagnosesRes.json();
                         const mapped = diagnosesToRadarGradeData(diagnosesJson, 'skills');
-                        if (mapped.matchedCount > 0) {
-                            diagnosesGradeData = mapped.gradeData;
-                        } else if (Array.isArray(diagnosesJson?.content) && diagnosesJson.content.some((x) => x?.grade)) {
-                            console.warn('[diagnoses] skills titles did not match radar fields', diagnosesJson.content);
+                        if (mapped.totalCount > 0) {
+                            diagnosesGradeData = mapped; // 新格式: {labels: [], values: []}
                         }
                     }
                 } catch (e) {
@@ -186,19 +184,24 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                     return sections;
                 };
 
-                // 雷达图数据：优先使用 diagnoses 的 grade；失败则 fallback 到 AIReport.grade
-                const rawGrade = data.grade || {};
-                const fallbackGradeData = {
-                    driver: 0,
-                    mainIron: 0,
-                    wood: 0,
-                    putting: 0,
-                    scrambling: 0,
-                    finesseWedges: 0,
-                    irons: 0,
-                    ...rawGrade
-                };
-                const gradeData = diagnosesGradeData || fallbackGradeData;
+                // 雷达图数据：优先使用 diagnoses 的数据；失败则 fallback 到 AIReport.grade
+                let gradeData;
+                if (diagnosesGradeData) {
+                    gradeData = diagnosesGradeData; // 新格式: {labels: [], values: []}
+                } else {
+                    // fallback到旧格式
+                    const rawGrade = data.grade || {};
+                    gradeData = {
+                        driver: 0,
+                        mainIron: 0,
+                        wood: 0,
+                        putting: 0,
+                        scrambling: 0,
+                        finesseWedges: 0,
+                        irons: 0,
+                        ...rawGrade
+                    };
+                }
 
                 // 处理目标数据（注意：中文版本使用中文键名，英文版本使用英文键名）
                 const goalData = isEnglish ? data.goal_en : data.goal;

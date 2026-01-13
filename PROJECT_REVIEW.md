@@ -94,7 +94,7 @@
    - skills/technique 双写，历史遗留；文件夹与组件命名有旧版（legacy, old）。
 
 10. **构建与配置**
-   - 无环境分层配置（dev/stage/prod），接口基址写死 localhost:8080。
+   - 无环境分层配置（dev/stage/prod），接口基址写死 192.168.31.233:8080。
 
 ---
 

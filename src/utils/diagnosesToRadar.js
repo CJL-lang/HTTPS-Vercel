@@ -140,34 +140,35 @@ function findBestFieldKey(titleNorm, candidateMap) {
 }
 
 /**
- * Map GET /diagnoses/:ass_id response to RadarChart gradeData.
+ * Map GET /diagnoses/:ass_id response to RadarChart data.
+ * Now dynamically uses all items from backend without fixed field mapping.
  *
  * Expected response shape:
  * { content: [{ title: string, grade: string|number, content?: string }, ...] }
+ * 
+ * Returns: { labels: string[], values: (string|number)[], totalCount: number }
  */
 export function diagnosesToRadarGradeData(diagnosesResponse, type) {
-    const gradeData = initGradeData(type);
     const content = Array.isArray(diagnosesResponse)
         ? diagnosesResponse
         : diagnosesResponse?.content;
 
     if (!Array.isArray(content) || content.length === 0) {
-        return { gradeData, matchedCount: 0, totalCount: 0 };
+        return { labels: [], values: [], totalCount: 0 };
     }
 
-    const candidateMap = buildCandidateMap(type);
-    let matchedCount = 0;
+    // 直接使用后端返回的所有项目，不做字段映射
+    const labels = [];
+    const values = [];
 
     for (const item of content) {
-        const titleNorm = normalizeTitle(item?.title);
-        const fieldKey = findBestFieldKey(titleNorm, candidateMap);
-        if (!fieldKey) continue;
-
-        // keep raw grade (e.g. "L3") and let RadarChart convert per type
-        gradeData[fieldKey] = item?.grade ?? 0;
-        matchedCount += 1;
+        if (item?.title) {
+            labels.push(item.title);
+            values.push(item?.grade ?? 0);
+        }
     }
 
-    return { gradeData, matchedCount, totalCount: content.length };
+    return { labels, values, totalCount: content.length };
 }
+
 

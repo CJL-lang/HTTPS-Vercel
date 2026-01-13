@@ -73,6 +73,7 @@ const ThreeDPage = () => {
     const [currentInfo, setCurrentInfo] = useState({});
     const [nextField, setNextField] = useState('name');
     const [isComplete, setIsComplete] = useState(false);
+    const shouldAutoSendRef = useRef(false); // 标记是否应该在语音识别完成后自动发送
 
     // 语音输入功能
     const { isListening, startListening, stopListening } = useVoiceInput();
@@ -114,14 +115,15 @@ const ThreeDPage = () => {
     const handleConfirm = () => {
         setSelectedChar(tempChar);
         setIsSelecting(false);
-        // 保持现有角色开场，然后输出固定欢迎语并初始化表单式对话流程
-        const intro = `你好！我是 ${tempChar.name}。${tempChar.description}`;
-        const welcome = `欢迎来到 AI 学员信息注册助手 😊\n我会一步一步了解你的情况，帮助我们更好地制定训练方案。\n我们先开始吧：请输入你的姓名`;
+        // 合并角色介绍和欢迎语为一条消息
+        const welcomeMessage = `你好！我是 ${tempChar.name}。${tempChar.description}\n\n欢迎来到 AI 学员信息注册助手 😊\n我会一步一步了解你的情况，帮助我们更好地制定训练方案。\n我们先开始吧：请输入你的姓名`;
 
         setMessages([
-            { id: 1, sender: 'ai', text: intro, timestamp: Date.now() },
-            { id: 2, sender: 'ai', text: welcome, timestamp: Date.now() + 1 }
+            { id: 1, sender: 'ai', text: welcomeMessage, timestamp: Date.now() }
         ]);
+
+        // 文字转语音播放初始化消息
+        speak(welcomeMessage, { per: '0', spd: '5', vol: '8' });
 
         // 初始化表单数据与流程控制，后续每次用户输入都会调用 /AIDialog
         setCurrentInfo({});
@@ -267,22 +269,41 @@ const ThreeDPage = () => {
     };
 
     // 处理语音输入
-    const handleVoiceInput = () => {
+    const handleVoiceInput = async () => {
         if (isListening) {
-            // 如果正在录音，停止录音
-            stopListening();
+            // 如果正在录音，标记为需要自动发送，然后停止录音
+            shouldAutoSendRef.current = true;
+            await stopListening();
+            // 等待一下，确保最后的识别结果已经通过回调填入输入框
+            setTimeout(() => {
+                const currentValue = inputRef.current?.value || '';
+                if (currentValue.trim()) {
+                    handleSendMessage();
+                }
+                shouldAutoSendRef.current = false;
+            }, 600); // 给足够时间让 stopListening 完成并触发回调
         } else {
-            // 开始录音
+            // 开始录音前，先停止AI的语音播放
+            if (isSpeaking) {
+                stopSpeaking();
+            }
+            // 清空输入框，准备接收语音识别结果
+            setInputValue('');
+            shouldAutoSendRef.current = false; // 重置自动发送标志
+            // 开始录音，识别结果实时填入输入框
             startListening((text) => {
-                // 识别结果回调：将识别到的文字添加到输入框
                 if (text && text.trim()) {
+                    // 实时将识别结果追加到输入框
                     setInputValue(prev => {
-                        // 如果输入框已有内容，追加新内容；否则直接设置
-                        return prev ? `${prev} ${text}` : text;
+                        const newValue = prev ? `${prev} ${text}` : text;
+                        return newValue;
                     });
-                    // 自动聚焦到输入框
+                    // 自动调整输入框高度
                     if (inputRef.current) {
-                        inputRef.current.focus();
+                        setTimeout(() => {
+                            inputRef.current.style.height = 'auto';
+                            inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+                        }, 0);
                     }
                 }
             });
@@ -494,7 +515,13 @@ const ThreeDPage = () => {
                 {/* 顶部导航 */}
                 <header className="h-14 px-4 flex items-center justify-between shrink-0 z-20 border-b border-white/5">
                     <button
-                        onClick={() => setSelectedChar(null)}
+                        onClick={() => {
+                            // 回退时停止语音播放
+                            if (isSpeaking) {
+                                stopSpeaking();
+                            }
+                            setSelectedChar(null);
+                        }}
                         className="p-2 text-slate-300 hover:text-white transition-colors"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
@@ -524,7 +551,7 @@ const ThreeDPage = () => {
                 )}
 
                 {/* 中间内容区 - 可滚动 */}
-                <main className="flex-1 overflow-y-auto px-4 z-10 pt-4 pb-24">
+                <main className="flex-1 overflow-y-auto px-4 z-10 pt-4 pb-56">
                     {/* 顶部角色展示 */}
                     <div className="flex flex-col items-center mb-8">
                         <motion.div
@@ -550,7 +577,7 @@ const ThreeDPage = () => {
                 </main>
 
                 {/* 底部输入区 */}
-                <footer className="fixed bottom-24 left-0 right-0 p-4 z-20">
+                <footer className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/95 to-transparent pt-6 z-20">
                     <div className="max-w-2xl mx-auto space-y-3">
                         {/* 语音按钮 */}
                         <button

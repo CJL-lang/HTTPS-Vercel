@@ -330,22 +330,64 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                     {/* 指标 - 仅物理卡片 */}
                                     {card.path === 'physical-report' && (
                                         <div className="flex items-center gap-4 mb-5">
-                                            <div className="flex-1">
-                                                <svg viewBox="0 0 110 110" className="w-full h-full drop-shadow-[0_0_8px_rgba(212,175,55,0.2)]">
-                                                    <polygon points="55,10 95,35 80,85 30,85 15,35" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="1.5" />
-                                                    <polygon points="55,25 85,45 75,75 35,75 25,45" fill="rgba(212,175,55,0.08)" stroke="#d4af37" strokeWidth="1.5" className="group-hover:fill-[#d4af37]/20 transition-all duration-500" />
-                                                    <g fill="#d4af37">
-                                                        <circle cx="55" cy="25" r="2.5" />
-                                                        <circle cx="85" cy="45" r="2.5" />
-                                                        <circle cx="75" cy="75" r="2.5" />
-                                                        <circle cx="35" cy="75" r="2.5" />
-                                                        <circle cx="25" cy="45" r="2.5" />
+                                            <div className="flex-[1]">
+                                                <svg viewBox="0 0 110 110" className="w-full h-full drop-shadow-[0_0_12px_rgba(212,175,55,0.3)]">
+                                                    <defs>
+                                                        {/* 渐变定义 */}
+                                                        <linearGradient id="radarGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                            <stop offset="0%" stopColor="rgba(212,175,55,0.15)" />
+                                                            <stop offset="50%" stopColor="rgba(255,214,120,0.25)" />
+                                                            <stop offset="100%" stopColor="rgba(212,175,55,0.08)" />
+                                                        </linearGradient>
+                                                        <linearGradient id="radarStrokeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                            <stop offset="0%" stopColor="#d4af37" />
+                                                            <stop offset="50%" stopColor="#f5d36a" />
+                                                            <stop offset="100%" stopColor="#d4af37" />
+                                                        </linearGradient>
+                                                        {/* 光晕效果 */}
+                                                        <filter id="glow">
+                                                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                                            <feMerge>
+                                                                <feMergeNode in="coloredBlur"/>
+                                                                <feMergeNode in="SourceGraphic"/>
+                                                            </feMerge>
+                                                        </filter>
+                                                    </defs>
+                                                    {/* 外圈 - 更柔和的样式 */}
+                                                    <polygon 
+                                                        points="55,10 95,35 80,85 30,85 15,35" 
+                                                        fill="none" 
+                                                        stroke="rgba(255,255,255,0.08)" 
+                                                        strokeWidth="1.2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+                                                    {/* 内圈 - 带渐变填充 */}
+                                                    <polygon 
+                                                        points="55,25 85,45 75,75 35,75 25,45" 
+                                                        fill="url(#radarGradient)" 
+                                                        stroke="url(#radarStrokeGradient)" 
+                                                        strokeWidth="2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        filter="url(#glow)"
+                                                        className="group-hover:fill-[#d4af37]/25 group-hover:stroke-[#f5d36a] transition-all duration-500"
+                                                    />
+                                                    {/* 数据点 - 带光晕效果 */}
+                                                    <g fill="#d4af37" filter="url(#glow)">
+                                                        <circle cx="55" cy="25" r="3.5" opacity="0.9" />
+                                                        <circle cx="85" cy="45" r="3.5" opacity="0.9" />
+                                                        <circle cx="75" cy="75" r="3.5" opacity="0.9" />
+                                                        <circle cx="35" cy="75" r="3.5" opacity="0.9" />
+                                                        <circle cx="25" cy="45" r="3.5" opacity="0.9" />
                                                     </g>
+                                                    {/* 中心点装饰 */}
+                                                    <circle cx="55" cy="50" r="1.5" fill="#d4af37" opacity="0.6" />
                                                 </svg>
                                             </div>
 
                                             {/* 指标 */}
-                                            <div className="flex-1 space-y-2.5">
+                                            <div className="flex-[2] space-y-2.5">
                                                 {data?.indicators.map((ind, i) => (
                                                     <div key={i} className="space-y-1">
                                                         <div className="flex justify-between text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-widest">
