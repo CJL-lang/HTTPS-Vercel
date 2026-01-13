@@ -17,7 +17,7 @@ const RegisterPage = ({ onRegister, navigate }) => {
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'student'
+        role: 'coach'
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -103,10 +103,54 @@ const RegisterPage = ({ onRegister, navigate }) => {
             const data = await response.json();
 
             if (response.ok) {
-                alert('注册成功！');
-                if (onRegister) {
-                    onRegister(data);
-                } else {
+                console.log('注册成功，返回数据:', data);
+                
+                // 注册成功后自动登录（尝试用 phone 登录）
+                try {
+                    const loginResponse = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            account: phone,  // 使用手机号登录
+                            password: password,
+                            role: role,
+                        }),
+                    });
+
+                    const loginData = await loginResponse.json();
+                    console.log('自动登录返回数据:', loginData);
+
+                    if (loginResponse.ok && loginData.token) {
+                        alert('注册成功！');
+                        
+                        // 构建完整的用户信息对象
+                        const userInfo = {
+                            username: loginData.user?.username || username,
+                            role: loginData.user?.role || role,
+                            token: loginData.token,
+                            id: loginData.user?.id || data.user_id,
+                            name: loginData.user?.name,
+                            email: loginData.user?.email || email,
+                            phone: loginData.user?.phone || phone
+                        };
+                        
+                        console.log('准备传递的用户信息:', userInfo);
+                        
+                        if (onRegister) {
+                            onRegister(userInfo);
+                        } else {
+                            navigate('/students');
+                        }
+                    } else {
+                        // 自动登录失败，提示用户手动登录
+                        alert('注册成功！请登录');
+                        navigate('/login');
+                    }
+                } catch (loginError) {
+                    console.error('自动登录失败:', loginError);
+                    alert('注册成功！请登录');
                     navigate('/login');
                 }
             } else {

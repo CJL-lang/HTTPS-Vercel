@@ -19,7 +19,7 @@ const Card = ({ children, className, onClick }) => (
             onClick && "cursor-pointer hover:border-gold/40 active:scale-[0.98] transition-all duration-200 hover:shadow-gold/10",
             className
         )}
-        whileHover={onClick ? { y: -2, scale: 1.01 } : {}}
+        whileHover={onClick ? { scale: 1.01 } : {}}
         whileTap={onClick ? { scale: 0.98 } : {}}
     >
         {children}

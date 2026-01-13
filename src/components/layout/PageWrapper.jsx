@@ -18,10 +18,7 @@ const PageWrapper = ({ children, title, onBack, onAdd, footer }) => {
     const bottomPadding = footer ? 'pb-32' : 'pb-24';
 
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
+        <div
             className={cn("min-h-screen flex flex-col relative bg-transparent selection:bg-[#d4af37]/30", bottomPadding)}
         >
             {/* Floating Back Button */}
@@ -60,7 +57,7 @@ const PageWrapper = ({ children, title, onBack, onAdd, footer }) => {
                     </div>
                 </div>
             )}
-        </motion.div>
+        </div>
     );
 };
 

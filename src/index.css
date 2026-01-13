@@ -66,6 +66,16 @@
   .textarea-dark {
     @apply bg-transparent border-none focus:outline-none focus:ring-0 text-white placeholder:text-white/40 placeholder:font-normal resize-none scrollbar-hide transition-all duration-500 w-full;
     -webkit-tap-highlight-color: transparent;
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .textarea-dark:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    -webkit-focus-ring-color: transparent !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
 
   .label-gold {
@@ -158,6 +168,27 @@
 
   select:focus {
     outline: none;
+  }
+
+  /* 全局移除所有 textarea 的 focus 白色框 */
+  textarea {
+    outline: none !important;
+    -webkit-focus-ring-color: transparent !important;
+  }
+
+  textarea:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    -webkit-focus-ring-color: transparent !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  textarea:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    -webkit-focus-ring-color: transparent !important;
   }
 }
 

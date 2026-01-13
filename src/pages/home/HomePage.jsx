@@ -133,10 +133,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
     }
 
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
+        <div
             className="min-h-screen text-white relative overflow-hidden font-sans"
         >
             <div className="relative z-10 p-4 sm:p-6 pb-24 sm:pb-32 max-w-md mx-auto">
@@ -159,7 +156,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                         <User size={32} />
                     </div>
                     <div className="flex-1 min-w-0 text-left">
-                        <p className="text-3xl font-black mb-2 truncate tracking-tight text-[#d4af37]">{displayStudent.name}</p>
+                        <p className="text-lg sm:text-xl md:text-2xl font-black mb-2 truncate tracking-tight text-[#d4af37]">{displayStudent.name}</p>
                         <p className="student-info-value text-xs sm:text-sm truncate">ID: {fmtId(student?.id)}</p>
                     </div>
                 </div>
@@ -232,7 +229,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                             }
                         };
                         const data = cardData[card.path];
-                        
+
                         return (
                             <motion.button
                                 key={idx}
@@ -245,15 +242,15 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                             >
                                 <div className="w-full">
                                     <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-[#d4af37]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    
+
                                     {/* 标题区 */}
                                     <div className="flex items-center gap-3 mb-5">
                                         <div className="w-10 h-10 rounded-xl surface-weak flex items-center justify-center text-[#d4af37] group-hover:scale-110 transition-transform duration-500 shrink-0">
                                             <Icon size={20} />
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                            <h3 className="text-lg font-black text-white group-hover:text-[#d4af37] transition-colors duration-300 leading-tight truncate">{card.title}</h3>
-                                            <p className="text-[9px] font-bold text-[#6c7281] uppercase tracking-[0.15em] mb-0.5 whitespace-normal break-words">{data?.subtitle}</p>
+                                            <h3 className="text-base sm:text-lg md:text-xl font-black text-white group-hover:text-[#d4af37] transition-colors duration-300 leading-tight truncate">{card.title}</h3>
+                                            <p className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-[#6c7281] uppercase tracking-[0.15em] mb-0.5 whitespace-normal break-words">{data?.subtitle}</p>
                                         </div>
                                     </div>
 
@@ -351,12 +348,12 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                             <div className="flex-1 space-y-2.5">
                                                 {data?.indicators.map((ind, i) => (
                                                     <div key={i} className="space-y-1">
-                                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+                                                        <div className="flex justify-between text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-widest">
                                                             <span className="text-gray-500">{ind.label}</span>
                                                             <span className="text-[#d4af37]">{ind.value}</span>
                                                         </div>
                                                         <div className="h-[3px] bg-[#1e2430] rounded-full overflow-hidden">
-                                                            <motion.div 
+                                                            <motion.div
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: ind.value }}
                                                                 className="h-full bg-gradient-to-r from-[#d4af37] to-[#b8860b]"
@@ -367,16 +364,6 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                             </div>
                                         </div>
                                     )}
-                                </div>
-
-                                {/* 波浪线 */}
-                                <div className="relative h-10 -mx-5 -mb-5 mt-auto overflow-hidden opacity-40 group-hover:opacity-100 transition-opacity">
-                                    <svg className="w-full h-full" viewBox="0 0 300 60" preserveAspectRatio="none">
-                                        <path d={data?.waveData.d1} fill="none" stroke="#d4af37" strokeWidth="2" className="animate-[pulse_3s_ease-in-out_infinite]" />
-                                    </svg>
-                                    <div className="absolute bottom-0 left-0 w-full h-1 bg-[#1e2430]">
-                                        <div className="h-full bg-[#d4af37]" style={{ width: `${data?.waveData.fill}%` }}></div>
-                                    </div>
                                 </div>
 
                                 {/* 装饰图标 - 仅物理测评 */}
@@ -399,7 +386,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                     <span>{t('completeTest')}</span>
                 </motion.button>
             </div>
-        </motion.div>
+        </div>
     );
 };
 

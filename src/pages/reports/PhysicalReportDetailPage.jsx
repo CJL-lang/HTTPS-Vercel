@@ -672,7 +672,6 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                 qualityAssessment: diagnosisSections.length > 0
                     ? diagnosisSections.map(section => ({
                         title: section.title,
-                        level: t('pendingEvaluation'),
                         description: section.content
                     }))
                     : [],

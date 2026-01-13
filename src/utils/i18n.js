@@ -484,7 +484,7 @@ const translations = {
         studentList: "学员列表",
         hasHistory: "已有训练记录",
         newStudent: "新学员",
-        noStudentFound: "未找到学员记录",
+        noStudentFound: "暂无学员记录",
         addFirstStudent: "请点击右下角添加第一位学员",
 
         // Basic Info

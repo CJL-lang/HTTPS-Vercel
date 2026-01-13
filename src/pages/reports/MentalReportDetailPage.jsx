@@ -858,7 +858,6 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                 qualityAssessment: diagnosisSections.length > 0
                     ? diagnosisSections.map(section => ({
                         title: section.title,
-                        level: t('pendingEvaluation') || '待评估',
                         description: section.content
                     }))
                     : [],
@@ -1125,7 +1124,6 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                                                 <div className="flex-1">
                                                     <div className="report-item-header-row">
                                                         <h3 className="report-item-title !mb-0">{item.title}</h3>
-                                                        <span className="report-item-badge">{item.level}</span>
                                                     </div>
                                                     <p className="report-item-text">{item.description}</p>
                                                 </div>
