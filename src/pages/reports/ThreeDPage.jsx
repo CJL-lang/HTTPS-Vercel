@@ -12,6 +12,7 @@ import { Mic } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
+import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 
 // Lottie 动画数据
 const animationsPaths = {
@@ -75,6 +76,9 @@ const ThreeDPage = () => {
 
     // 语音输入功能
     const { isListening, startListening, stopListening } = useVoiceInput();
+
+    // 文字转语音功能
+    const { isSpeaking, speak, stop: stopSpeaking } = useTextToSpeech();
 
     // AI 对话采集相关状态
     const FIELD_LABELS = {
@@ -184,17 +188,21 @@ const ThreeDPage = () => {
             if (returnedNext === 'done') {
                 if (!isValidEmail(mergedInfo?.email)) {
                     // Ask for email explicitly, do not complete
+                    const aiMessage = '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。';
                     setMessages(prev => {
                         const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                        return [...prev, { id: lastId + 1, sender: 'ai', text: '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。', timestamp: Date.now() }];
+                        return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
                     });
+                    speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                     setNextField('email');
                 } else {
                     // All good, append AI reply and mark done
+                    const aiMessage = res.reply || '已完成信息收集。';
                     setMessages(prev => {
                         const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                        return [...prev, { id: lastId + 1, sender: 'ai', text: res.reply || '已完成信息收集。', timestamp: Date.now() }];
+                        return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
                     });
+                    speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                     setNextField('done');
                     console.log('学员信息采集完成', mergedInfo);
                 }
@@ -206,24 +214,30 @@ const ThreeDPage = () => {
                 // find the next truly missing field
                 const missing = getNextMissing();
                 if (missing) {
+                    const aiMessage = `已记录你的${FIELD_LABELS[returnedNext] || returnedNext}，接下来请提供${FIELD_LABELS[missing] || missing}。`;
                     setMessages(prev => {
                         const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                        return [...prev, { id: lastId + 1, sender: 'ai', text: `已记录你的${FIELD_LABELS[returnedNext] || returnedNext}，接下来请提供${FIELD_LABELS[missing] || missing}。`, timestamp: Date.now() }];
+                        return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
                     });
+                    speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                     setNextField(missing);
                 } else {
                     // nothing missing -> treat as done (email already validated earlier in flow will block if necessary)
                     if (!isValidEmail(mergedInfo?.email)) {
+                        const aiMessage = '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。';
                         setMessages(prev => {
                             const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                            return [...prev, { id: lastId + 1, sender: 'ai', text: '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。', timestamp: Date.now() }];
+                            return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
                         });
+                        speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                         setNextField('email');
                     } else {
+                        const aiMessage = res.reply || '已完成信息收集。';
                         setMessages(prev => {
                             const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                            return [...prev, { id: lastId + 1, sender: 'ai', text: res.reply || '已完成信息收集。', timestamp: Date.now() }];
+                            return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
                         });
+                        speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                         setNextField('done');
                     }
                 }
@@ -231,10 +245,12 @@ const ThreeDPage = () => {
             }
 
             // Default: append AI reply and set nextField as returned
+            const aiMessage = res.reply || '...';
             setMessages(prev => {
                 const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                return [...prev, { id: lastId + 1, sender: 'ai', text: res.reply || '...', timestamp: Date.now() }];
+                return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
             });
+            speak(aiMessage, { per: '0', spd: '5', vol: '8' });
             setNextField(returnedNext);
         } catch (err) {
             console.error('AIDialog request failed', err);
@@ -293,7 +309,10 @@ const ThreeDPage = () => {
 
             if (!res) {
                 // 后端不可用的回退提示
-                setMessages(prev => [...prev, { sender: 'ai', text: `你好！我是 ${tempChar?.name}。${tempChar?.description}` , timestamp: Date.now() }]);
+                const aiMessage = `你好！我是 ${tempChar?.name}。${tempChar?.description}`;
+                setMessages(prev => [...prev, { sender: 'ai', text: aiMessage, timestamp: Date.now() }]);
+                // 自动朗读 AI 回复
+                speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                 setCurrentInfo({});
                 setNextField(null);
             } else {
@@ -315,28 +334,37 @@ const ThreeDPage = () => {
 
                 if (res.next_field === 'done') {
                     if (!isValidEmail(mergedInfo?.email)) {
-                        setMessages(prev => [...prev, { sender: 'ai', text: '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。', timestamp: Date.now() }]);
+                        const aiMessage = '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。';
+                        setMessages(prev => [...prev, { sender: 'ai', text: aiMessage, timestamp: Date.now() }]);
+                        speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                         setNextField('email');
                     } else {
                         setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
+                        speak(res.reply, { per: '0', spd: '5', vol: '8' });
                         setNextField('done');
                     }
                 } else if (res.next_field && mergedInfo[res.next_field] !== undefined && mergedInfo[res.next_field] !== null && String(mergedInfo[res.next_field]).trim() !== '') {
                     const missing = findNextMissing();
                     if (missing) {
-                        setMessages(prev => [...prev, { sender: 'ai', text: `已记录。接下来请提供${FIELD_LABELS[missing] || missing}。`, timestamp: Date.now() }]);
+                        const aiMessage = `已记录。接下来请提供${FIELD_LABELS[missing] || missing}。`;
+                        setMessages(prev => [...prev, { sender: 'ai', text: aiMessage, timestamp: Date.now() }]);
+                        speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                         setNextField(missing);
                     } else {
                         if (!isValidEmail(mergedInfo?.email)) {
-                            setMessages(prev => [...prev, { sender: 'ai', text: '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。', timestamp: Date.now() }]);
+                            const aiMessage = '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。';
+                            setMessages(prev => [...prev, { sender: 'ai', text: aiMessage, timestamp: Date.now() }]);
+                            speak(aiMessage, { per: '0', spd: '5', vol: '8' });
                             setNextField('email');
                         } else {
                             setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
+                            speak(res.reply, { per: '0', spd: '5', vol: '8' });
                             setNextField('done');
                         }
                     }
                 } else {
                     setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
+                    speak(res.reply, { per: '0', spd: '5', vol: '8' });
                     setNextField(res.next_field || null);
                 }
             }

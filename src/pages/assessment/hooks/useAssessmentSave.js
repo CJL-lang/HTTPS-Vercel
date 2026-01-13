@@ -94,7 +94,21 @@ export const useAssessmentSave = ({
             if (activePrimary === 0) {
                 diagnosisContent = recordData.physicalDiagnosis;
             } else if (activePrimary === 1) {
-                diagnosisContent = recordData.mentalDiagnosis;
+                // 心理诊断：需要将分数从 mentalData 映射到 grade 字段
+                const mentalDiagnosisItems = recordData.mentalDiagnosis || [];
+                const mentalData = recordData.mentalData || {};
+
+                // 标题到分数的映射
+                const titleToScoreMap = {
+                    "专注能力": mentalData.focus,
+                    "心理韧性": mentalData.stability,
+                    "自信与动机": mentalData.confidence
+                };
+
+                diagnosisContent = mentalDiagnosisItems.map(item => ({
+                    ...item,
+                    grade: titleToScoreMap[item.title] || item.grade || 'L1'
+                }));
             } else if (activePrimary === 2) {
                 // 技能测评：将 diagnosisData 对象提取为后端要求的数组格式
                 const rawData = recordData.diagnosisData || recordData.skillsDiagnosis || {};

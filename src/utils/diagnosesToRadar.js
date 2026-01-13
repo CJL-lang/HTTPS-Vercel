@@ -34,7 +34,7 @@ function buildCandidateMap(type) {
 
     if (type === 'mental') {
         add('focus', [...getI18nText('focusAbility'), '专注', '专注力', 'focus']);
-        add('resilience', [...getI18nText('mentalResilience'), '抗压', '抗压力', '韧性', 'resilience', 'stress']);
+        add('stability', [...getI18nText('mentalResilience'), '抗压', '抗压力', '韧性', 'resilience', 'stress', '心理韧性', 'stability']);
         add('confidence', [
             ...getI18nText('confidenceAndMotivation'),
             '自信',
@@ -90,7 +90,7 @@ function buildCandidateMap(type) {
 }
 
 function initGradeData(type) {
-    if (type === 'mental') return { focus: 0, resilience: 0, confidence: 0 };
+    if (type === 'mental') return { focus: 0, stability: 0, confidence: 0 };
     if (type === 'physical')
         return {
             flexibility: 0,
