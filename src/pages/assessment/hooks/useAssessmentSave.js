@@ -242,7 +242,12 @@ export const useAssessmentSave = ({
 
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing styku via PATCH');
-                        await updateStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
+                        const ok = await updateStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
+                        if (!ok) {
+                            console.warn('[useAssessmentSave] PATCH styku failed; falling back to POST');
+                            const created = await saveStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
+                            if (created) setHasBackendData(prev => ({ ...prev, assessment_data: true }));
+                        }
                     } else {
                         console.log('[useAssessmentSave] Creating new styku via POST');
                         await saveStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
@@ -282,7 +287,12 @@ export const useAssessmentSave = ({
 
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing trackman via PATCH');
-                        await updateTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);
+                        const ok = await updateTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);
+                        if (!ok) {
+                            console.warn('[useAssessmentSave] PATCH trackman failed; falling back to POST');
+                            const created = await saveTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);
+                            if (created) setHasBackendData(prev => ({ ...prev, assessment_data: true }));
+                        }
                     } else {
                         console.log('[useAssessmentSave] Creating new trackman via POST');
                         await saveTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);

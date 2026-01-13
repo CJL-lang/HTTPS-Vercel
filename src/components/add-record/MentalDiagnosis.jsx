@@ -266,7 +266,8 @@ const MentalDiagnosis = ({ data, update }) => {
                 content: '',
                 isCustom: false
             };
-            update('mentalDiagnosis', [newItem]);
+            // 使用静默更新，避免触发“有未保存修改”的提示
+            update('mentalDiagnosis', [newItem], true);
         }
     }, [data.mentalDiagnosis, update]);
 

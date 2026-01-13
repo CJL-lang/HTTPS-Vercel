@@ -433,7 +433,8 @@ const PhysicalDiagnosis = ({ data, update }) => {
                 isCustom: false,
                 grade: '' // 初始化 grade 字段
             };
-            update('physicalDiagnosis', [newItem]);
+            // 使用静默更新，避免触发“有未保存修改”的提示
+            update('physicalDiagnosis', [newItem], true);
         }
     }, [data.physicalDiagnosis, update]);
 

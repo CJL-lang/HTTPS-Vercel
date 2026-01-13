@@ -13,7 +13,7 @@ const UnsavedChangesDialog = ({
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
             <div className="surface-strong border-2 border-[#d4af37]/30 rounded-3xl p-8 max-w-sm w-full">
                 <h3 className="text-xl font-bold text-white mb-4 text-center">
                     {t('unsavedChangesTitle')}

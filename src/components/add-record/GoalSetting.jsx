@@ -176,7 +176,8 @@ const GoalSetting = ({ data, update, dataKey, title, subtitle }) => {
                 id: crypto?.randomUUID?.() || Date.now().toString(),
                 content: ''
             };
-            update(dataKey, [newItem]);
+            // 使用静默更新，避免触发“有未保存修改”的提示
+            update(dataKey, [newItem], true);
         }
     }, [data[dataKey], dataKey, update]);
 
