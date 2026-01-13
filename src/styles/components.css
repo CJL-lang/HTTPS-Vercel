@@ -1151,3 +1151,11 @@
     transform: translateY(0);
   }
 }
+
+/* 标题选择器中的金色细分界线 */
+.dropdown-divider-gold-thin {
+  @apply h-[1px] w-full;
+  background: #d4af37;
+  margin: 0;
+  opacity: 0.6;
+}

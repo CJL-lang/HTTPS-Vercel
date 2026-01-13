@@ -68,6 +68,7 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
         },
         physicalDiagnosis: null,
         mentalDiagnosis: null,
+        skillsDiagnosis: null,
         mentalPlan: null,
         physicalPlan: null,
         physicalGoals: null,
@@ -187,11 +188,11 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
                 else if (activePrimary === 1) newData.mentalDiagnosis = formattedDiagnosis;
                 else if (activePrimary === 2) {
                     const skillsData = {};
-                    diagnosisList.forEach(item => {
+                    formattedDiagnosis.forEach(item => {
                         skillsData[item.title] = item.content;
                         skillsData[`${item.title}_level`] = item.grade;
                     });
-                    newData.skillsDiagnosis = diagnosisList;
+                    newData.skillsDiagnosis = formattedDiagnosis;
                     newData.diagnosisData = { ...newData.diagnosisData, ...skillsData };
                 }
 

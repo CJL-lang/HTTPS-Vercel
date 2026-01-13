@@ -3,7 +3,7 @@
  * 包含返回按钮和标题编辑
  */
 import React from 'react';
-import { ChevronLeft, Check, Edit2 } from 'lucide-react';
+import { ChevronLeft, Check } from 'lucide-react';
 
 const AssessmentHeader = ({ 
     title, 
@@ -12,6 +12,7 @@ const AssessmentHeader = ({
     onTitleChange, 
     onSave,
     onBack,
+    rightContent,
     t 
 }) => {
     const handleSave = async () => {
@@ -35,14 +36,14 @@ const AssessmentHeader = ({
     };
 
     return (
-        <div className="relative z-10 mb-4 sm:mb-6 flex items-center gap-3">
+        <div className="relative z-10 mb-4 sm:mb-6 flex items-center gap-2">
             <button
                 onClick={onBack}
                 className="btn-back shrink-0"
             >
                 <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
             </button>
-            
+
             {isEditingTitle ? (
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     <input
@@ -72,13 +73,20 @@ const AssessmentHeader = ({
                     </button>
                 </div>
             ) : (
-                <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer flex-1 min-w-0" onClick={() => setIsEditingTitle(true)}>
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div
+                        className="flex items-center group cursor-pointer min-w-0"
+                        onClick={() => setIsEditingTitle(true)}
+                    >
                         <h1 className="title-workbench">
                             {title}
                         </h1>
-                        <Edit2 size={18} className="text-[#d4af37] opacity-40 group-hover:opacity-100 transition-opacity shrink-0 sm:w-5 sm:h-5" />
                     </div>
+                    {rightContent ? (
+                        <div className="shrink-0 min-w-0">
+                            {rightContent}
+                        </div>
+                    ) : null}
                 </div>
             )}
         </div>

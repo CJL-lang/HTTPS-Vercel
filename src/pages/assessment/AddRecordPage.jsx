@@ -8,7 +8,8 @@
  * - components/: UI 组件 (头部、导航、按钮、对话框)
  * - utils/: 工具函数 (API、辅助函数、常量)
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User as UserIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useLanguage } from '../../utils/LanguageContext';
 
@@ -61,6 +62,22 @@ const AddRecordPage = ({
 
     // 自定义 Hooks
     const unsavedChanges = useUnsavedChanges(null, null, t);
+
+    // 让“标题”跨二级路由保持一致：在导航时把最新 title 写入 location.state
+    const titleRef = useRef(actualAssessmentData?.title || '');
+
+    const getNavigationState = () => {
+        const baseState = location.state || {};
+        const baseAssessmentData = baseState.assessmentData || actualAssessmentData || {};
+        return {
+            ...baseState,
+            student: baseState.student || student,
+            assessmentData: {
+                ...baseAssessmentData,
+                title: titleRef.current
+            }
+        };
+    };
     
     const navigation = useAssessmentNavigation({
         initialPrimary,
@@ -70,6 +87,7 @@ const AddRecordPage = ({
         hasUnsavedChanges: unsavedChanges.hasUnsavedChanges,
         setPendingNavigation: unsavedChanges.setPendingNavigation,
         setShowUnsavedDialog: unsavedChanges.setShowUnsavedDialog,
+        getNavigationState,
         navigate,
         t
     });
@@ -102,6 +120,11 @@ const AddRecordPage = ({
     };
 
     const assessmentData_hook = useAssessmentData(actualAssessmentData, navigation.activePrimary, navigation.activeSecondary, t, user);
+
+    // 任何页面修改标题后，后续导航都携带最新值
+    useEffect(() => {
+        titleRef.current = assessmentData_hook.recordData?.title || '';
+    }, [assessmentData_hook.recordData?.title]);
     
     const draft = useAssessmentDraft(
         navigation.activePrimary,
@@ -233,12 +256,41 @@ const AddRecordPage = ({
     }
 
     // 事件处理
+    const ensureDefaultTitlePatchedIfNeeded = async () => {
+        const assessmentId = assessmentData_hook.recordData?.assessmentId;
+        if (!assessmentId || !user?.token) return;
+
+        const defaultTitles = {
+            0: t('physicalAssessment'),
+            1: t('mentalAssessment'),
+            2: t('skillsAssessment')
+        };
+        const desiredTitle = defaultTitles[navigation.activePrimary] || t('autoAssessment') || '';
+
+        const currentTitle = (assessmentData_hook.recordData?.title || '').toString().trim();
+        const englishDefaultPattern = /^(physical|mental|skills)\s*assessment\s+on\s+/i;
+        const shouldPatch =
+            !currentTitle ||
+            currentTitle === desiredTitle ||
+            englishDefaultPattern.test(currentTitle);
+
+        if (!shouldPatch || !desiredTitle) return;
+
+        try {
+            await updateAssessment(assessmentId, { title: desiredTitle }, user);
+        } catch (e) {
+            // ignore title patch errors on navigation
+        }
+    };
+
     const handleBack = async () => {
         if (unsavedChanges.hasUnsavedChanges) {
             unsavedChanges.setPendingNavigation({ type: 'back' });
             unsavedChanges.setShowUnsavedDialog(true);
             return;
         }
+
+        await ensureDefaultTitlePatchedIfNeeded();
         
         // 根据当前测评类型返回到对应的历史测评记录页面
         const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
@@ -261,10 +313,11 @@ const AddRecordPage = ({
             const type = ROUTE_MAP[navigation.activePrimary];
             const step = navigation.secondaryTabs[pending.target].path;
             if (navigate) {
-                // 关键修复：必须带上当前的 location.state，否则 mode='single' 会丢失
-                navigate(`/add-record/${type}/${step}`, { state: location.state });
+                // 必须带上最新的 state（含最新 title），否则切页会回滚
+                navigate(`/add-record/${type}/${step}`, { state: getNavigationState() });
             }
         } else if (pending.type === 'back') {
+            await ensureDefaultTitlePatchedIfNeeded();
             // 根据当前测评类型返回到对应的历史测评记录页面
             const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
             const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
@@ -311,6 +364,16 @@ const AddRecordPage = ({
             console.log('[AddRecordPage] updateAssessment result:', success);
             // 标题保存成功后，重置未保存标记，避免切换页面时提示
             unsavedChanges.setHasUnsavedChanges(false);
+
+            // 同步更新草稿（待处理列表/重新进入时使用草稿标题）
+            try {
+                if (success) {
+                    titleRef.current = newTitle;
+                    draft.saveDraft(navigation.activeSecondary);
+                }
+            } catch (e) {
+                // ignore
+            }
         } else {
             console.error('[AddRecordPage] handleTitleSave error: missing ID or title', { assessmentId, newTitle });
         }
@@ -322,7 +385,20 @@ const AddRecordPage = ({
                 title={assessmentData_hook.recordData.title}
                 isEditingTitle={isEditingTitle}
                 setIsEditingTitle={setIsEditingTitle}
+                rightContent={
+                    student?.name ? (
+                        <div className="inline-flex items-center h-9 sm:h-10 rounded-full overflow-hidden surface-strong border-2 border-white/30 ml-1 shadow-inner">
+                            <span className="flex-1 text-center pl-4 pr-1 text-sm sm:text-base font-bold text-white leading-none truncate max-w-[9rem] sm:max-w-[12rem]">
+                                {student.name}
+                            </span>
+                            <span className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-[#d4af37] flex items-center justify-center rounded-full m-1">
+                                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+                            </span>
+                        </div>
+                    ) : null
+                }
                 onTitleChange={(value) => {
+                    titleRef.current = value;
                     assessmentData_hook.updateRecordData('title', value);
                     // 标题修改时标记为已修改
                     unsavedChanges.setHasUnsavedChanges(true);
@@ -335,6 +411,8 @@ const AddRecordPage = ({
             <PrimaryNavigation
                 primaryTabs={navigation.primaryTabs}
                 activePrimary={navigation.activePrimary}
+                isSingleMode={isSingleMode}
+                hideSinglePrimaryLabel={true}
             />
 
             <SecondaryNavigation

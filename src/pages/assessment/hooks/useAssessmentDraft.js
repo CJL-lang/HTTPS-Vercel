@@ -51,6 +51,17 @@ export const useAssessmentDraft = (activePrimary, student, user, recordData, set
                     assessmentId: currentAssessmentId || draftAssessmentId || ''
                 };
 
+                // 标题优先级：若后端/列表传入了明确标题（且不是英文默认），优先用它
+                try {
+                    const passedTitle = (assessmentData?.title || '').toString().trim();
+                    const englishDefaultPattern = /^(physical|mental|skills)\s*assessment\s+on\s+/i;
+                    if (passedTitle && !englishDefaultPattern.test(passedTitle)) {
+                        mergedData.title = passedTitle;
+                    }
+                } catch {
+                    // ignore
+                }
+
                 setRecordData(mergedData);
                 setInitialDataSnapshot(JSON.stringify(mergedData));
                 return true;
