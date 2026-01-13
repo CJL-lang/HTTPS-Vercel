@@ -13,6 +13,7 @@ export const useAssessmentNavigation = ({
     hasUnsavedChanges,
     setPendingNavigation,
     setShowUnsavedDialog,
+    getNavigationState,
     navigate,
     t
 }) => {
@@ -92,7 +93,8 @@ export const useAssessmentNavigation = ({
         const step = secondaryTabs[secondaryId]?.path || 'data';
         if (navigate) {
             // 关键修复：必须带上当前的 location.state，否则 mode='single' 会丢失
-            navigate(`/add-record/${type}/${step}`, { state: location.state });
+            const state = typeof getNavigationState === 'function' ? getNavigationState() : location.state;
+            navigate(`/add-record/${type}/${step}`, { state });
         }
     };
 
@@ -101,7 +103,8 @@ export const useAssessmentNavigation = ({
         const type = ROUTE_MAP[primaryId];
         if (navigate) {
             // 关键修复：必须带上当前的 location.state
-            navigate(`/add-record/${type}/data`, { state: location.state });
+            const state = typeof getNavigationState === 'function' ? getNavigationState() : location.state;
+            navigate(`/add-record/${type}/data`, { state });
         }
     };
 

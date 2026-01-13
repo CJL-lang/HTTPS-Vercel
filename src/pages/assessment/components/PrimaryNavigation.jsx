@@ -5,7 +5,22 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import styles from '../AddRecordPage.module.css';
 
-const PrimaryNavigation = ({ primaryTabs, activePrimary }) => {
+const PrimaryNavigation = ({ primaryTabs, activePrimary, isSingleMode = false, hideSinglePrimaryLabel = false }) => {
+    const isSinglePrimary = isSingleMode && Array.isArray(primaryTabs) && primaryTabs.length === 1;
+
+    if (isSinglePrimary) {
+        if (hideSinglePrimaryLabel) return null;
+        return (
+            <div className="relative z-10 mb-4 sm:mb-6 px-2 sm:px-4">
+                <div className="flex justify-center">
+                    <span className="text-base sm:text-lg font-semibold text-white">
+                        {primaryTabs[0]?.label}
+                    </span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="relative z-10 mb-4 sm:mb-6 px-2 sm:px-4">
             <div className="flex relative">

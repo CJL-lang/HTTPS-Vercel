@@ -16,6 +16,7 @@ import {
     updateStykuDataToBackend,
     updateMentalDataToBackend,
     updateTrackmanDataToBackend,
+    updateAssessment,
     getSingleAssessment
 } from '../utils/assessmentApi';
 import { persistModuleToStudent } from '../utils/assessmentHelpers';
@@ -54,6 +55,33 @@ export const useAssessmentSave = ({
     };
 
     const backendLang = getBackendLang();
+
+    const ensureDefaultTitlePatchedIfNeeded = async () => {
+        const assessmentId = recordData?.assessmentId;
+        if (!assessmentId || !user?.token) return;
+
+        const defaultTitles = {
+            0: t('physicalAssessment'),
+            1: t('mentalAssessment'),
+            2: t('skillsAssessment')
+        };
+        const desiredTitle = defaultTitles[activePrimary] || t('autoAssessment') || '';
+
+        const currentTitle = (recordData?.title || '').toString().trim();
+        const englishDefaultPattern = /^(physical|mental|skills)\s*assessment\s+on\s+/i;
+        const shouldPatch =
+            !currentTitle ||
+            currentTitle === desiredTitle ||
+            englishDefaultPattern.test(currentTitle);
+
+        if (!shouldPatch || !desiredTitle) return;
+
+        try {
+            await updateAssessment(assessmentId, { title: desiredTitle }, user);
+        } catch (e) {
+            // ignore
+        }
+    };
 
     const handleSave = async (navigateToSecondary) => {
         // DEBUG: 打印 recordData / 快照以便验证默认值是否进入数据模型
@@ -338,6 +366,9 @@ export const useAssessmentSave = ({
 
         // 最后一步：写回学员数据
         persistModuleToStudent(activePrimary, recordData, data, setData);
+
+        // 完成测评时也确保标题已写回（即便用户未手动保存标题）
+        await ensureDefaultTitlePatchedIfNeeded();
 
         // 每次完成一个测评类别（无论是单项还是完整测评）都显示完成操作面板
         // 这样用户可以选择"生成报告"或"稍后生成"
