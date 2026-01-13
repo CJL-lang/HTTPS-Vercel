@@ -242,7 +242,8 @@ const PhysicalPlan = ({ data, update }) => {
                 content: '',
                 isCustom: false
             };
-            update('physicalPlan', [newItem]);
+            // 使用静默更新，避免触发“有未保存修改”的提示
+            update('physicalPlan', [newItem], true);
         }
     }, [data.physicalPlan, update]);
 

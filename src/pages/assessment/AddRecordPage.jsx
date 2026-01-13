@@ -113,19 +113,14 @@ const AddRecordPage = ({
     );
 
     // 包装 updateRecordData 以自动标记未保存更改
-    const wrappedUpdateRecordData = (path, val) => {
+    const wrappedUpdateRecordData = (path, val, isSilent = false) => {
         assessmentData_hook.updateRecordData(path, val);
-        // 标记有未保存的更改
-        unsavedChanges.setHasUnsavedChanges(true);
+        // 如果不是静默更新，标记有未保存的更改
+        if (!isSilent) {
+            unsavedChanges.setHasUnsavedChanges(true);
+        }
     };
 
-    // 更新未保存变更检测的依赖
-    useEffect(() => {
-        if (draft.initialDataSnapshot) {
-            const currentSnapshot = JSON.stringify(assessmentData_hook.recordData);
-            unsavedChanges.setHasUnsavedChanges(currentSnapshot !== draft.initialDataSnapshot);
-        }
-    }, [assessmentData_hook.recordData, draft.initialDataSnapshot]);
 
     // 当 activePrimary 改变时，从 sessionStorage 恢复 showCompleteActions 状态
     useEffect(() => {
@@ -245,21 +240,6 @@ const AddRecordPage = ({
             return;
         }
         
-        // 在返回前，更新 assessment 的标题（如果有 assessmentId）
-        const assessmentId = assessmentData_hook.recordData.assessmentId;
-        const currentTitle = assessmentData_hook.recordData.title;
-        
-        if (assessmentId && currentTitle && user?.token) {
-            try {
-                console.log('[AddRecordPage] handleBack: Updating assessment before navigation', { assessmentId, title: currentTitle });
-                await updateAssessment(assessmentId, { title: currentTitle }, user);
-                console.log('[AddRecordPage] handleBack: Assessment updated successfully');
-            } catch (error) {
-                console.error('[AddRecordPage] handleBack: Failed to update assessment', error);
-                // 即使更新失败，也继续执行返回操作
-            }
-        }
-        
         // 根据当前测评类型返回到对应的历史测评记录页面
         const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
         const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
@@ -285,21 +265,6 @@ const AddRecordPage = ({
                 navigate(`/add-record/${type}/${step}`, { state: location.state });
             }
         } else if (pending.type === 'back') {
-            // 在返回前，更新 assessment 的标题（如果有 assessmentId）
-            const assessmentId = assessmentData_hook.recordData.assessmentId;
-            const currentTitle = assessmentData_hook.recordData.title;
-            
-            if (assessmentId && currentTitle && user?.token) {
-                try {
-                    console.log('[AddRecordPage] executePendingNavigation: Updating assessment before navigation', { assessmentId, title: currentTitle });
-                    await updateAssessment(assessmentId, { title: currentTitle }, user);
-                    console.log('[AddRecordPage] executePendingNavigation: Assessment updated successfully');
-                } catch (error) {
-                    console.error('[AddRecordPage] executePendingNavigation: Failed to update assessment', error);
-                    // 即使更新失败，也继续执行返回操作
-                }
-            }
-            
             // 根据当前测评类型返回到对应的历史测评记录页面
             const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
             const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
@@ -341,9 +306,11 @@ const AddRecordPage = ({
 
         console.log('[AddRecordPage] handleTitleSave called', { assessmentId, newTitle });
 
-        if (assessmentId && newTitle) {
+        if (assessmentId && newTitle && user?.token) {
             const success = await updateAssessment(assessmentId, { title: newTitle }, user);
             console.log('[AddRecordPage] updateAssessment result:', success);
+            // 标题保存成功后，重置未保存标记，避免切换页面时提示
+            unsavedChanges.setHasUnsavedChanges(false);
         } else {
             console.error('[AddRecordPage] handleTitleSave error: missing ID or title', { assessmentId, newTitle });
         }
@@ -355,7 +322,11 @@ const AddRecordPage = ({
                 title={assessmentData_hook.recordData.title}
                 isEditingTitle={isEditingTitle}
                 setIsEditingTitle={setIsEditingTitle}
-                onTitleChange={(value) => assessmentData_hook.updateRecordData('title', value)}
+                onTitleChange={(value) => {
+                    assessmentData_hook.updateRecordData('title', value);
+                    // 标题修改时标记为已修改
+                    unsavedChanges.setHasUnsavedChanges(true);
+                }}
                 onSave={handleTitleSave}
                 onBack={handleBack}
                 t={t}

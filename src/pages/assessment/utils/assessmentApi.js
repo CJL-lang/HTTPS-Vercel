@@ -660,13 +660,8 @@ export const updateTrackmanDataToBackend = async (assessmentId, data, user, lang
             spin_loft: parseFloat(data?.spin_loft ?? data?.layerB?.spinLoft) || 0,
             low_point: (data?.low_point ?? data?.layerC?.lowPoint) || "",
             impact_offset: (data?.impact_offset ?? data?.layerC?.impactOffset) || "",
-            indexing: (data?.indexing ?? data?.layerC?.indexing) || "",
-            language: language
+            indexing: (data?.indexing ?? data?.layerC?.indexing) || ""
         };
-        // 只在有备注时添加 notes 字段
-        if (data?.notes) {
-            payload.notes = data.notes;
-        }
 
         const response = await fetch('/api/trackman', {
             method: 'PATCH',
@@ -752,13 +747,8 @@ export const updateStykuDataToBackend = async (assessmentId, data, user, languag
             upper_arm: parseFloat(data?.upper_arm ?? data?.upperLimbs?.upperArm) || 0,
             forearm: parseFloat(data?.forearm ?? data?.upperLimbs?.forearm) || 0,
             thigh: parseFloat(data?.thigh ?? data?.lowerLimbs?.thigh) || 0,
-            calf: parseFloat(data?.calf ?? data?.lowerLimbs?.calf) || 0,
-            language: language
+            calf: parseFloat(data?.calf ?? data?.lowerLimbs?.calf) || 0
         };
-        // 只在有备注时添加 notes 字段
-        if (data?.notes) {
-            payload.notes = data.notes;
-        }
 
         const response = await fetch('/api/styku', {
             method: 'PATCH',
