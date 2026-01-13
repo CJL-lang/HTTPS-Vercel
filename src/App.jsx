@@ -240,6 +240,8 @@ export default function App() {
         setCurrentStudentIndex(index);
         const studentId = students[index].id;
         navigate(`/student/${studentId}`);
+        // 滚动到页面顶部 - 直接跳转，不使用平滑滚动
+        window.scrollTo({ top: 0, behavior: 'auto' });
     };
 
     // 新测评入口：导航到测评类型选择页面
@@ -574,8 +576,20 @@ export default function App() {
     };
 
     const handleRegister = (regData) => {
-        // 注册成功后的逻辑，可以自动登录或跳转到登录页
-        navigate('/login');
+        // 注册成功后的逻辑，自动登录并跳转到学员列表页
+        console.log('handleRegister 被调用，接收到的数据:', regData);
+        
+        if (regData && regData.token) {
+            console.log('检测到 token，保存用户信息并跳转到学员列表页');
+            setCurrentUser(regData);
+            setIsLoggedIn(true);
+            setIsCheckingAuth(false);
+            localStorage.setItem('user', JSON.stringify(regData));
+            navigate('/students');
+        } else {
+            console.log('未检测到 token，跳转到登录页');
+            navigate('/login');
+        }
     };
 
     const handleLogout = useCallback(() => {
@@ -583,6 +597,14 @@ export default function App() {
         setCurrentUser(null);
         localStorage.removeItem('user');
         navigate('/login');
+    }, [navigate]);
+
+    // 处理页面跳转并滚动到顶部
+    const handleNext = useCallback((target) => {
+        const path = typeof target === 'string' ? (target.startsWith('/') ? target : `/${target}`) : '/students';
+        navigate(path);
+        // 滚动到页面顶部
+        window.scrollTo({ top: 0, behavior: 'auto' });
     }, [navigate]);
 
     // 全局 Fetch 拦截器：处理 401 Token 失效并统一注入 Token
@@ -632,40 +654,38 @@ export default function App() {
                             <div className="text-white text-lg">加载中...</div>
                         </div>
                     ) : (
-                        <AnimatePresence mode="popLayout">
-                            <motion.div layout key={location.pathname} className="relative">
-                                <AppRoutes
-                                    isLoggedIn={isLoggedIn}
-                                    location={location}
-                                    student={currentData}
-                                    data={currentData}
-                                    setData={updateCurrentStudent}
-                                    onLogin={handleLogin}
-                                    onRegister={handleRegister}
-                                    onLogout={handleLogout}
-                                    user={currentUser}
-                                    userRole={currentUser?.role}
-                                    navigate={(path, options) => navigate(path.startsWith('/') ? path : `/${path}`, options)}
-                                    onBack={handleSmartBack}
-                                    onNext={(target) => navigate(typeof target === 'string' ? (target.startsWith('/') ? target : `/${target}`) : '/students')}
-                                    students={students}
-                                    onSelectStudent={selectStudent}
-                                    onAddStudent={startAddStudent}
-                                    refreshStudents={refreshStudents}
-                                    handleStartPhysicalAssessment={handleStartPhysicalAssessment}
-                                    handleStartMentalAssessment={handleStartMentalAssessment}
-                                    handleStartSkillsAssessment={handleStartSkillsAssessment}
-                                    handleStartCompleteAssessment={handleStartCompleteAssessment}
-                                    handleStartNewAssessment={handleStartNewAssessment}
-                                    onStartNewAssessment={handleStartNewAssessment}
-                                    onStartAssessment={handleStartAssessment}
-                                    onReset={resetData}
-                                    initialPrimary={initialPrimaryTab}
-                                    setInitialPrimaryTab={setInitialPrimaryTab}
-                                    assessmentData={currentAssessmentData}
-                                />
-                            </motion.div>
-                        </AnimatePresence>
+                        <div key={location.pathname} className="relative">
+                            <AppRoutes
+                                isLoggedIn={isLoggedIn}
+                                location={location}
+                                student={currentData}
+                                data={currentData}
+                                setData={updateCurrentStudent}
+                                onLogin={handleLogin}
+                                onRegister={handleRegister}
+                                onLogout={handleLogout}
+                                user={currentUser}
+                                userRole={currentUser?.role}
+                                navigate={(path, options) => navigate(path.startsWith('/') ? path : `/${path}`, options)}
+                                onBack={handleSmartBack}
+                                onNext={handleNext}
+                                students={students}
+                                onSelectStudent={selectStudent}
+                                onAddStudent={startAddStudent}
+                                refreshStudents={refreshStudents}
+                                handleStartPhysicalAssessment={handleStartPhysicalAssessment}
+                                handleStartMentalAssessment={handleStartMentalAssessment}
+                                handleStartSkillsAssessment={handleStartSkillsAssessment}
+                                handleStartCompleteAssessment={handleStartCompleteAssessment}
+                                handleStartNewAssessment={handleStartNewAssessment}
+                                onStartNewAssessment={handleStartNewAssessment}
+                                onStartAssessment={handleStartAssessment}
+                                onReset={resetData}
+                                initialPrimary={initialPrimaryTab}
+                                setInitialPrimaryTab={setInitialPrimaryTab}
+                                assessmentData={currentAssessmentData}
+                            />
+                        </div>
                     )}
 
                     {/* Bottom Navigation - show on all pages except specific ones like addRecord and login */}

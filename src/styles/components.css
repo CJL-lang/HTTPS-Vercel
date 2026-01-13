@@ -846,12 +846,16 @@
     -webkit-tap-highlight-color: transparent;
     outline: none !important;
     box-shadow: none !important;
+    border: none !important;
   }
 
   .textarea-standard:focus {
     outline: none !important;
     box-shadow: none !important;
+    border: none !important;
     border-color: transparent !important;
+    -webkit-focus-ring-color: transparent !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
 
   /* 带过渡效果的 Textarea */
@@ -860,12 +864,16 @@
     -webkit-tap-highlight-color: transparent;
     outline: none !important;
     box-shadow: none !important;
+    border: none !important;
   }
 
   .textarea-standard-transition:focus {
     outline: none !important;
     box-shadow: none !important;
+    border: none !important;
     border-color: transparent !important;
+    -webkit-focus-ring-color: transparent !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
 
   /* 下拉菜单滚动容器 */
@@ -916,12 +924,16 @@
     -webkit-tap-highlight-color: transparent;
     outline: none !important;
     box-shadow: none !important;
+    border: none !important;
   }
 
   .textarea-diagnosis:focus {
     outline: none !important;
     box-shadow: none !important;
+    border: none !important;
     border-color: transparent !important;
+    -webkit-focus-ring-color: transparent !important;
+    -webkit-tap-highlight-color: transparent !important;
   }
 
   /* 居中内容容器 */

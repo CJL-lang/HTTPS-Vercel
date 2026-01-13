@@ -129,7 +129,7 @@ const LoginPage = ({ onLogin }) => {
                                     <input
                                         type="text"
                                         className="input-dark pl-10 sm:pl-12 text-sm font-normal"
-                                        placeholder={t('usernamePlaceholder')}
+                                        placeholder="请输入登录邮箱或者手机号"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
                                         disabled={loading}

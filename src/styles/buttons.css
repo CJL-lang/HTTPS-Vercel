@@ -6,7 +6,7 @@
 @layer components {
   /* 接收数据按钮 - 正常状态 */
   .btn-receive-data {
-    @apply flex items-center gap-2 px-5 py-2.5 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all;
+    @apply flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] sm:text-[12px] md:text-[13px] font-bold uppercase tracking-widest transition-all;
     @apply bg-[#d4af37] text-black shadow-lg shadow-[#d4af37]/20 active:scale-95;
   }
 
@@ -20,7 +20,7 @@
 
   /* 扫描按钮 */
   .btn-scan {
-    @apply flex items-center gap-2 px-5 py-2.5 rounded-xl text-[12px] font-bold uppercase tracking-widest transition-all;
+    @apply flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] sm:text-[12px] md:text-[13px] font-bold uppercase tracking-widest transition-all;
     @apply bg-[#d4af37] text-black shadow-lg shadow-[#d4af37]/20 active:scale-95;
   }
 
