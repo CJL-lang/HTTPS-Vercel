@@ -230,7 +230,7 @@ export const saveStykuDataToBackend = async (assessmentId, stykuData, user, lang
             thigh: stykuData.lowerLimbs?.thigh != null ? parseFloat(stykuData.lowerLimbs.thigh) : 0,
             calf: stykuData.lowerLimbs?.calf != null ? parseFloat(stykuData.lowerLimbs.calf) : 0
         };
-        
+
         // 只在有备注时添加 notes 字段
         if (stykuData.notes && stykuData.notes.trim()) {
             payload.notes = stykuData.notes.trim();
@@ -269,28 +269,30 @@ export const saveMentalDataToBackend = async (assessmentId, mentalData, user, la
     if (!user?.token || !assessmentId) return null;
 
     try {
-        // 根据后端文档，需要 focus, stress, stability 字段
+        // 后端需要 focus, stress, stability
+        // 前端采集 focus, stability, confidence
+        // 映射：confidence -> stress（或者添加 stress 字段）
         const payload = {
             assessment_id: assessmentId,
             focus: parseInt(mentalData.focus) || 0,
-            stress: parseInt(mentalData.stress) || 0,
+            stress: parseInt(mentalData.confidence) || 0,  // 将 confidence 映射为 stress
             stability: parseInt(mentalData.stability) || 0
         };
-        
-        // 如果提供了 confidence，也包含进去（虽然文档中没有，但可能后端支持）
+
+        // 如果后端也支持 confidence，可以额外发送
         if (mentalData.confidence !== undefined) {
             payload.confidence = parseInt(mentalData.confidence) || 0;
         }
-        
+
         // 如果提供了 notes，也包含进去
         if (mentalData.notes) {
             payload.notes = mentalData.notes;
         }
 
-        console.log('[API] POST /mentalData payload:', payload);
+        console.log('[API] POST /mental payload:', payload);
 
-        // 后端路由是 /mentalData，不是 /mental
-        const response = await fetch('/api/mentalData', {
+        // 后端实际路由是 /mental
+        const response = await fetch('/api/mental', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -699,16 +701,16 @@ export const updateMentalDataToBackend = async (assessmentId, data, user, langua
             stress: parseInt(data?.stress) || 0,
             stability: parseInt(data?.stability) || 0
         };
-        
+
         // 如果提供了 confidence，也包含进去（虽然文档中没有，但可能后端支持）
         if (data?.confidence !== undefined) {
             payload.confidence = parseInt(data.confidence) || 0;
         }
 
-        console.log('[API] PATCH /mentalData payload:', payload);
+        console.log('[API] PATCH /mental payload:', payload);
 
-        // 后端路由是 /mentalData，不是 /mental
-        const response = await fetch('/api/mentalData', {
+        // 后端实际路由是 /mental
+        const response = await fetch('/api/mental', {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -716,9 +718,9 @@ export const updateMentalDataToBackend = async (assessmentId, data, user, langua
             },
             body: JSON.stringify(payload),
         });
-        
+
         console.log('[API] PATCH /mentalData response status:', response.status);
-        
+
         if (!response.ok) {
             const errText = await response.text();
             console.error('[API] PATCH /mentalData failed:', response.status, errText);

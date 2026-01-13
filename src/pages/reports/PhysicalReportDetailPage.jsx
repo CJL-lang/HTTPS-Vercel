@@ -22,6 +22,16 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
     const [continueTestInfo, setContinueTestInfo] = useState(null);
     const [reloadToken, setReloadToken] = useState(0);
     const [isCreatingAIReport, setIsCreatingAIReport] = useState(false);
+    // 报告对比相关状态
+    const [showComparison, setShowComparison] = useState(false);
+    const [oldReportData, setOldReportData] = useState(null);
+    const [newReportData, setNewReportData] = useState(null);
+    // 每个部分的选择状态：'old' | 'new' | null
+    const [selectedVersions, setSelectedVersions] = useState({
+        trainingGoals: null,
+        qualityAssessment: null,
+        trainingOutlook: null
+    });
     // 用于防止重复加载的 Ref
     const lastFetchedIdRef = useRef(null);
 
@@ -181,6 +191,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                 // 组装数据
                 const report = {
                     id: id,
+                    aiReportId: data.id || data.report_id || id,
                     studentId: data.student_id,
                     title: passedTitle || t('physicalReportTitle'),
                     date: data.created_at ? new Date(data.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
@@ -448,9 +459,539 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
         }
     };
 
-    const handleRegenerate = () => {
-        // 重新生成 AI 报告（后端重新计算）
-        handleGenerateAIReport();
+    const handleRegenerate = async () => {
+        if (!id || loading || isCreatingAIReport) return;
+
+        setIsCreatingAIReport(true);
+        setLoading(true);
+        try {
+            const userJson = localStorage.getItem('user');
+            const user = userJson ? JSON.parse(userJson) : null;
+            const token = user?.token || '';
+            const backendLang = getBackendLang();
+
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            };
+
+            // 先拉取当前诊断内容，PATCH 时带上
+            let diagnosisContent = [];
+            try {
+                const diagGetRes = await fetch(`/api/diagnoses/${id}`, { headers });
+                if (diagGetRes.ok) {
+                    const diagData = await diagGetRes.json();
+                    diagnosisContent = (diagData?.content || []).map(item => ({
+                        title: item.title || '',
+                        grade: item.grade || item.level || 'L1',
+                        content: item.content || ''
+                    }));
+                }
+            } catch (e) {
+                console.warn('Failed to fetch diagnoses before regenerate', e);
+            }
+
+            // 确保有可用的 AI 报告 ID；若不存在则先创建再拉取，同时保留原始 AI 报告内容供 PATCH 使用
+            let aiReportId = reportData?.aiReportId || null;
+            let aiReportPayload = null;
+            try {
+                const fetchAIReportId = async () => {
+                    const aiGetRes = await fetch(`/api/AIReport/${id}`, { headers });
+                    if (aiGetRes.ok) {
+                        const aiData = await aiGetRes.json();
+                        aiReportPayload = aiData;
+                        const resolved = aiData?.id || aiData?.report_id || aiData?.report?.id || null;
+                        console.log('[Physical] AI report GET resolved id:', resolved, 'raw:', aiData);
+                        return resolved;
+                    }
+                    if (aiGetRes.status === 404) {
+                        return null;
+                    }
+                    const txt = await aiGetRes.text().catch(() => '');
+                    throw new Error(txt || '获取 AI 报告失败');
+                };
+
+                aiReportId = await fetchAIReportId();
+
+                if (!aiReportId) {
+                    const created = await createAIReport(id, { token, language: backendLang });
+                    if (created?.id) {
+                        aiReportId = created.id;
+                        console.log('[Physical] AI report created with id:', aiReportId);
+                        aiReportPayload = created;
+                    } else if (created?.report?.id) {
+                        aiReportId = created.report.id;
+                        console.log('[Physical] AI report created (nested) id:', aiReportId);
+                        aiReportPayload = created.report;
+                    } else if (created?.old_report_id) {
+                        aiReportId = created.old_report_id;
+                        console.log('[Physical] AI report created (old_report_id) id:', aiReportId);
+                        aiReportPayload = created.report || null;
+                    }
+                    if (!aiReportId) aiReportId = await fetchAIReportId();
+                }
+            } catch (e) {
+                console.warn('Failed to ensure AI report exists before regenerate', e);
+            }
+
+            if (!aiReportId) {
+                alert('未能获取 AI 报告记录，无法重新生成。请确认该测评已存在 AI 报告或联系后台支持。');
+                setLoading(false);
+                setIsCreatingAIReport(false);
+                return;
+            }
+
+            const diagnosesRes = await fetch('/api/diagnoses', {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({
+                    assessment_id: id,
+                    content: diagnosisContent,
+                    language: backendLang
+                })
+            });
+
+            if (!diagnosesRes.ok) {
+                const msg = await diagnosesRes.text().catch(() => '');
+                throw new Error(msg || '重新生成诊断失败');
+            }
+
+            // 构造 PATCH 体：带上已有字段，避免后端 “no fields to update”
+            const basePatch = {
+                assessment_id: id,
+                report_id: aiReportId,
+                language: backendLang,
+                report_intro: aiReportPayload?.report_intro,
+                goal: aiReportPayload?.goal,
+                fitness_diagnosis: aiReportPayload?.fitness_diagnosis,
+                training_plan: aiReportPayload?.training_plan,
+                report_intro_en: aiReportPayload?.report_intro_en,
+                goal_en: aiReportPayload?.goal_en,
+                fitness_diagnosis_en: aiReportPayload?.fitness_diagnosis_en,
+                training_plan_en: aiReportPayload?.training_plan_en,
+            };
+
+            const patchBody = Object.entries(basePatch).reduce((acc, [k, v]) => {
+                if (v !== undefined && v !== null) acc[k] = v;
+                return acc;
+            }, {});
+
+            const aiReportRes = await fetch('/api/AIReport', {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify(patchBody)
+            });
+
+            if (!aiReportRes.ok) {
+                const msg = await aiReportRes.text().catch(() => '');
+                throw new Error(msg || '重新生成AI报告失败');
+            }
+
+            // 保存当前报告数据作为旧报告
+            const currentReportData = reportData;
+            setOldReportData(currentReportData);
+
+            // 获取新生成的报告数据
+            const newReportResponse = await fetch(`/api/AIReport/${id}`, { headers });
+            if (!newReportResponse.ok) {
+                throw new Error('获取新报告数据失败');
+            }
+
+            const newReportRaw = await newReportResponse.json();
+
+            // 处理新报告数据（复用 fetchReportData 中的逻辑）
+            const currentLanguage = localStorage.getItem('language') || 'zh';
+            const isEnglish = currentLanguage === 'en';
+            const getLocalizedField = (fieldName) => {
+                return isEnglish ? (newReportRaw[`${fieldName}_en`] || newReportRaw[fieldName]) : newReportRaw[fieldName];
+            };
+            const parseTextToSections = (text) => {
+                if (!text) return [];
+                const sections = [];
+                const regex = /【([^】]+)】([^【]*)/g;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    sections.push({
+                        title: match[1].trim(),
+                        content: match[2].trim()
+                    });
+                }
+                if (sections.length === 0 && text.trim()) {
+                    sections.push({
+                        title: t('physicalAssessmentDiagnosisTitle'),
+                        content: text.trim()
+                    });
+                }
+                return sections;
+            };
+
+            // 处理目标数据
+            const goalData = isEnglish ? newReportRaw.goal_en : newReportRaw.goal;
+            const trainingGoals = [];
+            if (goalData) {
+                if (isEnglish) {
+                    if (goalData.long_term) {
+                        trainingGoals.push({
+                            title: t('longTermGoal') || 'Long-term Goal',
+                            content: goalData.long_term
+                        });
+                    }
+                    if (goalData.short_term) {
+                        trainingGoals.push({
+                            title: t('shortTermGoal') || 'Short-term Goal',
+                            content: goalData.short_term
+                        });
+                    }
+                } else {
+                    if (goalData['长期目标'] || goalData.long_term) {
+                        trainingGoals.push({
+                            title: t('longTermGoal') || '长期目标',
+                            content: goalData['长期目标'] || goalData.long_term
+                        });
+                    }
+                    if (goalData['短期目标'] || goalData.short_term) {
+                        trainingGoals.push({
+                            title: t('shortTermGoal') || '短期目标',
+                            content: goalData['短期目标'] || goalData.short_term
+                        });
+                    }
+                }
+            }
+
+            // 处理诊断数据
+            const diagnosisText = getLocalizedField('fitness_diagnosis');
+            const diagnosisSections = parseTextToSections(diagnosisText);
+
+            // 处理训练计划
+            const trainingPlanText = getLocalizedField('training_plan');
+            const planSections = parseTextToSections(trainingPlanText);
+
+            // 组装新报告数据（只包含需要对比的3个部分）
+            const processedNewReport = {
+                trainingGoals: trainingGoals,
+                qualityAssessment: diagnosisSections.length > 0
+                    ? diagnosisSections.map(section => ({
+                        title: section.title,
+                        level: t('pendingEvaluation'),
+                        description: section.content
+                    }))
+                    : [],
+                trainingOutlook: planSections.find(s => s.title.includes('回报') || s.title.includes('激励'))?.content || trainingPlanText || t('physicalBenefitsDefault')
+            };
+
+            setNewReportData(processedNewReport);
+            setShowComparison(true);
+            // 重置选择状态
+            setSelectedVersions({
+                trainingGoals: null,
+                qualityAssessment: null,
+                trainingOutlook: null
+            });
+
+            // 更新 reportData 中的 aiReportId（使用重新生成时获取的 aiReportId）
+            // 这样保存自定义版本时就能获取到正确的 report_id
+            if (aiReportId && aiReportId !== id) {
+                setReportData(prev => ({
+                    ...prev,
+                    aiReportId: aiReportId
+                }));
+            }
+
+            setLoading(false);
+        } catch (error) {
+            console.error('Failed to regenerate report:', error);
+            alert(error?.message || '重新生成失败');
+            setLoading(false);
+        } finally {
+            setIsCreatingAIReport(false);
+        }
+    };
+
+    // 选择某个部分的版本
+    const handleSelectVersion = (section, version) => {
+        setSelectedVersions(prev => ({
+            ...prev,
+            [section]: version
+        }));
+    };
+
+    // 检查是否所有部分都已选择
+    const allSectionsSelected = () => {
+        if (!showComparison || !newReportData) return false;
+        return selectedVersions.trainingGoals !== null &&
+            selectedVersions.qualityAssessment !== null &&
+            selectedVersions.trainingOutlook !== null;
+    };
+
+    // 保存自定义版本
+    const handleSaveCustomVersion = async () => {
+        if (!allSectionsSelected() || !id || !reportData?.aiReportId) {
+            console.warn('[handleSaveCustomVersion] Missing required data:', {
+                allSectionsSelected: allSectionsSelected(),
+                id,
+                aiReportId: reportData?.aiReportId
+            });
+            return;
+        }
+
+        setIsCreatingAIReport(true);
+        try {
+            const userJson = localStorage.getItem('user');
+            const user = userJson ? JSON.parse(userJson) : null;
+            const token = user?.token || '';
+            const backendLang = getBackendLang();
+
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            };
+
+            // 确保有有效的 report_id
+            // 注意：保存自定义版本时不应该创建新报告，应该使用现有的 report_id
+            let reportId = reportData.aiReportId;
+            let aiReportPayload = null;
+
+            // 如果 reportId 等于 id（assessment_id），说明没有真正的 report_id
+            // 这种情况下，应该提示用户先重新生成报告，而不是创建新报告
+            if (!reportId || reportId === id) {
+                // 尝试从 handleRegenerate 中获取 report_id（如果刚刚重新生成过）
+                // 或者提示用户先重新生成报告
+                try {
+                    const aiGetRes = await fetch(`/api/AIReport/${id}`, { headers });
+                    if (aiGetRes.ok) {
+                        aiReportPayload = await aiGetRes.json();
+                        // GET 接口不返回 id，但我们可以尝试使用其他方式
+                        // 如果报告存在但没有 report_id，说明需要先重新生成
+                        console.warn('[handleSaveCustomVersion] Report exists but no report_id found. Report may need to be regenerated first.');
+                    } else if (aiGetRes.status === 404) {
+                        throw new Error('报告不存在，请先点击"重新生成"按钮生成报告');
+                    }
+                } catch (e) {
+                    if (e.message.includes('报告不存在')) {
+                        throw e;
+                    }
+                    console.error('[handleSaveCustomVersion] Failed to fetch report:', e);
+                }
+
+                // 如果仍然没有 report_id，抛出错误
+                if (!reportId || reportId === id) {
+                    throw new Error('无法获取有效的 report_id。请先点击"重新生成"按钮生成报告，然后再选择自定义版本。');
+                }
+            } else {
+                // 如果已有 reportId，获取现有报告数据（用于包含已有字段）
+                try {
+                    const aiGetRes = await fetch(`/api/AIReport/${id}`, { headers });
+                    if (aiGetRes.ok) {
+                        aiReportPayload = await aiGetRes.json();
+                    }
+                } catch (e) {
+                    console.warn('[handleSaveCustomVersion] Failed to fetch existing report data:', e);
+                }
+            }
+
+            // 最终验证 report_id
+            if (!reportId || reportId === id) {
+                throw new Error('无法获取有效的 report_id。请先点击"重新生成"按钮生成报告。');
+            }
+
+            // 根据选择组合数据
+            const finalTrainingGoals = selectedVersions.trainingGoals === 'new'
+                ? newReportData.trainingGoals
+                : oldReportData.trainingGoals;
+
+            const finalQualityAssessment = selectedVersions.qualityAssessment === 'new'
+                ? newReportData.qualityAssessment
+                : oldReportData.qualityAssessment;
+
+            const finalTrainingOutlook = selectedVersions.trainingOutlook === 'new'
+                ? newReportData.trainingOutlook
+                : oldReportData.trainingOutlook;
+
+            // 构建目标数据（确保格式正确）
+            const goalData = {};
+            finalTrainingGoals.forEach(goal => {
+                const title = goal.title || '';
+                const content = goal.content || '';
+                if (title.includes('长期') || title.includes('Long-term') || title.toLowerCase().includes('long')) {
+                    goalData['长期目标'] = content;
+                    goalData.long_term = content;
+                } else if (title.includes('短期') || title.includes('Short-term') || title.toLowerCase().includes('short')) {
+                    goalData['短期目标'] = content;
+                    goalData.short_term = content;
+                }
+            });
+
+            // 确保 goalData 不为空（如果 finalTrainingGoals 为空，至少保留一个空对象）
+            if (Object.keys(goalData).length === 0 && finalTrainingGoals.length > 0) {
+                // 如果无法匹配，使用第一个目标作为长期目标，第二个作为短期目标
+                if (finalTrainingGoals.length >= 1) {
+                    goalData['长期目标'] = finalTrainingGoals[0].content || '';
+                    goalData.long_term = finalTrainingGoals[0].content || '';
+                }
+                if (finalTrainingGoals.length >= 2) {
+                    goalData['短期目标'] = finalTrainingGoals[1].content || '';
+                    goalData.short_term = finalTrainingGoals[1].content || '';
+                }
+            }
+
+            // 构建诊断数据（将数组转换为文本）
+            const diagnosisText = finalQualityAssessment.map(item =>
+                `【${item.title}】${item.description}`
+            ).join('\n');
+
+            // 构建训练计划数据（使用训练展望作为主要内容）
+            const trainingPlanText = finalTrainingOutlook || '';
+
+            // 构建 PATCH 请求体（参考 handleRegenerate 的实现，包含所有必要字段）
+            // 参考 handleRegenerate 中成功的实现，需要包含已有字段以避免后端 "no fields to update" 错误
+            const basePatch = {
+                assessment_id: id,
+                report_id: reportId,
+                language: backendLang,
+                report_intro: aiReportPayload?.report_intro,
+                goal: goalData,
+                fitness_diagnosis: diagnosisText,
+                training_plan: trainingPlanText,
+                report_intro_en: aiReportPayload?.report_intro_en,
+                goal_en: undefined, // 将在下面设置
+                fitness_diagnosis_en: undefined, // 将在下面设置
+                training_plan_en: undefined // 将在下面设置
+            };
+
+            // 如果是英文，也添加英文版本
+            if (backendLang === 'en') {
+                // 英文版本的目标数据格式
+                const goalEn = {};
+                finalTrainingGoals.forEach(goal => {
+                    if (goal.title.includes('长期') || goal.title.includes('Long-term')) {
+                        goalEn.long_term = goal.content;
+                    } else if (goal.title.includes('短期') || goal.title.includes('Short-term')) {
+                        goalEn.short_term = goal.content;
+                    }
+                });
+                basePatch.goal_en = goalEn;
+                basePatch.fitness_diagnosis_en = diagnosisText;
+                basePatch.training_plan_en = trainingPlanText;
+            } else {
+                // 中文版本也需要包含英文字段（如果存在）
+                if (aiReportPayload?.goal_en) {
+                    basePatch.goal_en = aiReportPayload.goal_en;
+                }
+                if (aiReportPayload?.fitness_diagnosis_en) {
+                    basePatch.fitness_diagnosis_en = aiReportPayload.fitness_diagnosis_en;
+                }
+                if (aiReportPayload?.training_plan_en) {
+                    basePatch.training_plan_en = aiReportPayload.training_plan_en;
+                }
+            }
+
+            // 过滤掉 undefined 和 null 的值（参考 handleRegenerate 的实现）
+            const patchBody = Object.entries(basePatch).reduce((acc, [k, v]) => {
+                if (v !== undefined && v !== null) acc[k] = v;
+                return acc;
+            }, {});
+
+            // 过滤掉 undefined 和 null 的值（参考 handleRegenerate 的实现）
+            const cleanPatchBody = Object.entries(patchBody).reduce((acc, [k, v]) => {
+                if (v !== undefined && v !== null) acc[k] = v;
+                return acc;
+            }, {});
+
+            console.log('[handleSaveCustomVersion] PATCH /api/AIReport request:', {
+                url: '/api/AIReport',
+                method: 'PATCH',
+                assessment_id: id,
+                report_id: reportId,
+                patchBody: cleanPatchBody,
+                headers: Object.keys(headers)
+            });
+
+            const response = await fetch('/api/AIReport', {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify(cleanPatchBody)
+            });
+
+            console.log('[handleSaveCustomVersion] PATCH /api/AIReport response:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                console.error('[handleSaveCustomVersion] PATCH failed:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    errorText,
+                    requestBody: patchBody
+                });
+
+                if (response.status === 404) {
+                    throw new Error(`报告不存在 (report_id: ${reportId})。请确保报告已创建。`);
+                } else {
+                    throw new Error(errorText || `保存自定义版本失败 (${response.status})`);
+                }
+            }
+
+            // 更新本地报告数据（不重新加载，直接使用保存的数据）
+            setReportData(prev => ({
+                ...prev,
+                trainingGoals: finalTrainingGoals,
+                qualityAssessment: finalQualityAssessment,
+                trainingOutlook: finalTrainingOutlook
+            }));
+
+            // 退出对比模式
+            setShowComparison(false);
+            setOldReportData(null);
+            setNewReportData(null);
+            setSelectedVersions({
+                trainingGoals: null,
+                qualityAssessment: null,
+                trainingOutlook: null
+            });
+
+            // 不重新加载数据，直接使用已更新的本地数据
+            // setReloadToken(token => token + 1); // 注释掉，避免覆盖刚保存的数据
+        } catch (error) {
+            console.error('Failed to save custom version:', error);
+            alert(error?.message || '保存自定义版本失败');
+        } finally {
+            setIsCreatingAIReport(false);
+        }
+    };
+
+    // 选择使用新报告（全部使用新版本）
+    const handleUseNewReport = () => {
+        if (newReportData) {
+            setReportData(prev => ({
+                ...prev,
+                trainingGoals: newReportData.trainingGoals,
+                qualityAssessment: newReportData.qualityAssessment,
+                trainingOutlook: newReportData.trainingOutlook
+            }));
+            setShowComparison(false);
+            setOldReportData(null);
+            setNewReportData(null);
+            setSelectedVersions({
+                trainingGoals: null,
+                qualityAssessment: null,
+                trainingOutlook: null
+            });
+        }
+    };
+
+    // 选择保留旧报告（全部使用旧版本）
+    const handleKeepOldReport = () => {
+        setShowComparison(false);
+        setOldReportData(null);
+        setNewReportData(null);
+        setSelectedVersions({
+            trainingGoals: null,
+            qualityAssessment: null,
+            trainingOutlook: null
+        });
     };
 
     if (loading) {
@@ -509,7 +1050,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
     }
 
     return (
-        <div className="report-detail-page">
+        <div className={`report-detail-page ${showComparison ? 'pb-32 sm:pb-40' : ''}`}>
             {/* Header */}
             <div className="report-detail-header">
                 <button
@@ -627,7 +1168,19 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                             </h2>
                             <div className="h-[2px] w-12 sm:w-20 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
                         </div>
-                        <div className="report-card">
+                        {/* 旧版本 */}
+                        <div className={`report-card relative ${showComparison && selectedVersions.trainingGoals === 'old' ? 'ring-2 ring-[#d4af37]' : ''}`}>
+                            {showComparison && (
+                                <button
+                                    onClick={() => handleSelectVersion('trainingGoals', 'old')}
+                                    className={`absolute top-2 right-2 z-20 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${selectedVersions.trainingGoals === 'old'
+                                        ? 'bg-[#d4af37] text-black'
+                                        : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                                        }`}
+                                >
+                                    {selectedVersions.trainingGoals === 'old' ? '已选中' : '选择'}
+                                </button>
+                            )}
                             {reportData.trainingGoals.map((goal, idx) => (
                                 <div key={idx}>
                                     <div className="report-list-item group">
@@ -648,6 +1201,49 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                                 </div>
                             ))}
                         </div>
+                        {/* 新版本对比（如果存在） */}
+                        {showComparison && newReportData?.trainingGoals && newReportData.trainingGoals.length > 0 && (
+                            <>
+                                <div className="mt-4 sm:mt-6 mb-2 sm:mb-3 px-2">
+                                    <div className="h-px bg-gradient-to-r from-transparent via-[#d4af37]/30 to-transparent"></div>
+                                    <div className="mt-2 text-xs sm:text-sm text-[#d4af37]/80 font-bold uppercase tracking-widest text-center">
+                                        新版本
+                                    </div>
+                                </div>
+                                <div className={`report-card border border-[#d4af37]/30 bg-[#d4af37]/10 relative ${selectedVersions.trainingGoals === 'new' ? 'ring-2 ring-[#d4af37]' : ''}`}>
+                                    {showComparison && (
+                                        <button
+                                            onClick={() => handleSelectVersion('trainingGoals', 'new')}
+                                            className={`absolute top-2 right-2 z-20 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${selectedVersions.trainingGoals === 'new'
+                                                ? 'bg-[#d4af37] text-black'
+                                                : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                                                }`}
+                                        >
+                                            {selectedVersions.trainingGoals === 'new' ? '已选中' : '选择'}
+                                        </button>
+                                    )}
+                                    {newReportData.trainingGoals.map((goal, idx) => (
+                                        <div key={idx}>
+                                            <div className="report-list-item group">
+                                                <div className="report-list-item-body">
+                                                    <div className="report-list-row">
+                                                        <div className="report-bullet"></div>
+                                                        <div>
+                                                            <h3 className="report-item-title">{goal.title}</h3>
+                                                            <p className="report-item-text">{goal.content}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="report-list-hover-bg"></div>
+                                            </div>
+                                            {idx < newReportData.trainingGoals.length - 1 && (
+                                                <div className="report-list-divider"></div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -660,7 +1256,19 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                             </h2>
                             <div className="h-[2px] w-12 sm:w-20 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
                         </div>
-                        <div className="report-card">
+                        {/* 旧版本 */}
+                        <div className={`report-card relative ${showComparison && selectedVersions.qualityAssessment === 'old' ? 'ring-2 ring-[#d4af37]' : ''}`}>
+                            {showComparison && (
+                                <button
+                                    onClick={() => handleSelectVersion('qualityAssessment', 'old')}
+                                    className={`absolute top-2 right-2 z-20 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${selectedVersions.qualityAssessment === 'old'
+                                        ? 'bg-[#d4af37] text-black'
+                                        : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                                        }`}
+                                >
+                                    {selectedVersions.qualityAssessment === 'old' ? '已选中' : '选择'}
+                                </button>
+                            )}
                             {reportData.qualityAssessment.map((item, idx) => (
                                 <div key={idx}>
                                     <div className="report-list-item group">
@@ -670,7 +1278,6 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                                                 <div className="flex-1">
                                                     <div className="report-item-header-row">
                                                         <h3 className="report-item-title !mb-0">{item.title}</h3>
-                                                        <span className="report-item-badge">{item.level}</span>
                                                     </div>
                                                     <p className="report-item-text">{item.description}</p>
                                                 </div>
@@ -681,6 +1288,48 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                                 </div>
                             ))}
                         </div>
+                        {/* 新版本对比（如果存在） */}
+                        {showComparison && newReportData?.qualityAssessment && newReportData.qualityAssessment.length > 0 && (
+                            <>
+                                <div className="mt-4 sm:mt-6 mb-2 sm:mb-3 px-2">
+                                    <div className="h-px bg-gradient-to-r from-transparent via-[#d4af37]/30 to-transparent"></div>
+                                    <div className="mt-2 text-xs sm:text-sm text-[#d4af37]/80 font-bold uppercase tracking-widest text-center">
+                                        新版本
+                                    </div>
+                                </div>
+                                <div className={`report-card border border-[#d4af37]/30 bg-[#d4af37]/10 relative ${selectedVersions.qualityAssessment === 'new' ? 'ring-2 ring-[#d4af37]' : ''}`}>
+                                    {showComparison && (
+                                        <button
+                                            onClick={() => handleSelectVersion('qualityAssessment', 'new')}
+                                            className={`absolute top-2 right-2 z-20 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${selectedVersions.qualityAssessment === 'new'
+                                                ? 'bg-[#d4af37] text-black'
+                                                : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                                                }`}
+                                        >
+                                            {selectedVersions.qualityAssessment === 'new' ? '已选中' : '选择'}
+                                        </button>
+                                    )}
+                                    {newReportData.qualityAssessment.map((item, idx) => (
+                                        <div key={idx}>
+                                            <div className="report-list-item group">
+                                                <div className="report-list-item-body">
+                                                    <div className="report-list-row">
+                                                        <div className="report-bullet"></div>
+                                                        <div className="flex-1">
+                                                            <div className="report-item-header-row">
+                                                                <h3 className="report-item-title !mb-0">{item.title}</h3>
+                                                            </div>
+                                                            <p className="report-item-text">{item.description}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="report-list-hover-bg"></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -694,9 +1343,46 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                                 </h2>
                                 <div className="h-[2px] w-12 sm:w-20 bg-gradient-to-r from-[#d4af37] to-transparent"></div>
                             </div>
-                            <div className="report-outlook-card">
+                            {/* 旧版本 */}
+                            <div className={`report-outlook-card relative ${showComparison && selectedVersions.trainingOutlook === 'old' ? 'ring-2 ring-[#d4af37]' : ''}`}>
+                                {showComparison && (
+                                    <button
+                                        onClick={() => handleSelectVersion('trainingOutlook', 'old')}
+                                        className={`absolute top-2 right-2 z-20 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${selectedVersions.trainingOutlook === 'old'
+                                            ? 'bg-[#d4af37] text-black'
+                                            : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                                            }`}
+                                    >
+                                        {selectedVersions.trainingOutlook === 'old' ? '已选中' : '选择'}
+                                    </button>
+                                )}
                                 <p className="report-outlook-text">{reportData.trainingOutlook}</p>
                             </div>
+                            {/* 新版本对比（如果存在） */}
+                            {showComparison && newReportData?.trainingOutlook && (
+                                <>
+                                    <div className="mt-4 sm:mt-6 mb-2 sm:mb-3 px-2">
+                                        <div className="h-px bg-gradient-to-r from-transparent via-[#d4af37]/30 to-transparent"></div>
+                                        <div className="mt-2 text-xs sm:text-sm text-[#d4af37]/80 font-bold uppercase tracking-widest text-center">
+                                            新版本
+                                        </div>
+                                    </div>
+                                    <div className={`report-outlook-card border border-[#d4af37]/30 bg-[#d4af37]/10 relative ${selectedVersions.trainingOutlook === 'new' ? 'ring-2 ring-[#d4af37]' : ''}`}>
+                                        {showComparison && (
+                                            <button
+                                                onClick={() => handleSelectVersion('trainingOutlook', 'new')}
+                                                className={`absolute top-2 right-2 z-20 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${selectedVersions.trainingOutlook === 'new'
+                                                    ? 'bg-[#d4af37] text-black'
+                                                    : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
+                                                    }`}
+                                            >
+                                                {selectedVersions.trainingOutlook === 'new' ? '已选中' : '选择'}
+                                            </button>
+                                        )}
+                                        <p className="report-outlook-text">{newReportData.trainingOutlook}</p>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -727,21 +1413,68 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
             {/* 底部操作按钮 */}
             {!continueTestInfo && (
                 <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 px-4 sm:px-6 z-[60]">
-                    <div className="max-w-md mx-auto flex gap-3">
-                        <button
-                            onClick={handleRegenerate}
-                            disabled={loading || isCreatingAIReport}
-                            className="flex-1 h-[50px] sm:h-[54px] rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest shadow-lg hover:shadow-xl transition-all active:scale-95"
-                        >
-                            重新生成
-                        </button>
-                        <button
-                            onClick={handleGenerateAIReport}
-                            disabled={loading || isCreatingAIReport}
-                            className="flex-1 h-[50px] sm:h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm sm:text-base uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 transition-all active:scale-95"
-                        >
-                            {t('generateAIReport')}
-                        </button>
+                    <div className="max-w-md mx-auto">
+                        {showComparison ? (
+                            // 对比模式：显示选择按钮
+                            allSectionsSelected() ? (
+                                // 所有部分都已选择，显示自定义版本按钮
+                                <div className="flex gap-3">
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleKeepOldReport}
+                                        className="flex-1 h-[54px] rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest shadow-lg hover:shadow-xl transition-all active:scale-95"
+                                    >
+                                        保留旧版本
+                                    </motion.button>
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleSaveCustomVersion}
+                                        disabled={isCreatingAIReport}
+                                        className="flex-1 h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm sm:text-base uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isCreatingAIReport ? '保存中...' : '选中自定义版本'}
+                                    </motion.button>
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleUseNewReport}
+                                        className="flex-1 h-[54px] rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest shadow-lg hover:shadow-xl transition-all active:scale-95"
+                                    >
+                                        使用新版本
+                                    </motion.button>
+                                </div>
+                            ) : (
+                                // 未全部选择，显示提示
+                                <div className="flex gap-3">
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleKeepOldReport}
+                                        className="flex-1 h-[54px] rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest shadow-lg hover:shadow-xl transition-all active:scale-95"
+                                    >
+                                        保留旧版本
+                                    </motion.button>
+                                    <div className="flex-1 h-[54px] rounded-full bg-white/5 border border-white/10 text-white/60 font-bold text-xs sm:text-sm uppercase tracking-widest flex items-center justify-center">
+                                        请选择所有部分
+                                    </div>
+                                    <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleUseNewReport}
+                                        className="flex-1 h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm sm:text-base uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group"
+                                    >
+                                        使用新版本
+                                    </motion.button>
+                                </div>
+                            )
+                        ) : (
+                            // 正常模式：显示重新生成按钮
+                            <motion.button
+                                whileTap={{ scale: loading || isCreatingAIReport ? 1 : 0.95 }}
+                                onClick={handleRegenerate}
+                                disabled={loading || isCreatingAIReport}
+                                className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-base sm:text-lg shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                重新生成
+                            </motion.button>
+                        )}
                     </div>
                 </div>
             )}

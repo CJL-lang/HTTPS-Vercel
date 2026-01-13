@@ -26,6 +26,13 @@ export default defineConfig({
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/baidu-asr/, '/server_api'),
                 secure: false
+            },
+            // 百度语音合成 API 代理
+            '/baidu-tts': {
+                target: 'https://tsn.baidu.com',
+                changeOrigin: true,
+                rewrite: (path) => '/text2audio',
+                secure: false
             }
         }
     },

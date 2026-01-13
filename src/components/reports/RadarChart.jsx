@@ -378,8 +378,34 @@ const RadarChart = ({ data, type, className = '' }) => {
                         size: 10,
                         weight: 'bold'
                     },
-                    stepSize: 20,
-                    showLabelBackdrop: false
+                    stepSize: type === 'physical' ? 25 : type === 'skills' ? (100 / 8) : 20,
+                    showLabelBackdrop: false,
+                    callback: function (value, index) {
+                        if (type === 'physical') {
+                            // L1-L4: 将0-100映射到L1-L4
+                            // 刻度点: 0, 33.33, 66.67, 100 -> 不显示0，显示L1, L2, L3, L4
+                            // 每个等级占25%: 0-25(L1), 25-50(L2), 50-75(L3), 75-100(L4)
+                            // L1不应该是0，所以0刻度点不显示标签
+                            if (value === 0) return '';
+                            if (value <= 25) return 'L1';
+                            if (value <= 50) return 'L2'; // 25-50显示L2，包括33.33
+                            if (value <= 75) return 'L3'; // 50-75显示L3，包括66.67
+                            return 'L4'; // 75-100显示L4，包括100
+                        } else if (type === 'skills') {
+                            // L1-L9: 将0-100映射到L1-L9
+                            // 刻度点: 0, 12.5, 25, 37.5, 50, 62.5, 75, 87.5, 100 -> 不显示0，显示L1-L9
+                            // 每个等级占 100/9 ≈ 11.11
+                            // L1不应该是0，所以0刻度点不显示标签
+                            if (value === 0) return '';
+                            // 使用精确的区间判断
+                            const level = Math.ceil((value / 100) * 9);
+                            const displayLevel = Math.max(1, Math.min(9, level));
+                            return `L${displayLevel}`;
+                        } else {
+                            // mental: 显示数值 0-100
+                            return Math.round(value);
+                        }
+                    }
                 }
             }
         },
