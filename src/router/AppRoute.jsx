@@ -28,6 +28,7 @@ import AssessmentTypeSelectionPage from '../pages/assessment/AssessmentTypeSelec
 import SingleAssessmentSelectionPage from '../pages/assessment/SingleAssessmentSelectionPage';
 import NewAssessmentPage from '../pages/assessment/NewAssessmentPage';
 import AIReportPage from '../pages/reports/AIReportPage';
+import VoiceChatDemo from '../pages/demo/VoiceChatDemo';
 
 // 权限包装组件 - 移到外部避免重新渲染导致失去焦点
 const PrivateRoute = ({ element, isLoggedIn, allProps, extraProps = {} }) => {
@@ -55,12 +56,12 @@ const AppRoutes = (props) => {
             {/* 需要登录的路由 */}
             <Route path="/students" element={<PrivateRoute element={<StudentsPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
             <Route path="/student/:id" element={<PrivateRoute element={<HomePage />} isLoggedIn={isLoggedIn} allProps={props} extraProps={{ onAddRecord: props.handleStartNewAssessment, onStartCompleteAssessment: props.handleStartCompleteAssessment }} />} />
-            
+
             {/* 学生专属报告路由 */}
             <Route path="/student/:id/skills-report" element={<PrivateRoute element={<SkillsReportPage />} isLoggedIn={isLoggedIn} allProps={props} extraProps={{ onAddRecord: props.handleStartSkillsAssessment }} />} />
             <Route path="/student/:id/physical-report" element={<PrivateRoute element={<PhysicalReportPage />} isLoggedIn={isLoggedIn} allProps={props} extraProps={{ onAddRecord: props.handleStartPhysicalAssessment }} />} />
             <Route path="/student/:id/mental-report" element={<PrivateRoute element={<MentalReportPage />} isLoggedIn={isLoggedIn} allProps={props} extraProps={{ onAddRecord: props.handleStartMentalAssessment }} />} />
-            
+
             <Route path="/home" element={<PrivateRoute element={<HomePage />} isLoggedIn={isLoggedIn} allProps={props} />} />
             <Route path="/home-old" element={<PrivateRoute element={<HomePageOld />} isLoggedIn={isLoggedIn} allProps={props} />} />
             <Route path="/basic-info" element={<PrivateRoute element={<BasicInfoPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
@@ -73,13 +74,13 @@ const AppRoutes = (props) => {
             <Route path="/profile" element={<PrivateRoute element={<ProfilePage />} isLoggedIn={isLoggedIn} allProps={props} />} />
             <Route path="/settings" element={<PrivateRoute element={<SettingsPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
             <Route path="/three-d" element={<PrivateRoute element={<ThreeDPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
-            
+
             <Route path="/skills-report" element={<PrivateRoute element={<SkillsReportPage />} isLoggedIn={isLoggedIn} allProps={props} extraProps={{ onAddRecord: props.handleStartSkillsAssessment }} />} />
             <Route path="/skills-report/:id" element={<PrivateRoute element={<SkillsReportDetailPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
-            
+
             <Route path="/physical-report" element={<PrivateRoute element={<PhysicalReportPage />} isLoggedIn={isLoggedIn} allProps={props} extraProps={{ onAddRecord: props.handleStartPhysicalAssessment }} />} />
             <Route path="/physical-report/:id" element={<PrivateRoute element={<PhysicalReportDetailPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
-            
+
             <Route path="/mental-report" element={<PrivateRoute element={<MentalReportPage />} isLoggedIn={isLoggedIn} allProps={props} extraProps={{ onAddRecord: props.handleStartMentalAssessment }} />} />
             <Route path="/mental-report/:id" element={<PrivateRoute element={<MentalReportDetailPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
 
@@ -87,6 +88,7 @@ const AppRoutes = (props) => {
             <Route path="/single-assessment" element={<PrivateRoute element={<SingleAssessmentSelectionPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
             <Route path="/new-assessment" element={<PrivateRoute element={<NewAssessmentPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
             <Route path="/ai-report" element={<PrivateRoute element={<AIReportPage />} isLoggedIn={isLoggedIn} allProps={props} />} />
+            <Route path="/demo/voice-chat" element={<PublicRoute element={<VoiceChatDemo />} allProps={props} />} />
 
             {/* 历史记录重定向 */}
             <Route path="/mentalHistory" element={<Navigate to="/mental-report" replace />} />
