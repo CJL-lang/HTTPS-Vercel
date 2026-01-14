@@ -149,13 +149,14 @@ const PhysicalDiagnosisItem = forwardRef(({
     const [showGradeSelector, setShowGradeSelector] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const inputRef = useRef(null);
+    const dropdownInputRef = useRef(null);
     const cardRef = useRef(null);
     const gradeButtonRef = useRef(null);
 
     // 获取标题的翻译显示文本
     const getTitleDisplay = (title) => {
         if (!title) return '';
-        
+
         // 1. 如果 title 本身已经是翻译键（英文字符串），先尝试翻译
         if (/^[a-zA-Z]/.test(title)) {
             const translated = t(title);
@@ -231,45 +232,43 @@ const PhysicalDiagnosisItem = forwardRef(({
                                 className="title-selector-btn"
                             >
                                 <Sparkles size={12} className="icon-sparkles" />
-                                <span className="truncate">{getTitleDisplay(item.title) || t('selectTitle')}</span>
+                                <span className="truncate">{item.isCustom ? (displayTitle || t('enterTitle')) : (getTitleDisplay(item.title) || t('selectTitle'))}</span>
                                 <ChevronDown size={12} className={cn("transition-transform shrink-0", showTitleSelector === item.id && "rotate-180")} />
                             </button>
 
-                            {/* 等级下拉框 - 显示逻辑：在 titlesWithGrade 列表中的标题或自定义项都显示等级选择器 */}
-                            {(item.isCustom || titlesWithGrade.includes(item.title)) && (
-                                <div className="relative-container">
-                                    <button
-                                        ref={gradeButtonRef}
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setShowGradeSelector(!showGradeSelector);
-                                        }}
-                                        className="title-selector-btn"
-                                    >
-                                        <span className="truncate">{item.grade || 'L1'}</span>
-                                        <ChevronDown size={12} className={cn("transition-transform shrink-0", showGradeSelector && "rotate-180")} />
-                                    </button>
+                            {/* 等级下拉框 - 总是显示，参考技能诊断的逻辑 */}
+                            <div className="relative-container">
+                                <button
+                                    ref={gradeButtonRef}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setShowGradeSelector(!showGradeSelector);
+                                    }}
+                                    className="title-selector-btn"
+                                >
+                                    <span className="truncate">{item.grade || 'L1'}</span>
+                                    <ChevronDown size={12} className={cn("transition-transform shrink-0", showGradeSelector && "rotate-180")} />
+                                </button>
 
-                                    <AnimatePresence>
-                                        {showGradeSelector && (
-                                            <GradeDropdown
-                                                buttonRef={gradeButtonRef}
-                                                grades={getGradeOptions(item.title)}
-                                                onSelect={(grade) => {
-                                                    updateItem(item.id, { grade });
-                                                    setShowGradeSelector(false);
-                                                }}
-                                                onClose={() => setShowGradeSelector(false)}
-                                            />
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            )}
+                                <AnimatePresence>
+                                    {showGradeSelector && (
+                                        <GradeDropdown
+                                            buttonRef={gradeButtonRef}
+                                            grades={getGradeOptions(item.title)}
+                                            onSelect={(grade) => {
+                                                updateItem(item.id, { grade });
+                                                setShowGradeSelector(false);
+                                            }}
+                                            onClose={() => setShowGradeSelector(false)}
+                                        />
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
 
-                        {isEditingTitle && (
+                        {item.isCustom && (
                             <motion.div
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
@@ -281,28 +280,30 @@ const PhysicalDiagnosisItem = forwardRef(({
                                     value={displayTitle}
                                     onChange={(e) => setDisplayTitle(e.target.value)}
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter') e.currentTarget.blur();
-                                        if (e.key === 'Escape') setIsEditingTitle(false);
+                                        if (e.key === 'Enter') {
+                                            e.currentTarget.blur();
+                                        }
                                     }}
                                     onBlur={(e) => {
                                         const finalValue = e.target.value.trim();
                                         if (finalValue) {
-                                            updateItem(item.id, { 
-                                                title: finalValue, 
-                                                isCustom: !presetTitles.includes(finalValue) 
-                                            });
+                                            const customFlag = !presetTitles.includes(finalValue);
+                                            updateItem(item.id, { title: finalValue, isCustom: customFlag });
+                                        } else {
+                                            // 如果没填内容，恢复回原标题或第一个预设标题，保持原有 isCustom 状态
+                                            updateItem(item.id, { title: item.title || presetTitles[0], isCustom: Boolean(item.isCustom) });
                                         }
-                                        setIsEditingTitle(false);
                                     }}
                                     placeholder={t('enterTitle')}
                                     className="custom-title-input"
+                                    autoFocus
                                     onClick={(e) => e.stopPropagation()}
                                 />
                                 <button
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setIsEditingTitle(false);
+                                        updateItem(item.id, { isCustom: false });
                                     }}
                                     className="custom-title-cancel-btn"
                                 >
@@ -345,17 +346,47 @@ const PhysicalDiagnosisItem = forwardRef(({
                                             {getTitleDisplay(title)}
                                         </button>
                                     ))}
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setIsEditingTitle(true);
-                                            setShowTitleSelector(null);
-                                        }}
-                                        className="title-selector-custom"
-                                    >
-                                        {t('customTitle')}
-                                    </button>
+                                    <div className="custom-title-container" style={{ margin: '8px' }}>
+                                        <input
+                                            ref={dropdownInputRef}
+                                            type="text"
+                                            value={displayTitle}
+                                            onChange={(e) => setDisplayTitle(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const finalValue = displayTitle.trim();
+                                                    if (finalValue) {
+                                                        updateItem(item.id, {
+                                                            title: finalValue,
+                                                            isCustom: !presetTitles.includes(finalValue)
+                                                        });
+                                                        setDisplayTitle('');
+                                                        setShowTitleSelector(null);
+                                                    }
+                                                }
+                                                if (e.key === 'Escape') {
+                                                    setDisplayTitle('');
+                                                    setShowTitleSelector(null);
+                                                }
+                                            }}
+                                            onBlur={(e) => {
+                                                setTimeout(() => {
+                                                    const finalValue = e.target.value.trim();
+                                                    if (finalValue) {
+                                                        updateItem(item.id, {
+                                                            title: finalValue,
+                                                            isCustom: !presetTitles.includes(finalValue)
+                                                        });
+                                                    }
+                                                    setDisplayTitle('');
+                                                }, 150);
+                                            }}
+                                            placeholder={t('enterTitle')}
+                                            className="custom-title-input"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
@@ -420,10 +451,8 @@ const PhysicalDiagnosis = ({ data, update }) => {
     }, [showTitleSelector]);
 
     useEffect(() => {
-        // 如果数据还是 null（说明 initial state 还没准备好），或者已经有数据了，则不处理
-        if (data.physicalDiagnosis === null) return;
-        
-        if (data.physicalDiagnosis.length === 0) {
+        // 如果数据是 null 或 undefined，初始化为包含一个默认项的数组
+        if (data.physicalDiagnosis === null || data.physicalDiagnosis === undefined) {
             const defaultTitle = presetTitles[0];
             const newItem = {
                 id: crypto?.randomUUID?.() || Date.now().toString(),
@@ -433,7 +462,22 @@ const PhysicalDiagnosis = ({ data, update }) => {
                 isCustom: false,
                 grade: '' // 初始化 grade 字段
             };
-            // 使用静默更新，避免触发“有未保存修改”的提示
+            // 使用静默更新，避免触发"有未保存修改"的提示
+            update('physicalDiagnosis', [newItem], true);
+            return;
+        }
+
+        // 如果是空数组，也添加一个默认项
+        if (Array.isArray(data.physicalDiagnosis) && data.physicalDiagnosis.length === 0) {
+            const defaultTitle = presetTitles[0];
+            const newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: defaultTitle,
+                category: titleToCategory[defaultTitle],
+                content: '',
+                isCustom: false,
+                grade: ''
+            };
             update('physicalDiagnosis', [newItem], true);
         }
     }, [data.physicalDiagnosis, update]);
@@ -443,15 +487,17 @@ const PhysicalDiagnosis = ({ data, update }) => {
     const addItem = () => {
         // 找到下一个未被使用的标题
         const usedTitles = new Set(diagnosisItems.map(item => item.title).filter(title => presetTitles.includes(title)));
-        const nextTitle = presetTitles.find(title => !usedTitles.has(title)) || presetTitles[0];
+        const nextTitle = presetTitles.find(title => !usedTitles.has(title));
 
+        // 如果所有预设标题都已使用，创建自定义框
+        const isCustom = !nextTitle;
         const newItem = {
             id: crypto?.randomUUID?.() || Date.now().toString(),
-            title: nextTitle,
-            category: titleToCategory[nextTitle], // ✅ 必须有
+            title: isCustom ? '' : nextTitle,
+            category: isCustom ? '' : titleToCategory[nextTitle],
             content: '',
-            isCustom: false,
-            grade: '' // 初始化 grade 字段
+            isCustom: isCustom,
+            grade: ''
         };
         const newItems = [...diagnosisItems, newItem];
         update('physicalDiagnosis', newItems);
@@ -464,6 +510,23 @@ const PhysicalDiagnosis = ({ data, update }) => {
     };
 
     const updateItem = (id, updates) => {
+        // 如果更新包含标题，检查是否与现有的诊断或训练方案标题重复
+        if (updates.title) {
+            const trimmedTitle = updates.title.trim();
+            const isDuplicateInDiagnosis = diagnosisItems.some(item =>
+                item.id !== id && (item.title || '').trim() === trimmedTitle
+            );
+            const planItems = data.physicalPlan || [];
+            const isDuplicateInPlan = planItems.some(item =>
+                (item.title || '').trim() === trimmedTitle
+            );
+
+            if (isDuplicateInDiagnosis || isDuplicateInPlan) {
+                alert(t('duplicateTitle'));
+                return;
+            }
+        }
+
         const newItems = diagnosisItems.map(item =>
             item.id === id ? { ...item, ...updates } : item
         );

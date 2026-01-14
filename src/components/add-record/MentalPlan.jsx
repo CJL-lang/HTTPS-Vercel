@@ -233,16 +233,24 @@ const MentalPlan = ({ data, update }) => {
 
     // 初始化数据结构，如果不存在
     useEffect(() => {
-        if (data.mentalPlan === null) return;
-
-        if (data.mentalPlan.length === 0) {
+        if (data.mentalPlan === null || data.mentalPlan === undefined) {
             const newItem = {
                 id: crypto?.randomUUID?.() || Date.now().toString(),
                 title: presetTitles[0],
                 content: '',
                 isCustom: false
             };
-            // 使用静默更新，避免触发“有未保存修改”的提示
+            update('mentalPlan', [newItem], true);
+            return;
+        }
+
+        if (Array.isArray(data.mentalPlan) && data.mentalPlan.length === 0) {
+            const newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: presetTitles[0],
+                content: '',
+                isCustom: false
+            };
             update('mentalPlan', [newItem], true);
         }
     }, [data.mentalPlan, update]);
@@ -252,13 +260,15 @@ const MentalPlan = ({ data, update }) => {
     const addItem = () => {
         // 找到下一个未被使用的标题
         const usedTitles = new Set(planItems.map(item => item.title).filter(title => presetTitles.includes(title)));
-        const nextTitle = presetTitles.find(title => !usedTitles.has(title)) || presetTitles[0];
+        const nextTitle = presetTitles.find(title => !usedTitles.has(title));
 
+        // 如果所有预设标题都已使用，创建自定义框
+        const isCustom = !nextTitle;
         const newItem = {
             id: crypto?.randomUUID?.() || Date.now().toString(),
-            title: nextTitle,
+            title: isCustom ? '' : nextTitle,
             content: '',
-            isCustom: false
+            isCustom: isCustom
         };
         const newItems = [...planItems, newItem];
         update('mentalPlan', newItems);
@@ -271,6 +281,23 @@ const MentalPlan = ({ data, update }) => {
     };
 
     const updateItem = (id, updates) => {
+        // 如果更新包含标题，检查是否与现有的诊断或训练方案标题重复
+        if (updates.title) {
+            const trimmedTitle = updates.title.trim();
+            const isDuplicateInPlan = planItems.some(item =>
+                item.id !== id && (item.title || '').trim() === trimmedTitle
+            );
+            const diagnosisItems = data.mentalDiagnosis || [];
+            const isDuplicateInDiagnosis = diagnosisItems.some(item =>
+                (item.title || '').trim() === trimmedTitle
+            );
+
+            if (isDuplicateInPlan || isDuplicateInDiagnosis) {
+                alert(t('duplicateTitle'));
+                return;
+            }
+        }
+
         const newItems = planItems.map(item =>
             item.id === id ? { ...item, ...updates } : item
         );

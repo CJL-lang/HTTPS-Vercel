@@ -120,6 +120,7 @@ const SkillsDiagnosisItem = forwardRef(({
     const [showGradeSelector, setShowGradeSelector] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const inputRef = useRef(null);
+    const dropdownInputRef = useRef(null);
     const gradeButtonRef = useRef(null);
 
     useEffect(() => {
@@ -162,7 +163,7 @@ const SkillsDiagnosisItem = forwardRef(({
                     <div className="h-px flex-1 bg-gradient-to-r from-[#d4af37]/60 via-[#d4af37]/40 to-transparent"></div>
                 </div>
             )}
-            
+
             <div
                 className={cn(
                     "will-change-transform-opacity diagnosis-card group",
@@ -183,7 +184,7 @@ const SkillsDiagnosisItem = forwardRef(({
                                     className="title-selector-btn"
                                 >
                                     <Sparkles size={12} className="icon-sparkles" />
-                                    <span className="truncate">{item.isCustom ? item.title : (t(item.title) || item.title)}</span>
+                                    <span className="truncate">{item.isCustom ? (displayTitle || t('enterTitle')) : (t(item.title) || item.title)}</span>
                                     <ChevronDown size={12} className={cn("transition-transform shrink-0", showTitleSelector === item.id && "rotate-180")} />
                                 </button>
 
@@ -218,7 +219,7 @@ const SkillsDiagnosisItem = forwardRef(({
                                 </div>
                             </div>
 
-                            {isEditingTitle && (
+                            {item.isCustom && (
                                 <motion.div
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
@@ -230,28 +231,29 @@ const SkillsDiagnosisItem = forwardRef(({
                                         value={displayTitle}
                                         onChange={(e) => setDisplayTitle(e.target.value)}
                                         onKeyDown={(e) => {
-                                            if (e.key === 'Enter') e.currentTarget.blur();
-                                            if (e.key === 'Escape') setIsEditingTitle(false);
+                                            if (e.key === 'Enter') {
+                                                e.currentTarget.blur();
+                                            }
                                         }}
                                         onBlur={(e) => {
                                             const finalValue = e.target.value.trim();
                                             if (finalValue) {
-                                                updateItem(item.id, { 
-                                                    title: finalValue, 
-                                                    isCustom: !presetTitles.includes(finalValue) 
-                                                });
+                                                updateItem(item.id, { title: finalValue, isCustom: false });
+                                            } else {
+                                                // 如果没填内容，恢复回原标题或第一个预设标题
+                                                updateItem(item.id, { title: item.title || presetTitles[0], isCustom: false });
                                             }
-                                            setIsEditingTitle(false);
                                         }}
                                         placeholder={t('enterTitle')}
                                         className="custom-title-input"
+                                        autoFocus
                                         onClick={(e) => e.stopPropagation()}
                                     />
                                     <button
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setIsEditingTitle(false);
+                                            updateItem(item.id, { isCustom: false });
                                         }}
                                         className="custom-title-cancel-btn"
                                     >
@@ -276,9 +278,9 @@ const SkillsDiagnosisItem = forwardRef(({
                                                         type="button"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            updateItem(item.id, { 
-                                                                title, 
-                                                                isCustom: false 
+                                                            updateItem(item.id, {
+                                                                title,
+                                                                isCustom: false
                                                             });
                                                             setShowTitleSelector(null);
                                                         }}
@@ -286,28 +288,58 @@ const SkillsDiagnosisItem = forwardRef(({
                                                             "title-selector-option",
                                                             item.title === title && "active",
                                                             // 如果下一项是1号木杆，隐藏当前项（挥杆分析）的底部白线
-                                                            idx < presetTitles.length - 1 && presetTitles[idx+1] === "1号木杆" && "border-b-0"
+                                                            idx < presetTitles.length - 1 && presetTitles[idx + 1] === "1号木杆" && "border-b-0"
                                                         )}
                                                     >
                                                         {t(title) || title}
                                                     </button>
                                                     {/* 在“挥杆分析”和“1号木杆”之间插入唯一的金色分割线 */}
-                                                    {title === "挥杆分析" && idx < presetTitles.length - 1 && presetTitles[idx+1] === "1号木杆" && (
+                                                    {title === "挥杆分析" && idx < presetTitles.length - 1 && presetTitles[idx + 1] === "1号木杆" && (
                                                         <div className="dropdown-divider-gold-thin" />
                                                     )}
                                                 </React.Fragment>
                                             ))}
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setIsEditingTitle(true);
-                                                    setShowTitleSelector(null);
-                                                }}
-                                                className="title-selector-custom"
-                                            >
-                                                {t('customTitle')}
-                                            </button>
+                                            <div className="custom-title-container" style={{ margin: '8px' }}>
+                                                <input
+                                                    ref={dropdownInputRef}
+                                                    type="text"
+                                                    value={displayTitle}
+                                                    onChange={(e) => setDisplayTitle(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            const finalValue = displayTitle.trim();
+                                                            if (finalValue) {
+                                                                updateItem(item.id, {
+                                                                    title: finalValue,
+                                                                    isCustom: !presetTitles.includes(finalValue)
+                                                                });
+                                                                setDisplayTitle('');
+                                                                setShowTitleSelector(null);
+                                                            }
+                                                        }
+                                                        if (e.key === 'Escape') {
+                                                            setDisplayTitle('');
+                                                            setShowTitleSelector(null);
+                                                        }
+                                                    }}
+                                                    onBlur={(e) => {
+                                                        setTimeout(() => {
+                                                            const finalValue = e.target.value.trim();
+                                                            if (finalValue) {
+                                                                updateItem(item.id, {
+                                                                    title: finalValue,
+                                                                    isCustom: !presetTitles.includes(finalValue)
+                                                                });
+                                                            }
+                                                            setDisplayTitle('');
+                                                        }, 150);
+                                                    }}
+                                                    placeholder={t('enterTitle')}
+                                                    className="custom-title-input"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
                                         </div>
                                     </motion.div>
                                 )}
@@ -367,6 +399,32 @@ const SkillsDiagnosis = ({ data, update }) => {
     // 数据结构：从 data.skillsDiagnosis 获取
     const items = data.skillsDiagnosis || [];
 
+    // 初始化数据结构，如果不存在
+    useEffect(() => {
+        if (data.skillsDiagnosis === null || data.skillsDiagnosis === undefined) {
+            const newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: presetTitles[0],
+                level: 'L1',
+                content: '',
+                isCustom: false
+            };
+            update('skillsDiagnosis', [newItem], true);
+            return;
+        }
+
+        if (Array.isArray(data.skillsDiagnosis) && data.skillsDiagnosis.length === 0) {
+            const newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: presetTitles[0],
+                level: 'L1',
+                content: '',
+                isCustom: false
+            };
+            update('skillsDiagnosis', [newItem], true);
+        }
+    }, [data.skillsDiagnosis, update]);
+
     useEffect(() => {
         if (!isListening) {
             setListeningId(null);
@@ -392,7 +450,24 @@ const SkillsDiagnosis = ({ data, update }) => {
     };
 
     const updateItem = (id, updates) => {
-        const newItems = items.map(item => 
+        // 如果更新包含标题，检查是否与现有的诊断或训练方案标题重复
+        if (updates.title) {
+            const trimmedTitle = updates.title.trim();
+            const isDuplicateInDiagnosis = items.some(item =>
+                item.id !== id && (item.title || '').trim() === trimmedTitle
+            );
+            const planItems = data.skillsPlan || [];
+            const isDuplicateInPlan = planItems.some(item =>
+                (item.title || '').trim() === trimmedTitle
+            );
+
+            if (isDuplicateInDiagnosis || isDuplicateInPlan) {
+                alert(t('duplicateTitle'));
+                return;
+            }
+        }
+
+        const newItems = items.map(item =>
             item.id === id ? { ...item, ...updates } : item
         );
         update('skillsDiagnosis', newItems);
@@ -404,14 +479,18 @@ const SkillsDiagnosis = ({ data, update }) => {
     };
 
     const addItem = () => {
-        // 根据当前项目数量，按顺序从预设标题中选择
-        const nextIndex = items.length % presetTitles.length;
+        // 找到下一个未被使用的标题
+        const usedTitles = new Set(items.map(item => item.title).filter(title => presetTitles.includes(title)));
+        const nextTitle = presetTitles.find(title => !usedTitles.has(title));
+
+        // 如果所有预设标题都已使用，创建自定义框
+        const isCustom = !nextTitle;
         const newItem = {
             id: Date.now().toString(),
-            title: presetTitles[nextIndex],
+            title: isCustom ? '' : nextTitle,
             level: 'L1',
             content: '',
-            isCustom: false
+            isCustom: isCustom
         };
         update('skillsDiagnosis', [...items, newItem]);
         // 自动滚动到新添加的项
@@ -427,10 +506,10 @@ const SkillsDiagnosis = ({ data, update }) => {
         if (index === 0) return false;
         const currentItem = items[index];
         const prevItem = items[index - 1];
-        
+
         const currentInGroup2 = group2.includes(currentItem.title);
         const prevInGroup1 = group1.includes(prevItem.title);
-        
+
         return currentInGroup2 && prevInGroup1;
     };
 

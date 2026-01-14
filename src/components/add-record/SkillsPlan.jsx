@@ -14,6 +14,7 @@ const SkillsPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
     const { t } = useLanguage();
     const [displayTitle, setDisplayTitle] = useState(item.title);
     const inputRef = useRef(null);
+    const dropdownInputRef = useRef(null);
 
     // 获取标题的显示文本
     const getTitleDisplay = (title) => {
@@ -144,17 +145,47 @@ const SkillsPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
                                             {getTitleDisplay(title)}
                                         </button>
                                     ))}
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            updateItem(item.id, { isCustom: true, title: '' });
-                                            setShowTitleSelector(null);
-                                        }}
-                                        className="title-selector-custom"
-                                    >
-                                        {t('customTitle')}
-                                    </button>
+                                    <div className="custom-title-container" style={{ margin: '8px' }}>
+                                        <input
+                                            ref={dropdownInputRef}
+                                            type="text"
+                                            value={displayTitle}
+                                            onChange={(e) => setDisplayTitle(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const finalValue = displayTitle.trim();
+                                                    if (finalValue) {
+                                                        updateItem(item.id, {
+                                                            title: finalValue,
+                                                            isCustom: !presetTitles.includes(finalValue)
+                                                        });
+                                                        setDisplayTitle('');
+                                                        setShowTitleSelector(null);
+                                                    }
+                                                }
+                                                if (e.key === 'Escape') {
+                                                    setDisplayTitle('');
+                                                    setShowTitleSelector(null);
+                                                }
+                                            }}
+                                            onBlur={(e) => {
+                                                setTimeout(() => {
+                                                    const finalValue = e.target.value.trim();
+                                                    if (finalValue) {
+                                                        updateItem(item.id, {
+                                                            title: finalValue,
+                                                            isCustom: !presetTitles.includes(finalValue)
+                                                        });
+                                                    }
+                                                    setDisplayTitle('');
+                                                }, 150);
+                                            }}
+                                            placeholder={t('enterTitle')}
+                                            className="custom-title-input"
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
@@ -230,35 +261,98 @@ const SkillsPlan = ({ data, update }) => {
         }
     }, [isListening]);
 
+    // 初始化数据结构，如果不存在
+    useEffect(() => {
+        if (data.skillsPlan === null || data.skillsPlan === undefined) {
+            const newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: "核心改进点1",
+                content: '',
+                isCustom: false
+            };
+            update('skillsPlan', [newItem], true);
+            return;
+        }
+
+        if (Array.isArray(data.skillsPlan) && data.skillsPlan.length === 0) {
+            const newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: "核心改进点1",
+                content: '',
+                isCustom: false
+            };
+            update('skillsPlan', [newItem], true);
+        }
+    }, [data.skillsPlan, update]);
+
     const planItems = data.skillsPlan || [];
 
     const addItem = () => {
-        const newItem = {
-            id: crypto?.randomUUID?.() || Date.now().toString(),
-            title: "核心改进点",
-            content: '',
-            isCustom: false
-        };
-        const newItems = reorderCorePoints([...planItems, newItem]);
+        // 统计已使用的标题类型
+        const usedTitles = planItems.map(item => {
+            if (item.title.startsWith('核心改进点')) return '核心改进点';
+            return item.title;
+        });
+
+        let newItem;
+        // 按优先级顺序添加
+        if (!usedTitles.includes('核心改进点')) {
+            // 第一个框：核心改进点1
+            newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: "核心改进点1",
+                content: '',
+                isCustom: false
+            };
+        } else if (!usedTitles.includes('辅助练习建议')) {
+            // 第二个框：辅助练习建议
+            newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: "辅助练习建议",
+                content: '',
+                isCustom: false
+            };
+        } else {
+            // 第三个框及以后：自定义框
+            newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: '',
+                content: '',
+                isCustom: true
+            };
+        }
+
+        const newItems = [...planItems, newItem];
         update('skillsPlan', newItems);
         setShowTitleSelector(null);
     };
 
     const removeItem = (id) => {
-        let newItems = planItems.filter(item => item.id !== id);
-        // 重新排序核心改进点的数字
-        newItems = reorderCorePoints(newItems);
+        const newItems = planItems.filter(item => item.id !== id);
         update('skillsPlan', newItems);
     };
 
     const updateItem = (id, updates) => {
-        let newItems = planItems.map(item =>
+        // 如果更新包含标题，检查是否与现有的诊断或训练方案标题重复
+        if (updates.title) {
+            const trimmedTitle = updates.title.trim();
+            const isDuplicateInPlan = planItems.some(item =>
+                item.id !== id && (item.title || '').trim() === trimmedTitle
+            );
+            const diagnosisItems = data.skillsDiagnosis || [];
+            const isDuplicateInDiagnosis = diagnosisItems.some(item =>
+                (item.title || '').trim() === trimmedTitle
+            );
+
+            if (isDuplicateInPlan || isDuplicateInDiagnosis) {
+                alert(t('duplicateTitle'));
+                return;
+            }
+        }
+
+        const newItems = planItems.map(item =>
             item.id === id ? { ...item, ...updates } : item
         );
-        // 只要涉及到标题变动，就重新排序核心改进点的数字
-        if (updates.title !== undefined || updates.isCustom !== undefined) {
-            newItems = reorderCorePoints(newItems);
-        }
         update('skillsPlan', newItems);
     };
 

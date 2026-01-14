@@ -28,6 +28,7 @@ import AssessmentTypeSelectionPage from './pages/assessment/AssessmentTypeSelect
 import SingleAssessmentSelectionPage from './pages/assessment/SingleAssessmentSelectionPage';
 import NewAssessmentPage from './pages/assessment/NewAssessmentPage';
 import AIReportPage from './pages/reports/AIReportPage';
+import VoiceChatDemo from './pages/demo/VoiceChatDemo';
 
 export const routes = [
     // 公开路由（不需要登录）
@@ -37,12 +38,12 @@ export const routes = [
     // 需要登录的路由
     { path: '/students', element: <StudentsPage />, auth: true },
     { path: '/student/:id', element: <HomePage />, auth: true },
-    
+
     // 学生专属报告路由
     { path: '/student/:id/skills-report', element: <SkillsReportPage />, auth: true },
     { path: '/student/:id/physical-report', element: <PhysicalReportPage />, auth: true },
     { path: '/student/:id/mental-report', element: <MentalReportPage />, auth: true },
-    
+
     { path: '/home', element: <HomePage />, auth: true },
     { path: '/home-old', element: <HomePageOld />, auth: true },
     { path: '/basic-info', element: <BasicInfoPage />, auth: true },
@@ -55,13 +56,13 @@ export const routes = [
     { path: '/profile', element: <ProfilePage />, auth: true },
     { path: '/settings', element: <SettingsPage />, auth: true },
     { path: '/three-d', element: <ThreeDPage />, auth: true },
-    
+
     { path: '/skills-report', element: <SkillsReportPage />, auth: true },
     { path: '/skills-report/:id', element: <SkillsReportDetailPage />, auth: true },
-    
+
     { path: '/physical-report', element: <PhysicalReportPage />, auth: true },
     { path: '/physical-report/:id', element: <PhysicalReportDetailPage />, auth: true },
-    
+
     { path: '/mental-report', element: <MentalReportPage />, auth: true },
     { path: '/mental-report/:id', element: <MentalReportDetailPage />, auth: true },
 
@@ -69,6 +70,7 @@ export const routes = [
     { path: '/single-assessment', element: <SingleAssessmentSelectionPage />, auth: true },
     { path: '/new-assessment', element: <NewAssessmentPage />, auth: true },
     { path: '/ai-report', element: <AIReportPage />, auth: true },
+    { path: '/demo/voice-chat', element: <VoiceChatDemo />, auth: false },
 
     // 历史记录重定向
     { path: '/mentalHistory', element: <Navigate to="/mental-report" replace />, auth: false },

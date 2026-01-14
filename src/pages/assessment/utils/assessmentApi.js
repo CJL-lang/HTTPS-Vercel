@@ -54,11 +54,13 @@ export const savePlanToBackend = async (type, content, currentId, user, studentI
     if (!user?.token || !currentId) return null;
 
     try {
-        // 格式化内容数组
-        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
-            title: item.title || item.name || '',
-            content: item.content || ''
-        })).filter(item => item.content.trim() !== '');
+        // 格式化内容数组，过滤掉空 title 和空 content 的项
+        const formattedContent = (Array.isArray(content) ? content : [])
+            .map(item => ({
+                title: item.title || item.name || '',
+                content: item.content || ''
+            }))
+            .filter(item => item.title.trim() !== '' && item.content.trim() !== '');
 
         if (formattedContent.length === 0) return currentId;
 
@@ -156,7 +158,7 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
 
         // 404 是正常的（新 assessment 还没有诊断数据）
         if (response.status === 404) {
-            console.log('[API] GET /diagnoses: No data yet (404) - this is normal for new assessments');
+            // 静默处理，不输出日志
             return [];
         }
 
@@ -175,11 +177,13 @@ export const updateDiagnosisToBackend = async (assessmentId, content, user, lang
     if (!user?.token || !assessmentId) return false;
 
     try {
-        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
-            title: item.title || item.name || '',
-            grade: item.grade || item.level || 'L1',
-            content: item.content || item.description || ''
-        }));
+        const formattedContent = (Array.isArray(content) ? content : [])
+            .map(item => ({
+                title: item.title || item.name || '',
+                grade: item.grade || item.level || 'L1',
+                content: item.content || item.description || ''
+            }))
+            .filter(item => item.title.trim() !== ''); // 过滤掉 title 为空的项
 
         const requestBody = {
             assessment_id: assessmentId,
@@ -507,7 +511,7 @@ export const getPlanFromBackend = async (assessmentId, user) => {
 
         // 404 是正常的（新 assessment 还没有训练计划数据）
         if (response.status === 404) {
-            console.log('[API] GET /plans: No data yet (404) - this is normal for new assessments');
+            // 静默处理，不输出日志
             return [];
         }
 
@@ -575,7 +579,7 @@ export const getGoalFromBackend = async (assessmentId, user) => {
 
         // 404 是正常的（新 assessment 还没有目标数据）
         if (response.status === 404) {
-            console.log('[API] GET /goals: No data yet (404) - this is normal for new assessments');
+            // 静默处理，不输出日志
             return [];
         }
 
