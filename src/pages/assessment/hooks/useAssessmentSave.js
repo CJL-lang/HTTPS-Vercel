@@ -168,11 +168,11 @@ export const useAssessmentSave = ({
                 // 加上自定义项 (SkillsDiagnosis 中的 customItems 现在同步到了 skillsDiagnosis 数组)
                 if (recordData.skillsDiagnosis && Array.isArray(recordData.skillsDiagnosis)) {
                     recordData.skillsDiagnosis.forEach(item => {
-                        // 排除已经在 potentialKeys 中的（虽然结构不同，但以防万一）
-                        if (item.id && (item.content || item.level)) {
+                        // 只要有 title 就添加（过滤空 title 会在 API 层面处理）
+                        if (item.title && item.title.trim() !== '') {
                             diagnosisContent.push({
-                                title: t(item.club) || item.club,
-                                grade: item.level || 'L1',
+                                title: item.title,  // 使用 item.title 而不是 item.club
+                                grade: item.level || item.grade || 'L1',
                                 content: item.content || ''
                             });
                         }
@@ -209,7 +209,8 @@ export const useAssessmentSave = ({
         if (activeSecondary === 2) {
             let skillsPlanData = recordData.skillsPlan;
 
-            if (activePrimary === 2 && recordData.planData) {
+            // 兼容旧的 planData 结构（仅在新结构不存在时使用）
+            if (activePrimary === 2 && recordData.planData && (!skillsPlanData || skillsPlanData.length === 0)) {
                 const p = recordData.planData;
                 skillsPlanData = [];
                 if (p.point1) skillsPlanData.push({ title: '训练要点1', content: p.point1 });

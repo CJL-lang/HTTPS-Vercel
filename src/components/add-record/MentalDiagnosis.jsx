@@ -31,7 +31,9 @@ const titleToTranslationKey = {
 const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, showTitleSelector, setShowTitleSelector, setListeningId, listeningId, startListening, mentalData }, ref) => {
     const { t } = useLanguage();
     const [displayTitle, setDisplayTitle] = useState(item.title);
+    const [displayGrade, setDisplayGrade] = useState(item.grade || 0);
     const inputRef = useRef(null);
+    const gradeInputRef = useRef(null);
 
     // 获取标题的翻译显示文本
     const getTitleDisplay = (title) => {
@@ -57,6 +59,11 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
     useEffect(() => {
         setDisplayTitle(item.title);
     }, [item.title, item.isCustom]);
+
+    // 当外部 grade 改变时，同步显示状态
+    useEffect(() => {
+        setDisplayGrade(item.grade || 0);
+    }, [item.grade]);
 
     return (
         <motion.div
@@ -94,15 +101,45 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                 <ChevronDown size={12} className={cn("transition-transform shrink-0", showTitleSelector === item.id && "rotate-180")} />
                             </button>
 
-                            {/* 分数展示 - 只在非自定义标题且有数据时显示 */}
+                            {/* 分数展示 - 预设标题的分数显示 */}
                             {!item.isCustom && presetTitles.includes(item.title) && getScoreByTitle(item.title) && (
-                                <button
-                                    type="button"
-                                    className="title-selector-btn"
-                                    disabled
-                                >
-                                    <span className="truncate">{getScoreByTitle(item.title)} 分</span>
-                                </button>
+                                <span className="text-sm font-bold text-[#d4af37] uppercase tracking-widest shrink-0">
+                                    {getScoreByTitle(item.title)} 分
+                                </span>
+                            )}
+
+                            {/* 自定义标题的分数输入框 - 不在预设列表中且有grade字段的标题 */}
+                            {!presetTitles.includes(item.title) && (item.grade !== undefined && item.grade !== null) && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                    <input
+                                        ref={gradeInputRef}
+                                        type="number"
+                                        value={displayGrade}
+                                        onChange={(e) => {
+                                            const value = parseInt(e.target.value) || 0;
+                                            setDisplayGrade(value);
+                                        }}
+                                        onBlur={(e) => {
+                                            const value = parseInt(e.target.value) || 0;
+                                            updateItem(item.id, { grade: value });
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.currentTarget.blur();
+                                            }
+                                        }}
+                                        onFocus={(e) => e.target.select()}
+                                        min="0"
+                                        max="100"
+                                        className="text-sm font-bold text-[#d4af37] uppercase tracking-widest bg-transparent border-none outline-none focus:outline-none w-10 text-center"
+                                        style={{
+                                            appearance: 'textfield',
+                                            MozAppearance: 'textfield'
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <span className="text-sm font-bold text-[#d4af37] uppercase tracking-widest">分</span>
+                                </div>
                             )}
                         </div>
 
@@ -125,9 +162,11 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                     onBlur={(e) => {
                                         const finalValue = e.target.value.trim();
                                         if (finalValue) {
+                                            // 确认自定义标题，保留grade字段
                                             updateItem(item.id, { title: finalValue, isCustom: false });
                                         } else {
-                                            updateItem(item.id, { title: presetTitles[0], isCustom: false });
+                                            // 如果没填内容，恢复为第一个预设标题，并移除grade字段
+                                            updateItem(item.id, { title: presetTitles[0], isCustom: false, grade: undefined });
                                         }
                                     }}
                                     placeholder={t('enterTitle')}
@@ -139,7 +178,8 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        updateItem(item.id, { isCustom: false, title: presetTitles[0] });
+                                        // 取消自定义，恢复为第一个预设标题，并移除grade字段
+                                        updateItem(item.id, { isCustom: false, title: presetTitles[0], grade: undefined });
                                     }}
                                     className="custom-title-cancel-btn"
                                 >
@@ -257,16 +297,26 @@ const MentalDiagnosis = ({ data, update }) => {
 
     // 初始化数据结构，如果不存在
     useEffect(() => {
-        if (data.mentalDiagnosis === null) return;
-
-        if (data.mentalDiagnosis.length === 0) {
+        if (data.mentalDiagnosis === null || data.mentalDiagnosis === undefined) {
             const newItem = {
                 id: crypto?.randomUUID?.() || Date.now().toString(),
                 title: presetTitles[0],
                 content: '',
-                isCustom: false
+                isCustom: false,
+                grade: undefined
             };
-            // 使用静默更新，避免触发“有未保存修改”的提示
+            update('mentalDiagnosis', [newItem], true);
+            return;
+        }
+
+        if (Array.isArray(data.mentalDiagnosis) && data.mentalDiagnosis.length === 0) {
+            const newItem = {
+                id: crypto?.randomUUID?.() || Date.now().toString(),
+                title: presetTitles[0],
+                content: '',
+                isCustom: false,
+                grade: undefined
+            };
             update('mentalDiagnosis', [newItem], true);
         }
     }, [data.mentalDiagnosis, update]);
@@ -276,13 +326,16 @@ const MentalDiagnosis = ({ data, update }) => {
     const addItem = () => {
         // 找到下一个未被使用的标题
         const usedTitles = new Set(diagnosisItems.map(item => item.title).filter(title => presetTitles.includes(title)));
-        const nextTitle = presetTitles.find(title => !usedTitles.has(title)) || presetTitles[0];
+        const nextTitle = presetTitles.find(title => !usedTitles.has(title));
 
+        // 如果所有预设标题都已使用，创建自定义框
+        const isCustom = !nextTitle;
         const newItem = {
             id: crypto?.randomUUID?.() || Date.now().toString(),
-            title: nextTitle,
+            title: isCustom ? '' : nextTitle,
             content: '',
-            isCustom: false
+            isCustom: isCustom,
+            grade: isCustom ? 0 : undefined  // 自定义标题默认0分
         };
         const newItems = [...diagnosisItems, newItem];
         update('mentalDiagnosis', newItems);
@@ -295,6 +348,23 @@ const MentalDiagnosis = ({ data, update }) => {
     };
 
     const updateItem = (id, updates) => {
+        // 如果更新包含标题，检查是否与现有的诊断或训练方案标题重复
+        if (updates.title) {
+            const trimmedTitle = updates.title.trim();
+            const isDuplicateInDiagnosis = diagnosisItems.some(item =>
+                item.id !== id && (item.title || '').trim() === trimmedTitle
+            );
+            const planItems = data.mentalPlan || [];
+            const isDuplicateInPlan = planItems.some(item =>
+                (item.title || '').trim() === trimmedTitle
+            );
+
+            if (isDuplicateInDiagnosis || isDuplicateInPlan) {
+                alert(t('duplicateTitle'));
+                return;
+            }
+        }
+
         const newItems = diagnosisItems.map(item =>
             item.id === id ? { ...item, ...updates } : item
         );
