@@ -10,7 +10,7 @@ export default defineConfig({
         strictPort: false, // 如果端口被占用，自动尝试下一个可用端口
         proxy: {
             '/api': {
-                target: 'http://192.168.31.233:8080',
+                target: 'http://localhost:8080',
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, '')
             },

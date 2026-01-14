@@ -3,7 +3,7 @@
  * 包含返回按钮和标题编辑
  */
 import React from 'react';
-import { ChevronLeft, Check } from 'lucide-react';
+import { ChevronLeft, Check, Edit2 } from 'lucide-react';
 
 const AssessmentHeader = ({ 
     title, 
@@ -73,14 +73,15 @@ const AssessmentHeader = ({
                     </button>
                 </div>
             ) : (
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 flex-1 min-w-0 justify-between">
                     <div
-                        className="flex items-center group cursor-pointer min-w-0"
+                        className="flex items-center gap-2 group cursor-pointer min-w-0"
                         onClick={() => setIsEditingTitle(true)}
                     >
-                        <h1 className="title-workbench">
+                        <h1 className="title-workbench truncate">
                             {title}
                         </h1>
+                        <Edit2 size={16} className="text-[#d4af37] transition-colors shrink-0" />
                     </div>
                     {rightContent ? (
                         <div className="shrink-0 min-w-0">
