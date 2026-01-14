@@ -387,13 +387,13 @@ const AddRecordPage = ({
                 setIsEditingTitle={setIsEditingTitle}
                 rightContent={
                     student?.name ? (
-                        <div className="inline-flex items-center h-9 sm:h-10 rounded-full overflow-hidden surface-strong border-2 border-white/30 ml-1 shadow-inner">
-                            <span className="flex-1 text-center pl-4 pr-1 text-sm sm:text-base font-bold text-white leading-none truncate max-w-[9rem] sm:max-w-[12rem]">
+                        <div className="inline-flex items-center h-9 sm:h-10 rounded-full surface-strong border border-white/20 mr-2 shadow-lg pl-4 pr-1.5 py-1">
+                            <span className="text-white text-sm sm:text-base font-bold mr-2 truncate max-w-[9rem] sm:max-w-[12rem]">
                                 {student.name}
                             </span>
-                            <span className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-[#d4af37] flex items-center justify-center rounded-full m-1">
-                                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
-                            </span>
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[#d4af37] flex items-center justify-center rounded-full text-black shadow-md shrink-0">
+                                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </div>
                         </div>
                     ) : null
                 }
