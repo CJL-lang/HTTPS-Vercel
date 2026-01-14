@@ -234,7 +234,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                     // 训练计划内容
                     coreTrainingContent: planSections.filter(s => !s.title.includes('风险') && !s.title.includes('回报')),
                     potentialRisks: planSections.find(s => s.title.includes('风险') || s.title.includes('警示'))?.content || '',
-                    trainingOutlook: planSections.find(s => s.title.includes('回报') || s.title.includes('激励') || s.title.includes('展望'))?.content || trainingPlanText || t('mentalBenefitsDefault')
+                    trainingOutlook: trainingPlanText || t('mentalBenefitsDefault')
                 });
             } catch (error) {
                 console.error('Error fetching mental report:', error);
@@ -874,7 +874,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                         description: section.content
                     }))
                     : [],
-                trainingOutlook: planSections.find(s => s.title.includes('回报') || s.title.includes('激励') || s.title.includes('展望'))?.content || trainingPlanText || t('mentalBenefitsDefault')
+                trainingOutlook: trainingPlanText || t('mentalBenefitsDefault')
             };
 
             setNewReportData(processedNewReport);

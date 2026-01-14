@@ -236,38 +236,36 @@ const PhysicalDiagnosisItem = forwardRef(({
                                 <ChevronDown size={12} className={cn("transition-transform shrink-0", showTitleSelector === item.id && "rotate-180")} />
                             </button>
 
-                            {/* 等级下拉框 - 显示逻辑：在 titlesWithGrade 列表中的标题或自定义项都显示等级选择器 */}
-                            {(item.isCustom || titlesWithGrade.includes(item.title)) && (
-                                <div className="relative-container">
-                                    <button
-                                        ref={gradeButtonRef}
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setShowGradeSelector(!showGradeSelector);
-                                        }}
-                                        className="title-selector-btn"
-                                    >
-                                        <span className="truncate">{item.grade || 'L1'}</span>
-                                        <ChevronDown size={12} className={cn("transition-transform shrink-0", showGradeSelector && "rotate-180")} />
-                                    </button>
+                            {/* 等级下拉框 - 总是显示，参考技能诊断的逻辑 */}
+                            <div className="relative-container">
+                                <button
+                                    ref={gradeButtonRef}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setShowGradeSelector(!showGradeSelector);
+                                    }}
+                                    className="title-selector-btn"
+                                >
+                                    <span className="truncate">{item.grade || 'L1'}</span>
+                                    <ChevronDown size={12} className={cn("transition-transform shrink-0", showGradeSelector && "rotate-180")} />
+                                </button>
 
-                                    <AnimatePresence>
-                                        {showGradeSelector && (
-                                            <GradeDropdown
-                                                buttonRef={gradeButtonRef}
-                                                grades={getGradeOptions(item.title)}
-                                                onSelect={(grade) => {
-                                                    updateItem(item.id, { grade });
-                                                    setShowGradeSelector(false);
-                                                }}
-                                                onClose={() => setShowGradeSelector(false)}
-                                            />
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            )}
+                                <AnimatePresence>
+                                    {showGradeSelector && (
+                                        <GradeDropdown
+                                            buttonRef={gradeButtonRef}
+                                            grades={getGradeOptions(item.title)}
+                                            onSelect={(grade) => {
+                                                updateItem(item.id, { grade });
+                                                setShowGradeSelector(false);
+                                            }}
+                                            onClose={() => setShowGradeSelector(false)}
+                                        />
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
 
                         {item.isCustom && (
@@ -289,10 +287,11 @@ const PhysicalDiagnosisItem = forwardRef(({
                                     onBlur={(e) => {
                                         const finalValue = e.target.value.trim();
                                         if (finalValue) {
-                                            updateItem(item.id, { title: finalValue, isCustom: false });
+                                            const customFlag = !presetTitles.includes(finalValue);
+                                            updateItem(item.id, { title: finalValue, isCustom: customFlag });
                                         } else {
-                                            // 如果没填内容，恢复回原标题或第一个预设标题
-                                            updateItem(item.id, { title: item.title || presetTitles[0], isCustom: false });
+                                            // 如果没填内容，恢复回原标题或第一个预设标题，保持原有 isCustom 状态
+                                            updateItem(item.id, { title: item.title || presetTitles[0], isCustom: Boolean(item.isCustom) });
                                         }
                                     }}
                                     placeholder={t('enterTitle')}

@@ -261,7 +261,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                     // (e) 训练计划及展望
                     potentialRisks: '', // 可以从 training_plan 中提取【潜在风险】部分
                     coreTrainingContent: planSections.filter(s => !s.title.includes('风险') && !s.title.includes('回报')),
-                    trainingOutlook: planSections.find(s => s.title.includes('回报') || s.title.includes('激励'))?.content || trainingPlanText || t('physicalBenefitsDefault')
+                    trainingOutlook: trainingPlanText || t('physicalBenefitsDefault')
                 };
 
                 setReportData(report);
@@ -684,7 +684,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                         description: section.content
                     }))
                     : [],
-                trainingOutlook: planSections.find(s => s.title.includes('回报') || s.title.includes('激励'))?.content || trainingPlanText || t('physicalBenefitsDefault')
+                trainingOutlook: trainingPlanText || t('physicalBenefitsDefault')
             };
 
             setNewReportData(processedNewReport);
