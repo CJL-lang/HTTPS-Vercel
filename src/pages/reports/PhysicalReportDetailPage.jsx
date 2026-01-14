@@ -52,8 +52,13 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                 // 使用新的 AI Report 接口
                 const response = await fetch(`/api/AIReport/${id}`, { headers });
 
-                // 如果返回 404，自动创建 AI 报告
-                if (response.status === 404) {
+                // 处理后端返回 200 但提示“找不到记录”的情况，或者 404
+                let data = null;
+                if (response.ok) {
+                    data = await response.json();
+                }
+
+                if (response.status === 404 || (data && data.message === '找不到记录')) {
                     console.log('[PhysicalReportDetailPage] AI report not found, creating empty report');
                     const { createAIReport } = await import('./utils/aiReportApi');
 
@@ -73,8 +78,6 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                 }
 
                 if (!response.ok) throw new Error('Failed to fetch AI report data');
-
-                const data = await response.json();
 
                 // Fetch diagnoses grades for radar chart
                 let diagnosesGradeData = null;
@@ -502,6 +505,9 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                     const aiGetRes = await fetch(`/api/AIReport/${id}`, { headers });
                     if (aiGetRes.ok) {
                         const aiData = await aiGetRes.json();
+                        // 如果后端返回 200 但提示“找不到记录”
+                        if (aiData?.message === '找不到记录') return null;
+
                         aiReportPayload = aiData;
                         const resolved = aiData?.id || aiData?.report_id || aiData?.report?.id || null;
                         console.log('[Physical] AI report GET resolved id:', resolved, 'raw:', aiData);
@@ -762,6 +768,10 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                     const aiGetRes = await fetch(`/api/AIReport/${id}`, { headers });
                     if (aiGetRes.ok) {
                         aiReportPayload = await aiGetRes.json();
+                        // 如果后端返回 200 但提示“找不到记录”
+                        if (aiReportPayload?.message === '找不到记录') {
+                            throw new Error('报告不存在，请先点击"重新生成"按钮生成报告');
+                        }
                         // GET 接口不返回 id，但我们可以尝试使用其他方式
                         // 如果报告存在但没有 report_id，说明需要先重新生成
                         console.warn('[handleSaveCustomVersion] Report exists but no report_id found. Report may need to be regenerated first.');
