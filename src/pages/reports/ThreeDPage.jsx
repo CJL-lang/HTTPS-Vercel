@@ -37,6 +37,17 @@ const characters = [
     { id: 7, name: '智能聊天机器人', animationKey: 'chatbot', description: '贴心的AI助手' },
 ];
 
+const confirmFields = [
+    { key: 'name', label: '学员姓名', type: 'text', placeholder: '请输入学员姓名' },
+    { key: 'age', label: '年龄', type: 'text', placeholder: '请输入年龄' },
+    { key: 'gender', label: '性别', type: 'text', placeholder: '男/女' },
+    { key: 'email', label: '邮箱', type: 'email', placeholder: '请输入邮箱' },
+    { key: 'years_of_golf', label: '球龄', type: 'text', placeholder: '请输入球龄' },
+    { key: 'history', label: '高尔夫训练或比赛经历', type: 'textarea', placeholder: '请输入高尔夫训练或比赛经历' },
+    { key: 'medical_history', label: '伤病历史', type: 'textarea', placeholder: '请输入伤病历史' },
+    { key: 'purpose', label: '训练目标', type: 'textarea', placeholder: '请输入训练目标' },
+];
+
 /**
  * 辅助函数：将中文或其他格式的数字强转为 Number
  * 例如： "25岁" -> 25, "三年" -> undefined (简单正则无法处理中文数字，但通常 LLM 会输出阿拉伯数字)
@@ -195,6 +206,9 @@ const ThreeDPage = () => {
     };
 
     const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [confirmInfo, setConfirmInfo] = useState({});
+    const confirmOpenedRef = useRef(false);
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
@@ -205,6 +219,9 @@ const ThreeDPage = () => {
         setNextField(null);
         setIsComplete(false);
         submittedRef.current = false;
+        confirmOpenedRef.current = false;
+        setIsConfirmOpen(false);
+        setConfirmInfo({});
 
         // 如果选择 VAD 模式，启动连续对话
         if (voiceMode === 'vad') {
@@ -356,11 +373,25 @@ const ThreeDPage = () => {
         }
     }
 
-    // 监听完成状态：当 AI 指示 next_field="done" 时，立即提交
+    const openConfirmModal = (info) => {
+        setConfirmInfo({
+            name: info?.name || '',
+            age: info?.age || '',
+            gender: info?.gender || '',
+            email: info?.email || '',
+            years_of_golf: info?.years_of_golf || info?.yearsOfGolf || '',
+            history: info?.history || info?.golf_history || '',
+            medical_history: info?.medical_history || '',
+            purpose: info?.purpose || '',
+        });
+        setIsConfirmOpen(true);
+    };
+
+    // 监听完成状态：当 AI 指示 next_field="done" 时，弹出确认框
     useEffect(() => {
-        if (nextField === 'done' && !submittedRef.current) {
-            submittedRef.current = true;
-            createStudent();
+        if (nextField === 'done' && !confirmOpenedRef.current) {
+            confirmOpenedRef.current = true;
+            openConfirmModal(currentInfo);
         }
     }, [nextField]);
 
@@ -375,7 +406,7 @@ const ThreeDPage = () => {
     }, [messages, isTtsPlaying, isTtsSpeaking]);
 
     // 创建学员并在对话中反馈结果
-    async function createStudent() {
+    async function createStudent(infoOverride = currentInfo) {
         setIsSubmittingStudent(true);
         try {
             // 构造 payload
@@ -389,7 +420,7 @@ const ThreeDPage = () => {
             const coachId = userRaw?.id || userRaw?.coachId || null;
             const token = userRaw?.token || null;
 
-            const genderRaw = currentInfo.gender;
+            const genderRaw = infoOverride.gender;
             const gender = (() => {
                 if (genderRaw === undefined || genderRaw === null) return undefined;
                 const gs = String(genderRaw).toLowerCase();
@@ -400,16 +431,16 @@ const ThreeDPage = () => {
 
             const payload = {
                 coach_id: coachId,
-                name: currentInfo.name,
-                email: currentInfo.email,
+                name: infoOverride.name,
+                email: infoOverride.email,
                 gender: gender,
-                age: normalizeNumber(currentInfo.age),
-                years_of_golf: normalizeNumber(currentInfo.years_of_golf || currentInfo.yearsOfGolf),
-                height: normalizeNumber(currentInfo.height),
-                weight: normalizeNumber(currentInfo.weight),
-                history: currentInfo.history || currentInfo.golf_history || undefined,
-                medical_history: currentInfo.medical_history || undefined,
-                purpose: currentInfo.purpose || undefined,
+                age: normalizeNumber(infoOverride.age),
+                years_of_golf: normalizeNumber(infoOverride.years_of_golf || infoOverride.yearsOfGolf),
+                height: normalizeNumber(infoOverride.height),
+                weight: normalizeNumber(infoOverride.weight),
+                history: infoOverride.history || infoOverride.golf_history || undefined,
+                medical_history: infoOverride.medical_history || undefined,
+                purpose: infoOverride.purpose || undefined,
             };
 
             const headers = { 'Content-Type': 'application/json' };
@@ -684,6 +715,74 @@ const ThreeDPage = () => {
                         </div>
                     </div>
                 </footer>
+
+                <AnimatePresence>
+                    {isConfirmOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center p-4 pt-20"
+                        >
+                            <motion.div
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: 20, opacity: 0 }}
+                                className="w-full max-w-xl bg-slate-900/90 border border-white/10 rounded-2xl p-6 shadow-2xl max-h-[70vh] overflow-y-auto"
+                            >
+                                <h3 className="text-white text-lg font-bold mb-4">确认学员信息</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {confirmFields.map(field => (
+                                        <div key={field.key} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                                            <label className="block text-xs text-slate-400 mb-1">{field.label}</label>
+                                            {field.type === 'textarea' ? (
+                                                <textarea
+                                                    value={confirmInfo[field.key] || ''}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setConfirmInfo(prev => ({ ...prev, [field.key]: value }));
+                                                    }}
+                                                    placeholder={field.placeholder}
+                                                    rows={3}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-white/30"
+                                                />
+                                            ) : (
+                                                <input
+                                                    type={field.type}
+                                                    value={confirmInfo[field.key] || ''}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        setConfirmInfo(prev => ({ ...prev, [field.key]: value }));
+                                                    }}
+                                                    placeholder={field.placeholder}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-white/30"
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-6 flex items-center justify-end gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setCurrentInfo(prev => ({ ...(prev || {}), ...confirmInfo }));
+                                            setIsConfirmOpen(false);
+                                            createStudent(confirmInfo);
+                                        }}
+                                        disabled={isSubmittingStudent}
+                                        className={cn(
+                                            "px-6 h-10 rounded-full font-bold transition-all",
+                                            isSubmittingStudent
+                                                ? "bg-white/10 text-white/40"
+                                                : "bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black active:scale-95"
+                                        )}
+                                    >
+                                        {isSubmittingStudent ? '提交中...' : '确认信息并提交'}
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         );
     }
