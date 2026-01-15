@@ -137,7 +137,7 @@ export function startAIReportWsJob({
   jobId,
   jobMeta,
   connectTimeoutMs = 10000,
-  jobTimeoutMs = 10 * 60 * 1000
+  jobTimeoutMs = 3 * 60 * 1000
 } = {}) {
   stopAIReportWs('restart');
 
