@@ -695,7 +695,13 @@ export default function App() {
                         !location.pathname.match(/\/(physical-report|mental-report|skills-report)\/[^/]+$/) && (
                             <BottomNav
                                 currentPage={currentPage}
-                                onNavigate={(path) => navigate(`/${path}`)}
+                                onNavigate={async (path) => {
+                                    // 点击学员导航时先刷新学员列表
+                                    if (path === 'students') {
+                                        await refreshStudents();
+                                    }
+                                    navigate(`/${path}`);
+                                }}
                                 userRole={currentUser?.role}
                             />
                         )}

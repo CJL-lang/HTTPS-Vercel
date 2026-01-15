@@ -37,6 +37,23 @@ const characters = [
     { id: 7, name: '智能聊天机器人', animationKey: 'chatbot', description: '贴心的AI助手' },
 ];
 
+/**
+ * 辅助函数：将中文或其他格式的数字强转为 Number
+ * 例如： "25岁" -> 25, "三年" -> undefined (简单正则无法处理中文数字，但通常 LLM 会输出阿拉伯数字)
+ * @param {*} value
+ * @returns {number|undefined}
+ */
+const normalizeNumber = (value) => {
+    if (value === undefined || value === null) return undefined;
+    if (typeof value === 'number') return value;
+
+    // 尝试提取字符串中的第一个连续数字
+    const match = String(value).match(/\d+/);
+    if (!match) return undefined;
+
+    return Number(match[0]);
+};
+
 // 加载动画数据的 hook
 const useLottieAnimation = (path) => {
     const [animationData, setAnimationData] = useState(null);
@@ -76,6 +93,9 @@ const ThreeDPage = () => {
     const [isComplete, setIsComplete] = useState(false);
     const [voiceMode, setVoiceMode] = useState(null); // 'vad' | 'manual' | null
     const shouldAutoSendRef = useRef(false); // 标记是否应该在语音识别完成后自动发送（按键模式）
+    const mainRef = useRef(null);
+    const submittedRef = useRef(false);
+    const reqSeqRef = useRef(0); // 请求序列号，用于丢弃过期响应防止并发乱序
 
     // VAD 连续语音对话
     const {
@@ -174,58 +194,25 @@ const ThreeDPage = () => {
         }
     };
 
-    // AI 对话采集相关状态
-    const FIELD_LABELS = {
-        name: '姓名',
-        email: '邮箱',
-        gender: '性别',
-        age: '年龄',
-        years_of_golf: '球龄',
-        height: '身高(cm)',
-        weight: '体重(kg)',
-        golf_history: '高尔夫历史',
-        medical_history: '伤病历史',
-        purpose: '个人训练目的',
-    };
-
-    // 前端必填字段白名单（优先检查顺序）
-    const REQUIRED_FIELDS = ['name', 'email'];
-
     const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
-
-    // 简单邮箱校验
-    const isValidEmail = (email) => {
-        if (!email) return false;
-        try {
-            const e = String(email).trim();
-            // 简单正则：存在 @ 且格式合理
-            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
-        } catch (e) {
-            return false;
-        }
-    };
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
         setIsSelecting(false);
-        // 合并角色介绍和欢迎语为一条消息
-        const welcomeMessage = `你好！我是 ${tempChar.name}。${tempChar.description}\n\n欢迎来到 AI 学员信息注册助手 😊\n我会一步一步了解你的情况，帮助我们更好地制定训练方案。\n我们先开始吧：请输入你的姓名`;
 
-        setMessages([
-            { id: 1, sender: 'ai', text: welcomeMessage, timestamp: Date.now() }
-        ]);
-
-        // 使用统一的语音播放函数
-        speakMessage(welcomeMessage);
-
-        // 初始化表单数据与流程控制，后续每次用户输入都会调用 /AIDialog
+        // 初始化空状态，完全等待 AI 开场
         setCurrentInfo({});
-        setNextField('name');
+        setNextField(null);
+        setIsComplete(false);
+        submittedRef.current = false;
 
         // 如果选择 VAD 模式，启动连续对话
         if (voiceMode === 'vad') {
             startVoiceChat();
         }
+
+        // 立即触发 AI 开场白
+        startAIDialog();
     };
 
     // NOTE: Removed local/random AI response generator to enforce real /AIDialog usage.
@@ -233,7 +220,10 @@ const ThreeDPage = () => {
     // 发送用户消息到 /AIDialog 并处理 AI 返回（res.reply, res.is_valid, res.updated_info, res.next_field）
     const handleSendMessage = async (overrideText) => {
         const text = (typeof overrideText === 'string' ? overrideText : inputValue).trim();
-        if (!text || !selectedChar) return;
+        if (!text || !selectedChar || isLoading) return;
+
+        // 生成请求序列号，用于后续丢弃过期响应
+        const seq = ++reqSeqRef.current;
 
         // Append user message (use functional updater to avoid stale state)
         setMessages(prev => {
@@ -265,93 +255,31 @@ const ThreeDPage = () => {
 
             const res = await resp.json();
 
-            // Merge updated_info into currentInfo (single source of truth)
-            const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
-            const mergedInfo = { ...(currentInfo || {}), ...updatedInfo };
-            setCurrentInfo(mergedInfo);
-
-            // Decide nextField and whether to display the AI reply.
-            const returnedNext = res.next_field || null;
-
-            // Helper to find next missing field (prefer REQUIRED_FIELDS then others)
-            const getNextMissing = () => {
-                for (const f of REQUIRED_FIELDS) {
-                    if (!mergedInfo[f] || String(mergedInfo[f]).trim() === '') return f;
-                }
-                for (const f of Object.keys(FIELD_LABELS)) {
-                    if (!mergedInfo[f] || String(mergedInfo[f]).trim() === '') return f;
-                }
-                return null;
-            };
-
-            // If backend indicates 'done', ensure email exists/valid before completing
-            if (returnedNext === 'done') {
-                if (!isValidEmail(mergedInfo?.email)) {
-                    // Ask for email explicitly, do not complete
-                    const aiMessage = '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。';
-                    setMessages(prev => {
-                        const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                        return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
-                    });
-                    speakMessage(aiMessage);
-                    setNextField('email');
-                } else {
-                    // All good, append AI reply and mark done
-                    const aiMessage = res.reply || '已完成信息收集。';
-                    setMessages(prev => {
-                        const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                        return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
-                    });
-                    speakMessage(aiMessage);
-                    setNextField('done');
-                    console.log('学员信息采集完成', mergedInfo);
-                }
+            // 丢弃过期响应（如果有更新的请求已发出）
+            if (seq !== reqSeqRef.current) {
+                console.warn('Discarding stale response, seq:', seq, 'current:', reqSeqRef.current);
                 return;
             }
 
-            // If backend asks for a field we already have, do NOT repeat the question.
-            if (returnedNext && mergedInfo[returnedNext] !== undefined && mergedInfo[returnedNext] !== null && String(mergedInfo[returnedNext]).trim() !== '') {
-                // find the next truly missing field
-                const missing = getNextMissing();
-                if (missing) {
-                    const aiMessage = `已记录你的${FIELD_LABELS[returnedNext] || returnedNext}，接下来请提供${FIELD_LABELS[missing] || missing}。`;
-                    setMessages(prev => {
-                        const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                        return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
-                    });
-                    speakMessage(aiMessage);
-                    setNextField(missing);
-                } else {
-                    // nothing missing -> treat as done (email already validated earlier in flow will block if necessary)
-                    if (!isValidEmail(mergedInfo?.email)) {
-                        const aiMessage = '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。';
-                        setMessages(prev => {
-                            const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                            return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
-                        });
-                        speakMessage(aiMessage);
-                        setNextField('email');
-                    } else {
-                        const aiMessage = res.reply || '已完成信息收集。';
-                        setMessages(prev => {
-                            const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                            return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
-                        });
-                        speakMessage(aiMessage);
-                        setNextField('done');
-                    }
-                }
-                return;
+            // 1. 基于 is_valid 决定是否更新信息（避免写入错误数据）
+            const isValid = res.is_valid !== false; // 默认为 true
+            if (isValid) {
+                const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
+                setCurrentInfo(prev => ({ ...(prev || {}), ...updatedInfo })); // 用函数式 setState 防止闭包陷阱
+                setNextField(res.next_field || null);
+            } else {
+                // 若数据无效，不更新 currentInfo 和 nextField，只展示回复让 AI 重新追问
+                console.warn('Invalid response from AI, not updating state');
             }
 
-            // Default: append AI reply and set nextField as returned
+            // 2. 展示 AI 回复
             const aiMessage = res.reply || '...';
             setMessages(prev => {
                 const lastId = prev.length ? prev[prev.length - 1].id : 0;
                 return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
             });
             speakMessage(aiMessage);
-            setNextField(returnedNext);
+
         } catch (err) {
             console.error('AIDialog request failed', err);
             // Basic fallback UI feedback
@@ -369,6 +297,8 @@ const ThreeDPage = () => {
     // 启动 AI 对话（用于角色确认后立即发起会话）
     async function startAIDialog() {
         setIsLoading(true);
+        // 生成请求序列号
+        const seq = ++reqSeqRef.current;
         try {
             // build headers like other API calls
             const savedUser = (() => {
@@ -384,66 +314,40 @@ const ThreeDPage = () => {
                 body: JSON.stringify({ current_info: {}, last_user_message: 'start' })
             }).then(r => r.json()).catch(() => null);
 
+            // 丢弃过期响应
+            if (seq !== reqSeqRef.current) {
+                console.warn('Discarding stale startAIDialog response, seq:', seq, 'current:', reqSeqRef.current);
+                return;
+            }
+
             if (!res) {
-                // 后端不可用的回退提示
-                const aiMessage = `你好！我是 ${tempChar?.name}。${tempChar?.description}`;
-                setMessages(prev => [...prev, { sender: 'ai', text: aiMessage, timestamp: Date.now() }]);
-                // 自动朗读 AI 回复
+                // 后端不可用时的静默失败或基础降级
+                console.error('Failed to start AI dialog');
+                const aiMessage = '你好，我是你的 AI 助手。（连接服务失败）';
+                setMessages(prev => {
+                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                    return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
+                });
                 speakMessage(aiMessage);
-                setCurrentInfo({});
-                setNextField(null);
             } else {
-                // Merge updated_info into currentInfo
-                const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
-                const mergedInfo = { ...(currentInfo || {}), ...updatedInfo };
-                setCurrentInfo(mergedInfo);
-
-                // Determine next missing field
-                const findNextMissing = () => {
-                    for (const f of REQUIRED_FIELDS) {
-                        if (!mergedInfo[f] || String(mergedInfo[f]).trim() === '') return f;
-                    }
-                    for (const f of Object.keys(FIELD_LABELS)) {
-                        if (!mergedInfo[f] || String(mergedInfo[f]).trim() === '') return f;
-                    }
-                    return null;
-                };
-
-                if (res.next_field === 'done') {
-                    if (!isValidEmail(mergedInfo?.email)) {
-                        const aiMessage = '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。';
-                        setMessages(prev => [...prev, { sender: 'ai', text: aiMessage, timestamp: Date.now() }]);
-                        speakMessage(aiMessage);
-                        setNextField('email');
-                    } else {
-                        setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
-                        speakMessage(res.reply);
-                        setNextField('done');
-                    }
-                } else if (res.next_field && mergedInfo[res.next_field] !== undefined && mergedInfo[res.next_field] !== null && String(mergedInfo[res.next_field]).trim() !== '') {
-                    const missing = findNextMissing();
-                    if (missing) {
-                        const aiMessage = `已记录。接下来请提供${FIELD_LABELS[missing] || missing}。`;
-                        setMessages(prev => [...prev, { sender: 'ai', text: aiMessage, timestamp: Date.now() }]);
-                        speakMessage(aiMessage);
-                        setNextField(missing);
-                    } else {
-                        if (!isValidEmail(mergedInfo?.email)) {
-                            const aiMessage = '我还需要你的邮箱地址，用于接收训练资料。请告诉我你的邮箱。';
-                            setMessages(prev => [...prev, { sender: 'ai', text: aiMessage, timestamp: Date.now() }]);
-                            speakMessage(aiMessage);
-                            setNextField('email');
-                        } else {
-                            setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
-                            speakMessage(res.reply);
-                            setNextField('done');
-                        }
-                    }
-                } else {
-                    setMessages(prev => [...prev, { sender: 'ai', text: res.reply, timestamp: Date.now() }]);
-                    speakMessage(res.reply);
+                // 1. 基于 is_valid 决定是否更新信息
+                const isValid = res.is_valid !== false;
+                if (isValid) {
+                    const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
+                    setCurrentInfo(prev => ({ ...(prev || {}), ...updatedInfo })); // 用函数式 setState
                     setNextField(res.next_field || null);
+                } else {
+                    // 若数据无效，不更新 currentInfo / nextField
+                    console.warn('Invalid startAIDialog response, not updating state');
                 }
+
+                // 2. 展示回复
+                const aiMessage = res.reply || '你好';
+                setMessages(prev => {
+                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                    return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
+                });
+                speakMessage(aiMessage);
             }
         } catch (err) {
             console.error('startAIDialog failed', err);
@@ -452,33 +356,29 @@ const ThreeDPage = () => {
         }
     }
 
-    // 监听完成状态
+    // 监听完成状态：当 AI 指示 next_field="done" 时，立即提交
     useEffect(() => {
-        if (nextField === 'done') {
-            // 学员信息采集完成 -> 在创建前兜底校验 email
-            const emailToCheck = currentInfo?.email;
-            if (!isValidEmail(emailToCheck)) {
-                // 不调用 /students，改由 AI 继续询问邮箱
-                setMessages(prev => {
-                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                    return [...prev, { id: lastId + 1, sender: 'ai', text: '请提供你的邮箱地址，我们需要发送训练资料和通知。', timestamp: Date.now() }];
-                });
-                setNextField('email');
-                return;
-            }
-
-            // 通过校验后再真正提交
-            if (!isSubmittingStudent) {
-                createStudent();
-            }
+        if (nextField === 'done' && !submittedRef.current) {
+            submittedRef.current = true;
+            createStudent();
         }
-    }, [nextField, currentInfo]);
+    }, [nextField]);
 
-    // 创建学员并在对话中反馈结果（真实调用 POST /students，携带 Authorization）
+    // 自动滚动到底部：当消息更新或开始语音播放时
+    useEffect(() => {
+        if (mainRef.current) {
+            mainRef.current.scrollTo({
+                top: mainRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [messages, isTtsPlaying, isTtsSpeaking]);
+
+    // 创建学员并在对话中反馈结果
     async function createStudent() {
         setIsSubmittingStudent(true);
         try {
-            // 构造 payload，兼容 currentInfo 中不同命名（golf_history / history）
+            // 构造 payload
             const userRaw = (() => {
                 try {
                     const saved = localStorage.getItem('user');
@@ -503,24 +403,14 @@ const ThreeDPage = () => {
                 name: currentInfo.name,
                 email: currentInfo.email,
                 gender: gender,
-                age: currentInfo.age ? Number(currentInfo.age) : undefined,
-                years_of_golf: currentInfo.years_of_golf || currentInfo.yearsOfGolf || undefined,
-                height: currentInfo.height ? Number(currentInfo.height) : undefined,
-                weight: currentInfo.weight ? Number(currentInfo.weight) : undefined,
+                age: normalizeNumber(currentInfo.age),
+                years_of_golf: normalizeNumber(currentInfo.years_of_golf || currentInfo.yearsOfGolf),
+                height: normalizeNumber(currentInfo.height),
+                weight: normalizeNumber(currentInfo.weight),
                 history: currentInfo.history || currentInfo.golf_history || undefined,
                 medical_history: currentInfo.medical_history || undefined,
                 purpose: currentInfo.purpose || undefined,
             };
-
-            // 最后兜底校验：绝不在缺少或非法 email 时调用后端创建接口
-            if (!isValidEmail(payload.email)) {
-                setMessages(prev => {
-                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                    return [...prev, { id: lastId + 1, sender: 'ai', text: '我还需要你的邮箱地址才能为你创建学员档案，请输入你的邮箱。', timestamp: Date.now() }];
-                });
-                setNextField('email');
-                return;
-            }
 
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -535,29 +425,31 @@ const ThreeDPage = () => {
 
             if (!res.ok) {
                 console.error('Create student failed', res.status, result);
-                // 不直接向用户展示 HTTP 错误或“创建失败”字样，改为温和提示并记录日志
+                let errorText = '保存学员时遇到问题，请重试或联系管理员。';
+                if (result.detail && result.detail.includes('23505')) {
+                    errorText = '该邮箱已被注册，请使用其他邮箱。';
+                }
                 setMessages(prev => {
                     const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                    return [...prev, { id: lastId + 1, sender: 'ai', text: '保存学员时遇到问题，我会稍后再试。如需立即重试，请在对话中输入“重试”。', timestamp: Date.now() }];
+                    return [...prev, { id: lastId + 1, sender: 'ai', text: errorText, timestamp: Date.now() }];
                 });
                 return;
             }
 
-            // 成功：展示成功提示，并处理 student_user_id
+            // 成功：展示成功提示
             setMessages(prev => {
                 const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                const successText = `太好了！你的学员信息已经成功创建 🎉\n接下来我们可以开始评估与训练计划了 ⛳`;
+                const successText = `你的档案已建立！(ID: ${result.student_user_id || 'unknown'})`;
                 return [...prev, { id: lastId + 1, sender: 'ai', text: successText, timestamp: Date.now() }];
             });
+            setIsComplete(true);
+            setNextField(null);
 
-            if (result.student_user_id) {
-                console.log('新学员 ID:', result.student_user_id);
-            }
         } catch (err) {
             console.error('createStudent error', err);
             setMessages(prev => {
                 const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                return [...prev, { id: lastId + 1, sender: 'ai', text: '保存学员时出现异常，我会稍后重试。', timestamp: Date.now() }];
+                return [...prev, { id: lastId + 1, sender: 'ai', text: '保存学员时出现异常。', timestamp: Date.now() }];
             });
         } finally {
             setIsSubmittingStudent(false);
@@ -663,7 +555,7 @@ const ThreeDPage = () => {
                 )}
 
                 {/* 中间内容区 - 可滚动 */}
-                <main className="flex-1 overflow-y-auto px-4 z-10 pt-4 pb-56">
+                <main ref={mainRef} className="flex-1 overflow-y-auto px-4 z-10 pt-4 pb-56">
                     {/* 顶部角色展示 */}
                     <div className="flex flex-col items-center mb-8">
                         <motion.div

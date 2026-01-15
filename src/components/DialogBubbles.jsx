@@ -11,11 +11,10 @@ const ChatMessage = ({ message }) => {
     return (
         <div className={`flex w-full mb-4 px-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] ${isUser ? 'items-end' : 'items-start'}`}>
-                <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-snug shadow-lg ${
-                    isUser 
-                        ? 'bg-slate-400/40 text-white rounded-tr-none border border-white/10 backdrop-blur-md' 
-                        : 'bg-white/10 backdrop-blur-md border border-white/5 text-slate-100 rounded-tl-none'
-                }`}>
+                <div className={`px-4 py-2.5 rounded-2xl text-[14px] leading-snug shadow-lg ${isUser
+                    ? 'bg-slate-400/40 text-white rounded-tr-none border border-white/10 backdrop-blur-md'
+                    : 'bg-white/10 backdrop-blur-md border border-white/5 text-slate-100 rounded-tl-none'
+                    }`}>
                     {message.text}
                 </div>
                 <span className="text-[9px] text-slate-400 mt-1 uppercase px-1">
@@ -41,8 +40,8 @@ const DialogBubbles = ({ messages = [], className }) => {
 
     return (
         <div className={cn('relative flex flex-col', className)}>
-            <div 
-                ref={scrollRef} 
+            <div
+                ref={scrollRef}
                 className="flex-1 overflow-y-auto scrollbar-hide focus:outline-none"
             >
                 {messages.map((msg) => (
