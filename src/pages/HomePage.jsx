@@ -20,8 +20,8 @@ const HomePage = ({ student, navigate, onAddRecord }) => {
         gender: student?.gender || "--",
         yearsOfGolf: student?.yearsOfGolf ? `${student.yearsOfGolf}${t('years')} ${t('yearsOfGolf')}` : `--${t('years')} ${t('yearsOfGolf')}`,
         history: student?.history || t('noHistory'),
-        // 核心目标优先使用 manualCheck.purpose，如果没有则使用 student.goal
-        purpose: student?.manualCheck?.purpose || student?.goal || t('coreGoal')
+        // 核心目标优先使用后端 students.purpose，其次 manualCheck.purpose，再次 goal
+        purpose: student?.purpose || student?.manualCheck?.purpose || student?.goal || t('coreGoal')
     };
 
     const handleNavigate = (path) => {

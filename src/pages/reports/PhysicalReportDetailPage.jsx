@@ -8,6 +8,7 @@ import RadarChart from '../../components/reports/RadarChart';
 import { createAssessment, updateAssessment } from '../assessment/utils/assessmentApi';
 import { diagnosesToRadarGradeData } from '../../utils/diagnosesToRadar';
 import { createAIReport, getBackendLang } from './utils/aiReportApi';
+import { onAIReportWsEvent } from '../../services/aiReportWsClient';
 
 const PhysicalReportDetailPage = ({ onBack, student }) => {
     const { t } = useLanguage();
@@ -15,6 +16,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const passedTitle = location.state?.title || location.state?.assessmentData?.title;
+    const initialWaitingForAiReport = Boolean(location.state?.aiReportGenerating);
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [expandedGroups, setExpandedGroups] = useState({});
@@ -22,6 +24,8 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
     const [continueTestInfo, setContinueTestInfo] = useState(null);
     const [reloadToken, setReloadToken] = useState(0);
     const [isCreatingAIReport, setIsCreatingAIReport] = useState(false);
+    const [isWaitingForAiReport, setIsWaitingForAiReport] = useState(initialWaitingForAiReport);
+    const [aiReportFetchEnabled, setAiReportFetchEnabled] = useState(!initialWaitingForAiReport);
     // 报告对比相关状态
     const [showComparison, setShowComparison] = useState(false);
     const [oldReportData, setOldReportData] = useState(null);
@@ -37,6 +41,31 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
 
     // 从后端获取真实数据
     useEffect(() => {
+        if (!isWaitingForAiReport) return;
+        if (!id) return;
+
+        return onAIReportWsEvent((event) => {
+            if (event?.type !== 'message') return;
+            if (!event?.terminal) return;
+            if (event?.assessmentId !== id) return;
+
+            if (event?.status === 'success') {
+                setAiReportFetchEnabled(true);
+                setIsWaitingForAiReport(false);
+                setLoading(true);
+                setReloadToken((x) => x + 1);
+                return;
+            }
+
+            // failure/timeout: 停止等待，且不自动拉取 AIReport
+            setIsWaitingForAiReport(false);
+            setLoading(false);
+        });
+    }, [isWaitingForAiReport, id]);
+
+    useEffect(() => {
+        if (!aiReportFetchEnabled) return;
+        if (isWaitingForAiReport) return;
         const fetchReportData = async () => {
             if (!id) return;
 
@@ -289,11 +318,12 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
         };
 
         fetchReportData();
-    }, [id, t, reloadToken]);
+    }, [id, t, reloadToken, aiReportFetchEnabled, isWaitingForAiReport]);
 
     const handleGenerateAIReport = async () => {
         if (!id || loading || isCreatingAIReport) return;
 
+        setAiReportFetchEnabled(true);
         setIsCreatingAIReport(true);
         setLoading(true);
         try {
@@ -1006,7 +1036,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
         });
     };
 
-    if (loading) {
+    if (loading || isWaitingForAiReport) {
         return (
             <div className="min-h-screen text-white p-6 flex items-center justify-center bg-transparent">
                 <div className="text-center">
@@ -1028,8 +1058,20 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                         {t('generatingAIReport')}
                     </h2>
                     <p className="text-white/60 text-sm">
-                        {t('analyzingData')}
+                        {t('waitAIReport')}
                     </p>
+
+                    {isWaitingForAiReport ? (
+                        <div className="mt-6 flex items-center justify-center">
+                            <button
+                                onClick={handleBack}
+                                className="px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
+                                type="button"
+                            >
+                                稍后再看
+                            </button>
+                        </div>
+                    ) : null}
                 </div>
             </div>
         );
@@ -1049,12 +1091,12 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                         {t('backToList')}
                     </button>
                     <button
-                        onClick={handleGenerateReport}
-                        disabled={generating}
+                        onClick={handleGenerateAIReport}
+                        disabled={isCreatingAIReport}
                         className="px-6 py-3 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm shadow-[0_10px_20px_rgba(212,175,55,0.3)] flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Sparkles className="w-4 h-4" />
-                        <span>{generating ? '生成中...' : '生成AI报告'}</span>
+                        <span>{isCreatingAIReport ? '生成中...' : '生成AI报告'}</span>
                     </button>
                 </div>
             </div>

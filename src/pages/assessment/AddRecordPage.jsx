@@ -210,6 +210,9 @@ const AddRecordPage = ({
         setHasBackendData: assessmentData_hook.setHasBackendData
     });
 
+    // 完整测评：前两项（身体/心理）完成后需要继续下一项
+    const hasNextInCompleteFlow = !isSingleMode && navigation.activePrimary < 2;
+
     // 开发辅助：如果 URL 包含 ?autoSave=1，则在页面加载后自动触发保存（用于自动化验证）
     useEffect(() => {
         try {
@@ -283,6 +286,33 @@ const AddRecordPage = ({
         }
     };
 
+    const ensureCurrentTitlePatchedForCompleteExit = async () => {
+        // 仅完整测评需要：防止用户改标题没点保存就返回
+        if (isSingleMode) {
+            await ensureDefaultTitlePatchedIfNeeded();
+            return;
+        }
+
+        const assessmentId =
+            assessmentData_hook.recordData?.assessmentId ||
+            actualAssessmentData?.assessment_id ||
+            actualAssessmentData?.id;
+
+        if (!assessmentId || !user?.token) return;
+
+        const currentTitle = (titleRef.current || '').toString().trim();
+        if (!currentTitle) {
+            await ensureDefaultTitlePatchedIfNeeded();
+            return;
+        }
+
+        try {
+            await updateAssessment(assessmentId, { title: currentTitle }, user);
+        } catch (e) {
+            // ignore title patch errors on exit
+        }
+    };
+
     const handleBack = async () => {
         if (unsavedChanges.hasUnsavedChanges) {
             unsavedChanges.setPendingNavigation({ type: 'back' });
@@ -290,7 +320,7 @@ const AddRecordPage = ({
             return;
         }
 
-        await ensureDefaultTitlePatchedIfNeeded();
+        await ensureCurrentTitlePatchedForCompleteExit();
         
         // 根据当前测评类型返回到对应的历史测评记录页面
         const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
@@ -317,7 +347,7 @@ const AddRecordPage = ({
                 navigate(`/add-record/${type}/${step}`, { state: getNavigationState() });
             }
         } else if (pending.type === 'back') {
-            await ensureDefaultTitlePatchedIfNeeded();
+            await ensureCurrentTitlePatchedForCompleteExit();
             // 根据当前测评类型返回到对应的历史测评记录页面
             const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
             const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
@@ -450,6 +480,8 @@ const AddRecordPage = ({
                     save.handleGenerateAIReport(navigate, actualAssessmentData, draft.recordId, isNavigating, setIsNavigating);
                 }}
                 isNavigating={isNavigating}
+                generateLaterText={hasNextInCompleteFlow ? '继续下一项测评' : undefined}
+                generateAIText={hasNextInCompleteFlow ? '生成报告并继续下一项测评' : undefined}
                 t={t}
             />
 
