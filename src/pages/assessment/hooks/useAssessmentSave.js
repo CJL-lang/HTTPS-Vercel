@@ -16,9 +16,9 @@ import {
     updateStykuDataToBackend,
     updateMentalDataToBackend,
     updateTrackmanDataToBackend,
-    updateAssessment,
-    getSingleAssessment
+    updateAssessment
 } from '../utils/assessmentApi';
+import { requestAIReportGeneration } from '../utils/aiReportGeneration';
 import { persistModuleToStudent } from '../utils/assessmentHelpers';
 import { TYPE_MAP } from '../utils/assessmentConstants';
 import { useLanguage } from '../../../utils/LanguageContext';
@@ -78,6 +78,20 @@ export const useAssessmentSave = ({
 
         try {
             await updateAssessment(assessmentId, { title: desiredTitle }, user);
+        } catch (e) {
+            // ignore
+        }
+    };
+
+    const patchCurrentTitleIfNeeded = async () => {
+        const assessmentId = recordData?.assessmentId;
+        if (!assessmentId || !user?.token) return;
+
+        const currentTitle = (recordData?.title || '').toString().trim();
+        if (!currentTitle) return;
+
+        try {
+            await updateAssessment(assessmentId, { title: currentTitle }, user);
         } catch (e) {
             // ignore
         }
@@ -368,8 +382,15 @@ export const useAssessmentSave = ({
         // 最后一步：写回学员数据
         persistModuleToStudent(activePrimary, recordData, data, setData);
 
-        // 完成测评时也确保标题已写回（即便用户未手动保存标题）
-        await ensureDefaultTitlePatchedIfNeeded();
+        // 完整测评：点击“完成测评”时，确保把当前标题写回后端（防止用户改标题未点保存）
+        if (!isSingleMode) {
+            const titleNow = (recordData?.title || '').toString().trim();
+            if (titleNow) {
+                await patchCurrentTitleIfNeeded();
+            } else {
+                await ensureDefaultTitlePatchedIfNeeded();
+            }
+        }
 
         // 每次完成一个测评类别（无论是单项还是完整测评）都显示完成操作面板
         // 这样用户可以选择"生成报告"或"稍后生成"
@@ -380,27 +401,53 @@ export const useAssessmentSave = ({
     const handleGenerateAIReport = async (navigate, assessmentData, recordId, isNavigating, setIsNavigating) => {
         if (isNavigating) return;
 
+        // 完整测评：前两项（身体/心理）点击“生成报告”应直接进入下一项（不进入等待页）
+        const hasNextTest = !isSingleMode && activePrimary < 2;
+        if (hasNextTest) {
+            // 优先使用后端返回的真正的 assessmentId
+            const finalRecordId = recordData.assessmentId || recordId;
+
+            // 触发 AI 报告生成：发送 POST /AIReport 后开始 WS 监听；成功/失败会通过 WS 全局吐司通知
+            if (finalRecordId && user?.token) {
+                try {
+                    const assessmentType = TYPE_MAP[activePrimary];
+                    await requestAIReportGeneration(finalRecordId, {
+                        token: user.token,
+                        assessmentType,
+                        title: recordData?.title
+                    });
+                } catch (error) {
+                    console.error('[handleGenerateAIReport] Failed to request AI report generation (continue flow):', error);
+                }
+            }
+
+            // 进入下一项测评（不等待 AI 报告页面）
+            if (typeof setIsNavigating === 'function') {
+                setIsNavigating(true);
+            }
+            await handleGenerateLater(navigate, assessmentData);
+            return;
+        }
+
         // 优先使用后端返回的真正的 assessmentId
         const finalRecordId = recordData.assessmentId || recordId;
 
         // 清理本地保存的“上次停留步骤”
         clearAssessmentStep({ userId: user?.id || 'guest', assessmentId: finalRecordId });
 
-        // 在生成AI报告前，先调用接口获取单个测评数据
-        // finalRecordId 就是 assessment_id，会作为路径参数传递给后端
+        // 生成 AI 报告：发送 POST /AIReport 后开始 WS 监听；后端成功/失败会通过 WS 通知，前端全局弹提示
+        let aiReportGenerating = false;
         if (finalRecordId && user?.token) {
             try {
-                console.log('[handleGenerateAIReport] Fetching single assessment data for assessment_id:', finalRecordId);
-                const singleAssessmentData = await getSingleAssessment(finalRecordId, user);
-                if (singleAssessmentData) {
-                    console.log('[handleGenerateAIReport] Single assessment data retrieved:', singleAssessmentData);
-                    // 可以在这里处理返回的数据，比如更新 recordData 或传递给报告页面
-                } else {
-                    console.warn('[handleGenerateAIReport] Failed to fetch single assessment data');
-                }
+                const assessmentType = TYPE_MAP[activePrimary];
+                await requestAIReportGeneration(finalRecordId, {
+                    token: user.token,
+                    assessmentType,
+                    title: recordData?.title
+                });
+                aiReportGenerating = true;
             } catch (error) {
-                console.error('[handleGenerateAIReport] Error fetching single assessment:', error);
-                // 即使获取失败，也继续执行后续流程
+                console.error('[handleGenerateAIReport] Failed to request AI report generation:', error);
             }
         }
 
@@ -436,8 +483,8 @@ export const useAssessmentSave = ({
         setIsNavigating(true);
 
         // 如果是完整测试模式且还有未完成的测评，在 sessionStorage 中标记需要继续
-        const hasNextTest = !isSingleMode && activePrimary < 2;
-        if (hasNextTest) {
+        // （最后一项或单项模式会走到报告详情页）
+        if (!isSingleMode && activePrimary < 2) {
             const nextPrimary = activePrimary + 1;
             const nextType = TYPE_MAP[nextPrimary];
 
@@ -476,6 +523,7 @@ export const useAssessmentSave = ({
                     title: recordData?.title,
                     student,
                     studentId: student?.id,
+                    ...(aiReportGenerating ? { aiReportGenerating: true } : {}),
                     ...(hasNextTest
                         ? {
                             continueCompleteTest: true,

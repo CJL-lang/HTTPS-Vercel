@@ -15,6 +15,12 @@ export default defineConfig({
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, '')
             },
+            // WebSocket proxy: backend WS hub (e.g. /ws/ai-report/:ass_id)
+            '/ws': {
+                target: 'http://localhost:8080',
+                changeOrigin: true,
+                ws: true
+            },
             // 百度语音识别 API 代理
             '/baidu-token': {
                 target: 'https://aip.baidubce.com',

@@ -12,6 +12,8 @@ const SaveButton = ({
     onGenerateLater, 
     onGenerateAI,
     isNavigating,
+    generateLaterText,
+    generateAIText,
     t 
 }) => {
     // 解决显示完整操作按钮组的条件
@@ -62,7 +64,7 @@ const SaveButton = ({
                                 disabled={isNavigating}
                                 className="flex-1 h-[50px] sm:h-[54px] rounded-full bg-black/60 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest backdrop-blur-lg flex items-center justify-center gap-2 sm:gap-3 group transition-all px-4 hover:bg-black/80 disabled:opacity-50"
                             >
-                                <span className="truncate">{t('generateLater')}</span>
+                                <span className="truncate">{generateLaterText || t('generateLater')}</span>
                             </motion.button>
                             <motion.button
                                 whileTap={{ scale: 0.95 }}
@@ -70,7 +72,7 @@ const SaveButton = ({
                                 disabled={isNavigating}
                                 className="flex-1 h-[50px] sm:h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm sm:text-base uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 sm:gap-3 group transition-all px-4 disabled:opacity-50"
                             >
-                                <span className="truncate">{t('generateAIReport')}</span>
+                                <span className="truncate">{generateAIText || t('generateAIReport')}</span>
                             </motion.button>
                         </motion.div>
                     )}

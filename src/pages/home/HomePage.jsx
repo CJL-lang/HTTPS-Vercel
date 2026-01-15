@@ -87,7 +87,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
         gender: getGenderDisplay(student?.gender), // 性别
         yearsOfGolf: student?.yearsOfGolf ? `${student.yearsOfGolf}${t('yearUnit')}` : `--${t('yearUnit')}`, // 高尔夫年限
         history: student?.bio || student?.history || t('noHistory'), // 优先使用后端返回的 bio 作为训练历史
-        purpose: student?.manualCheck?.purpose || student?.goal || t('coreGoalNotSet') // 核心训练目标
+        purpose: student?.purpose || student?.manualCheck?.purpose || student?.goal || t('coreGoalNotSet') // 核心训练目标
     };
 
     const handleNavigate = (path) => {

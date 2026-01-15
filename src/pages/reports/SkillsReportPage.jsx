@@ -10,10 +10,13 @@ import { useParams } from 'react-router-dom';
 import { useLanguage } from '../../utils/LanguageContext';
 import { createAssessment } from '../assessment/utils/assessmentApi';
 import { loadAssessmentStep } from '../assessment/utils/assessmentProgress';
+import { useToast } from '../../components/toast/ToastProvider';
+import { hasAIReportReadyHint, isAIReportGenerating } from '../../services/aiReportWsClient';
 
 const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const { id } = useParams();
     const { t, language } = useLanguage();
+    const { addToast } = useToast();
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -48,9 +51,13 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                     const data = await res.json();
                     // 映射后端字段到前端格式
                     completed = (data || []).map(c => ({
+                        has_ai_report: c.has_ai_report,
                         id: c.assessment_id, // 后端返回的是 assessment_id
                         title: c.title,
-                        status: c.status === '已完成' ? 'completed' : 'draft', // 后端返回中文状态
+                        status:
+                            (c.has_ai_report === 1 || c.has_ai_report === true || c.ai_report_id || c.aiReportId)
+                                ? 'completed'
+                                : (c.status === '已完成' ? 'completed' : 'draft'),
                         date: new Date(c.timestamp).toLocaleDateString(),
                         completedAt: c.timestamp,
                         currentStep: c.status === '已完成' ? 3 : 0
@@ -72,6 +79,21 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     }, [user?.token, student?.id]);
 
     const handleRecordClick = (record) => {
+        if (isAIReportGenerating(record?.id)) {
+            addToast({
+                kind: 'info',
+                title: '报告正在生成请勿重复点击',
+                description: '如果收到已生成通知，请刷新页面',
+                durationMs: 6000
+            });
+            return;
+        }
+
+        if (record?.id && hasAIReportReadyHint(record.id) && navigate) {
+            navigate(`/skills-report/${record.id}`, { state: { title: record.title } });
+            return;
+        }
+
         if (record.status === 'draft') {
             const stepMap = ['data', 'diagnosis', 'plan', 'goal'];
             const savedStep = loadAssessmentStep({ userId: user?.id || 'guest', assessmentId: record.id });
@@ -169,6 +191,9 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                     </div>
                 ) : (
                     records.map((record) => (
+                        (() => {
+                            const generating = isAIReportGenerating(record?.id);
+                            return (
                         <div
                             key={record.id}
                             onClick={() => handleRecordClick(record)}
@@ -184,7 +209,14 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {record.status === 'draft' ? (
+                                    {generating ? (
+                                        <>
+                                            <Clock className="w-4 h-4 text-yellow-400" />
+                                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
+                                                正在生成报告
+                                            </span>
+                                        </>
+                                    ) : record.status === 'draft' ? (
                                         <>
                                             <Clock className="w-4 h-4 text-yellow-400" />
                                             <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
@@ -222,6 +254,8 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                 </div>
                             </div>
                         </div>
+                            );
+                        })()
                     ))
                 )}
             </div>
