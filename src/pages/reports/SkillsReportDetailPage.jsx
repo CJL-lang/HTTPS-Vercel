@@ -5,10 +5,11 @@ import { useLanguage } from '../../utils/LanguageContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TextSection } from '../../components/reports/ReportSharedComponents';
 import RadarChart from '../../components/reports/RadarChart';
-import { createAssessment } from '../assessment/utils/assessmentApi';
+import { createAssessment, updateAssessment } from '../assessment/utils/assessmentApi';
 import { diagnosesToRadarGradeData } from '../../utils/diagnosesToRadar';
 import { createAIReport, getBackendLang } from './utils/aiReportApi';
-import { clearAIReportGenerating, isAIReportGenerating, onAIReportWsEvent } from '../../services/aiReportWsClient';
+import { clearAIReportGenerating, isAIReportGenerating, onAIReportWsEvent, startAIReportWsJob } from '../../services/aiReportWsClient';
+import AssessmentHeader from '../assessment/components/AssessmentHeader';
 
 const SkillsReportDetailPage = ({ onBack, student }) => {
     const { t } = useLanguage();
@@ -28,6 +29,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
     const [showComparison, setShowComparison] = useState(false);
     const [oldReportData, setOldReportData] = useState(null);
     const [newReportData, setNewReportData] = useState(null);
+    const [showLeaveComparisonConfirm, setShowLeaveComparisonConfirm] = useState(false);
     // 每个部分的选择状态：'old' | 'new' | null
     const [selectedVersions, setSelectedVersions] = useState({
         trainingGoals: null,
@@ -36,6 +38,65 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
     });
     // 用于防止重复加载的 Ref
     const lastFetchedIdRef = useRef(null);
+    const lastSavedTitleRef = useRef('');
+
+    // 标题编辑（用于确保返回/刷新后标题不丢）
+    const assessmentId = id;
+    const titleStorageKey = assessmentId ? `assessmentTitle:${assessmentId}` : null;
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [isSavingTitle, setIsSavingTitle] = useState(false);
+    const [titleTouched, setTitleTouched] = useState(false);
+    const [titleDraft, setTitleDraft] = useState(() => {
+        const fromRoute = (passedTitle || '').toString().trim();
+        if (fromRoute) return fromRoute;
+        try {
+            const cached = titleStorageKey ? sessionStorage.getItem(titleStorageKey) : '';
+            return (cached || '').toString().trim();
+        } catch {
+            return '';
+        }
+    });
+
+    useEffect(() => {
+        const candidate = (passedTitle || reportData?.title || '').toString().trim();
+        if (!candidate) return;
+        if (!lastSavedTitleRef.current) lastSavedTitleRef.current = candidate;
+        if (titleTouched) return;
+        if (!titleDraft) setTitleDraft(candidate);
+    }, [passedTitle, reportData?.title, titleDraft, titleTouched]);
+
+    useEffect(() => {
+        if (!titleStorageKey) return;
+        const trimmed = (titleDraft || '').toString().trim();
+        if (!trimmed) return;
+        try {
+            sessionStorage.setItem(titleStorageKey, trimmed);
+        } catch {
+            // ignore
+        }
+    }, [titleDraft, titleStorageKey]);
+
+    const saveTitleIfNeeded = async (nextTitle) => {
+        const trimmed = (nextTitle ?? titleDraft ?? '').toString().trim();
+        if (!assessmentId || !trimmed) return true;
+        if (trimmed === lastSavedTitleRef.current) return true;
+
+        const userJson = localStorage.getItem('user');
+        const user = userJson ? JSON.parse(userJson) : null;
+        if (!user?.token) return false;
+
+        setIsSavingTitle(true);
+        try {
+            const ok = await updateAssessment(assessmentId, { title: trimmed }, user);
+            if (ok) lastSavedTitleRef.current = trimmed;
+            return ok;
+        } catch (error) {
+            console.error('[SkillsReportDetailPage] saveTitleIfNeeded: Failed to update assessment title', error);
+            return false;
+        } finally {
+            setIsSavingTitle(false);
+        }
+    };
 
     // 如果是从“完成测评 -> 生成AI报告”进入，则等待 WS 结果；成功后自动刷新页面展示报告
     useEffect(() => {
@@ -477,7 +538,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
         }
     };
 
-    const handleBack = () => {
+    const navigateBackToList = () => {
         // 返回到历史测评列表页面
         const backStudentId =
             reportData?.studentId ||
@@ -496,6 +557,22 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
         }
 
         navigate('/skills-report');
+    };
+
+    const handleBack = async () => {
+        try {
+            await saveTitleIfNeeded();
+        } catch {
+            // ignore
+        }
+
+        // 对比选择页：未选择直接返回 -> 二次确认
+        if (showComparison && newReportData && !allSectionsSelected()) {
+            setShowLeaveComparisonConfirm(true);
+            return;
+        }
+
+        navigateBackToList();
     };
 
     const handleSaveAndGoHome = () => {
@@ -527,15 +604,6 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
     // 保存自定义版本
     const handleSaveCustomVersion = async () => {
-        if (!allSectionsSelected() || !id || !reportData?.aiReportId) {
-            console.warn('[handleSaveCustomVersion] Missing required data:', {
-                allSectionsSelected: allSectionsSelected(),
-                id,
-                aiReportId: reportData?.aiReportId
-            });
-            return;
-        }
-
         setIsCreatingAIReport(true);
         try {
             const userJson = localStorage.getItem('user');
@@ -548,44 +616,16 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             };
 
-            // 确保有有效的 report_id
-            let reportId = reportData.aiReportId;
-            if (!reportId || reportId === id) {
-                try {
-                    const aiGetRes = await fetch(`/api/AIReport/${id}`, { headers });
-                    if (aiGetRes.ok) {
-                        const aiData = await aiGetRes.json();
-                        // 如果后端返回 200 但提示“找不到记录”
-                        if (aiData?.message === '找不到记录') {
-                            throw new Error('报告不存在，请先点击"重新生成"按钮生成报告');
-                        }
-                        reportId = aiData?.id || aiData?.report_id || aiData?.report?.id || null;
-                        if (!reportId) {
-                            console.warn('[handleSaveCustomVersion] Report exists but no report_id found.');
-                        }
-                    } else if (aiGetRes.status === 404) {
-                        throw new Error('报告不存在，请先点击"重新生成"按钮生成报告');
-                    }
-                } catch (e) {
-                    console.error('[handleSaveCustomVersion] Failed to fetch report:', e);
-                }
+            // 保存报告前先确保标题已落库
+            await saveTitleIfNeeded();
 
-                if (!reportId) {
-                    throw new Error('无法获取报告ID，请先点击"重新生成"按钮生成报告');
-                }
+            if (!allSectionsSelected() || !id || !reportData?.aiReportId) {
+                throw new Error('请先为所有部分选择版本');
             }
 
-            // 获取现有报告数据
-            let aiReportPayload = null;
-            if (reportId) {
-                try {
-                    const existingRes = await fetch(`/api/AIReport/${id}`, { headers });
-                    if (existingRes.ok) {
-                        aiReportPayload = await existingRes.json();
-                    }
-                } catch (e) {
-                    console.warn('[handleSaveCustomVersion] Failed to fetch existing report data:', e);
-                }
+            const reportId = reportData.aiReportId;
+            if (!reportId || reportId === id) {
+                throw new Error('无法获取有效的 report_id。请先点击“重新生成”生成对比版本后再保存。');
             }
 
             // 根据选择构建最终数据
@@ -634,19 +674,11 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
             // 构建训练计划数据
             const trainingPlanText = finalTrainingOutlook || '';
 
-            // 构建 PATCH 请求体
-            const basePatch = {
-                assessment_id: id,
+            const patchBody = {
                 report_id: reportId,
-                language: backendLang,
-                report_intro: aiReportPayload?.report_intro,
                 goal: goalData,
                 fitness_diagnosis: diagnosisText,
-                training_plan: trainingPlanText,
-                report_intro_en: aiReportPayload?.report_intro_en,
-                goal_en: undefined,
-                fitness_diagnosis_en: undefined,
-                training_plan_en: undefined
+                training_plan: trainingPlanText
             };
 
             if (backendLang === 'en') {
@@ -658,25 +690,10 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                         goalEn.short_term = goal.content;
                     }
                 });
-                basePatch.goal_en = goalEn;
-                basePatch.fitness_diagnosis_en = diagnosisText;
-                basePatch.training_plan_en = trainingPlanText;
-            } else {
-                if (aiReportPayload?.goal_en) {
-                    basePatch.goal_en = aiReportPayload.goal_en;
-                }
-                if (aiReportPayload?.fitness_diagnosis_en) {
-                    basePatch.fitness_diagnosis_en = aiReportPayload.fitness_diagnosis_en;
-                }
-                if (aiReportPayload?.training_plan_en) {
-                    basePatch.training_plan_en = aiReportPayload.training_plan_en;
-                }
+                patchBody.goal_en = goalEn;
+                patchBody.diagnosis_en = diagnosisText;
+                patchBody.plan_en = trainingPlanText;
             }
-
-            const patchBody = Object.entries(basePatch).reduce((acc, [k, v]) => {
-                if (v !== undefined && v !== null) acc[k] = v;
-                return acc;
-            }, {});
 
             const response = await fetch('/api/AIReport', {
                 method: 'PATCH',
@@ -779,59 +796,6 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 console.warn('Failed to fetch diagnoses before regenerate', e);
             }
 
-            // 确保有可用的 AI 报告 ID；若不存在则先创建再拉取，同时保留原始 AI 报告内容供 PATCH 使用
-            let aiReportId = reportData?.aiReportId || null;
-            let aiReportPayload = null;
-            try {
-                const fetchAIReportId = async () => {
-                    const aiGetRes = await fetch(`/api/AIReport/${id}`, { headers });
-                    if (aiGetRes.ok) {
-                        const aiData = await aiGetRes.json();
-                        // 如果后端返回 200 但提示“找不到记录”
-                        if (aiData?.message === '找不到记录') return null;
-
-                        aiReportPayload = aiData;
-                        const resolved = aiData?.id || aiData?.report_id || aiData?.report?.id || null;
-                        console.log('[Skills] AI report GET resolved id:', resolved, 'raw:', aiData);
-                        return resolved;
-                    }
-                    if (aiGetRes.status === 404) {
-                        return null;
-                    }
-                    const txt = await aiGetRes.text().catch(() => '');
-                    throw new Error(txt || '获取 AI 报告失败');
-                };
-
-                aiReportId = await fetchAIReportId();
-
-                if (!aiReportId) {
-                    const created = await createAIReport(id, { token, language: backendLang });
-                    if (created?.id) {
-                        aiReportId = created.id;
-                        console.log('[Skills] AI report created with id:', aiReportId);
-                        aiReportPayload = created;
-                    } else if (created?.report?.id) {
-                        aiReportId = created.report.id;
-                        console.log('[Skills] AI report created (nested) id:', aiReportId);
-                        aiReportPayload = created.report;
-                    } else if (created?.old_report_id) {
-                        aiReportId = created.old_report_id;
-                        console.log('[Skills] AI report created (old_report_id) id:', aiReportId);
-                        aiReportPayload = created.report || null;
-                    }
-                    if (!aiReportId) aiReportId = await fetchAIReportId();
-                }
-            } catch (e) {
-                console.warn('Failed to ensure AI report exists before regenerate', e);
-            }
-
-            if (!aiReportId) {
-                alert('未能获取 AI 报告记录，无法重新生成。请确认该测评已存在 AI 报告或联系后台支持。');
-                setLoading(false);
-                setIsCreatingAIReport(false);
-                return;
-            }
-
             const diagnosesRes = await fetch('/api/diagnoses', {
                 method: 'PATCH',
                 headers,
@@ -847,49 +811,37 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 throw new Error(msg || '重新生成诊断失败');
             }
 
-            // 构造 PATCH 体：带上已有字段，避免后端 “no fields to update”
-            const basePatch = {
-                assessment_id: id,
-                report_id: aiReportId,
-                language: backendLang,
-                report_intro: aiReportPayload?.report_intro,
-                goal: aiReportPayload?.goal,
-                fitness_diagnosis: aiReportPayload?.fitness_diagnosis,
-                training_plan: aiReportPayload?.training_plan,
-                report_intro_en: aiReportPayload?.report_intro_en,
-                goal_en: aiReportPayload?.goal_en,
-                fitness_diagnosis_en: aiReportPayload?.fitness_diagnosis_en,
-                training_plan_en: aiReportPayload?.training_plan_en,
-            };
-
-            // 去除 undefined/null 字段，只保留有值的字段
-            const patchBody = Object.entries(basePatch).reduce((acc, [k, v]) => {
-                if (v !== undefined && v !== null) acc[k] = v;
-                return acc;
-            }, {});
-
-            const aiReportRes = await fetch('/api/AIReport', {
-                method: 'PATCH',
-                headers,
-                body: JSON.stringify(patchBody)
-            });
-
-            if (!aiReportRes.ok) {
-                const msg = await aiReportRes.text().catch(() => '');
-                throw new Error(msg || '重新生成AI报告失败');
-            }
-
             // 保存当前报告数据作为旧报告
             const currentReportData = reportData;
             setOldReportData(currentReportData);
+            setNewReportData(null);
+            setShowComparison(false);
 
-            // 获取新生成的报告数据
-            const newReportResponse = await fetch(`/api/AIReport/${id}`, { headers });
-            if (!newReportResponse.ok) {
-                throw new Error('获取新报告数据失败');
+            const currentTitle = (titleDraft || passedTitle || reportData?.title || '').toString().trim();
+
+            // 触发后端异步生成，并通过 WS 接收 completed/completed_compare
+            const created = await createAIReport(id, { token, language: backendLang });
+            const wsJob = startAIReportWsJob({
+                token,
+                assessmentId: id,
+                wsEndpoint: created?.ws_endpoint || created?.wsEndpoint,
+                jobId: created?.job_id || created?.jobId,
+                jobMeta: { source: 'regenerate', title: currentTitle }
+            });
+
+            let wsResult;
+            try {
+                wsResult = await wsJob.done;
+            } catch (wsErr) {
+                throw new Error(wsErr?.message || wsErr?.payload?.error || '重新生成AI报告失败');
             }
 
-            const newReportRaw = await newReportResponse.json();
+            const wsPayload = wsResult?.payload || {};
+            const resolvedReportId = wsPayload?.old_report_id || wsPayload?.report_id || null;
+            const newReportRaw = wsPayload?.new_report || wsPayload?.report || null;
+            if (!newReportRaw) {
+                throw new Error('生成成功但未返回报告内容');
+            }
 
             // 处理新报告数据（复用 fetchReportData 中的逻辑）
             const currentLanguage = localStorage.getItem('language') || 'zh';
@@ -979,12 +931,12 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 trainingOutlook: null
             });
 
-            // 更新 reportData 中的 aiReportId
-            if (aiReportId && aiReportId !== id) {
-                setReportData(prev => ({
+            // 更新 reportData 中的 aiReportId（使用 WS 返回的真实 report_id）
+            if (resolvedReportId && resolvedReportId !== id) {
+                setReportData(prev => (prev ? ({
                     ...prev,
-                    aiReportId: aiReportId
-                }));
+                    aiReportId: resolvedReportId
+                }) : prev));
             }
 
             setLoading(false);
@@ -1066,16 +1018,48 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
     return (
         <div className={`report-detail-page ${showComparison ? 'pb-32 sm:pb-40' : ''}`}>
-            {/* Header */}
-            <div className="report-detail-header">
-                <button
-                    onClick={handleBack}
-                    className="btn-back shrink-0"
-                >
-                    <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
-                </button>
-                <h1 className="report-detail-title">{passedTitle || reportData.title}</h1>
-            </div>
+            <AssessmentHeader
+                title={titleDraft || passedTitle || reportData.title || t('skillsReportTitle')}
+                isEditingTitle={isEditingTitle}
+                setIsEditingTitle={setIsEditingTitle}
+                onTitleChange={(value) => {
+                    setTitleTouched(true);
+                    setTitleDraft(value);
+                }}
+                onSave={async () => {
+                    await saveTitleIfNeeded();
+                }}
+                onBack={handleBack}
+                t={t}
+            />
+
+            {showLeaveComparisonConfirm && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+                    <div className="surface-strong border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+                        <h3 className="text-white text-lg font-bold mb-3 text-center">确认返回</h3>
+                        <p className="text-white/60 text-sm mb-6 text-center">未选择将保留原报告内容，是否继续？</p>
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowLeaveComparisonConfirm(false)}
+                                className="flex-1 px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
+                            >
+                                取消
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowLeaveComparisonConfirm(false);
+                                    navigateBackToList();
+                                }}
+                                className="flex-1 px-6 py-3 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm shadow-[0_10px_20px_rgba(212,175,55,0.3)] active:scale-95 transition-all"
+                            >
+                                确定
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="report-detail-content">
                 {/* 训练引言 */}
@@ -1451,54 +1435,14 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 <div className="fixed bottom-6 sm:bottom-8 left-0 right-0 px-4 sm:px-6 z-[60]">
                     <div className="max-w-md mx-auto">
                         {showComparison ? (
-                            allSectionsSelected() ? (
-                                // 所有部分都已选择，显示自定义版本按钮
-                                <div className="flex gap-3">
-                                    <motion.button
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={handleKeepOldReport}
-                                        className="flex-1 h-[54px] rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest shadow-lg hover:shadow-xl transition-all active:scale-95"
-                                    >
-                                        保留旧版本
-                                    </motion.button>
-                                    <motion.button
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={handleSaveCustomVersion}
-                                        disabled={isCreatingAIReport}
-                                        className="flex-1 h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm sm:text-base uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isCreatingAIReport ? '保存中...' : '选中自定义版本'}
-                                    </motion.button>
-                                    <motion.button
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={handleUseNewReport}
-                                        className="flex-1 h-[54px] rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest shadow-lg hover:shadow-xl transition-all active:scale-95"
-                                    >
-                                        使用新版本
-                                    </motion.button>
-                                </div>
-                            ) : (
-                                // 未全部选择，显示提示
-                                <div className="flex gap-3">
-                                    <motion.button
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={handleKeepOldReport}
-                                        className="flex-1 h-[54px] rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm sm:text-base uppercase tracking-widest shadow-lg hover:shadow-xl transition-all active:scale-95"
-                                    >
-                                        保留旧版本
-                                    </motion.button>
-                                    <div className="flex-1 h-[54px] rounded-full bg-white/5 border border-white/10 text-white/60 font-bold text-xs sm:text-sm uppercase tracking-widest flex items-center justify-center">
-                                        请选择所有部分
-                                    </div>
-                                    <motion.button
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={handleUseNewReport}
-                                        className="flex-1 h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm sm:text-base uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group"
-                                    >
-                                        使用新版本
-                                    </motion.button>
-                                </div>
-                            )
+                            <motion.button
+                                whileTap={{ scale: allSectionsSelected() && !isCreatingAIReport ? 0.95 : 1 }}
+                                onClick={handleSaveCustomVersion}
+                                disabled={!allSectionsSelected() || isCreatingAIReport}
+                                className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-base sm:text-lg shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isCreatingAIReport ? '保存中...' : (allSectionsSelected() ? '保存' : '请选择所有部分')}
+                            </motion.button>
                         ) : (
                             <motion.button
                                 whileTap={{ scale: loading || isCreatingAIReport ? 1 : 0.95 }}
