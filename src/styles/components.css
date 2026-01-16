@@ -1132,6 +1132,17 @@
   animation: logoProgressFill 10s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+.logo-progress-fill--fast {
+  /* 查看报告：2秒走到100% */
+  animation: logoProgressFillFast 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.logo-progress-fill--complete {
+  /* 生成完成后补最后5% */
+  clip-path: inset(5% 0 0 0);
+  animation: logoProgressFillComplete 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 @keyframes logoProgressFill {
   0% {
     clip-path: inset(100% 0 0 0);
@@ -1140,6 +1151,26 @@
   /* 在动画结束时到达 95% (即 inset 5%)，给最后生成留出 5% 的空间 */
   100% {
     clip-path: inset(5% 0 0 0);
+  }
+}
+
+@keyframes logoProgressFillFast {
+  0% {
+    clip-path: inset(100% 0 0 0);
+  }
+
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes logoProgressFillComplete {
+  0% {
+    clip-path: inset(5% 0 0 0);
+  }
+
+  100% {
+    clip-path: inset(0 0 0 0);
   }
 }
 

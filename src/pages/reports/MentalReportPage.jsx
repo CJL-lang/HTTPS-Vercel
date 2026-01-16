@@ -13,16 +13,6 @@ import { loadAssessmentStep } from '../assessment/utils/assessmentProgress';
 import { useToast } from '../../components/toast/ToastProvider';
 import { clearAIReportGenerating, hasAIReportReadyHint, isAIReportGenerating } from '../../services/aiReportWsClient';
 
-const parseJsonResponse = async (res, contextLabel) => {
-    const contentType = res.headers.get('content-type') || '';
-    if (!contentType.includes('application/json')) {
-        const text = await res.text().catch(() => '');
-        const snippet = text ? text.slice(0, 200) : '';
-        throw new Error(`${contextLabel}: Expected JSON but got ${contentType || 'unknown'} ${snippet}`);
-    }
-    return res.json();
-};
-
 const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const { id } = useParams();
     const { t, language } = useLanguage();
@@ -57,35 +47,33 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                 const res = await fetch(`/api/assessments/${targetId}?type=1`, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
-                if (!res.ok) {
-                    const text = await res.text().catch(() => '');
-                    throw new Error(`Fetch mental assessments failed: ${res.status} ${res.statusText} ${text.slice(0, 200)}`);
-                }
-                const data = await parseJsonResponse(res, 'Fetch mental assessments');
-                // 映射后端字段到前端格式
-                completed = (data || []).map(c => ({
-                    has_ai_report: c.has_ai_report,
-                    id: c.assessment_id, // 后端返回的是 assessment_id
-                    title: c.title,
-                    status:
-                        (c.has_ai_report === 1 || c.has_ai_report === true || c.ai_report_id || c.aiReportId)
-                            ? 'completed'
-                            : (c.status === '已完成' ? 'completed' : 'draft'),
-                    date: new Date(c.timestamp).toLocaleDateString(),
-                    completedAt: c.timestamp,
-                    currentStep: c.status === '已完成' ? 3 : 0
-                }));
+                if (res.ok) {
+                    const data = await res.json();
+                    // 映射后端字段到前端格式
+                    completed = (data || []).map(c => ({
+                        has_ai_report: c.has_ai_report,
+                        id: c.assessment_id, // 后端返回的是 assessment_id
+                        title: c.title,
+                        status:
+                            (c.has_ai_report === 1 || c.has_ai_report === true || c.ai_report_id || c.aiReportId)
+                                ? 'completed'
+                                : (c.status === '已完成' ? 'completed' : 'draft'),
+                        date: new Date(c.timestamp).toLocaleDateString(),
+                        completedAt: c.timestamp,
+                        currentStep: c.status === '已完成' ? 3 : 0
+                    }));
 
-                // 后端已显示完成时，兜底清理本地“正在生成”标记，避免列表长期卡住
-                completed.forEach((item) => {
-                    const backendCompleted =
-                        item?.status === 'completed' ||
-                        item?.has_ai_report === 1 ||
-                        item?.has_ai_report === true;
-                    if (backendCompleted && isAIReportGenerating(item?.id)) {
-                        clearAIReportGenerating(item.id, 'backend-completed');
-                    }
-                });
+                    // 后端已显示完成时，兜底清理本地“正在生成”标记，避免列表长期卡住
+                    completed.forEach((item) => {
+                        const backendCompleted =
+                            item?.status === 'completed' ||
+                            item?.has_ai_report === 1 ||
+                            item?.has_ai_report === true;
+                        if (backendCompleted && isAIReportGenerating(item?.id)) {
+                            clearAIReportGenerating(item.id, 'backend-completed');
+                        }
+                    });
+                }
             } catch (error) {
                 console.error("Fetch mental assessments error:", error);
             } finally {
