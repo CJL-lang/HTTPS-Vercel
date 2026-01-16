@@ -145,7 +145,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
                 // 使用新的 AI Report 接口
                 const response = await fetch(`/api/AIReport/${id}`, { headers });
-                
+
                 // 处理后端返回 200 但提示“找不到记录”的情况，或者 404
                 let data = null;
                 if (response.ok) {

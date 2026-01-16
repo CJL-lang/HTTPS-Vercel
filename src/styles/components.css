@@ -382,7 +382,7 @@
 
   /* 报告进度填充 */
   .report-progress-fill {
-    @apply h-full bg-gradient-to-r from-[#d4af37]/40 to-[#d4af37] rounded-full shadow-[0_0_8px_rgba(212,175,55,0.4)];
+    @apply h-full bg-gradient-to-r from-[#d4af37]/40 to-[#d4af37] rounded-full shadow-[0_0_8px_rgba(212, 175, 55, 0.4)];
   }
 
   /* 报告底部信息 */
@@ -678,9 +678,11 @@
 
   /* 等级选择器下拉菜单（更小的宽度，确保能完整显示） */
   .title-selector-dropdown.grade-dropdown {
-    width: 5rem; /* w-20 = 5rem = 80px */
+    width: 5rem;
+    /* w-20 = 5rem = 80px */
     min-width: 80px;
-    max-height: 180px; /* 限制最大高度，确保不超出容器 */
+    max-height: 180px;
+    /* 限制最大高度，确保不超出容器 */
     z-index: 9999 !important;
   }
 
@@ -694,7 +696,8 @@
 
   /* 等级选择器滚动容器 - 更小的高度限制，确保不超出容器 */
   .grade-dropdown .dropdown-scroll-container {
-    max-height: 200px; /* 技能测评 L1-L9 需要更多空间，限制高度确保不超出容器 */
+    max-height: 200px;
+    /* 技能测评 L1-L9 需要更多空间，限制高度确保不超出容器 */
     overflow-y: auto;
     overflow-x: hidden;
   }
@@ -884,7 +887,8 @@
 
   /* 等级选择器滚动容器 - 更小的高度限制 */
   .grade-dropdown .dropdown-scroll-container {
-    max-height: 160px; /* 限制高度，确保不超出容器 */
+    max-height: 160px;
+    /* 限制高度，确保不超出容器 */
     overflow-y: auto;
   }
 
@@ -1124,18 +1128,18 @@
   object-fit: contain;
   /* 使用 clip-path 从下到上显示，初始状态完全隐藏 */
   clip-path: inset(100% 0 0 0);
-  animation: logoProgressFill 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  /* 10秒动画，对应 JS 中的 10秒等待 */
+  animation: logoProgressFill 10s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes logoProgressFill {
-  from {
+  0% {
     clip-path: inset(100% 0 0 0);
-    /* 从底部开始，完全隐藏 */
   }
 
-  to {
-    clip-path: inset(0% 0 0 0);
-    /* 显示完整logo */
+  /* 在动画结束时到达 95% (即 inset 5%)，给最后生成留出 5% 的空间 */
+  100% {
+    clip-path: inset(5% 0 0 0);
   }
 }
 
