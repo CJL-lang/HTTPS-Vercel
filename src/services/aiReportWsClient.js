@@ -96,17 +96,41 @@ function emit(event) {
 
 function buildWsUrl({ wsPath, params }) {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
+  
+  // 处理 Vercel 预览环境的域名格式（去除 https- 前缀）
+  let host = window.location.host;
+  if (host.startsWith('https-')) {
+    host = host.replace(/^https-/, '');
+  }
+  
   // wsPath can be:
   // - absolute: ws://... or wss://...
   // - absolute http(s) url (rare, but accept)
   // - relative path starting with '/'
-  const base =
-    typeof wsPath === 'string' && (wsPath.startsWith('ws://') || wsPath.startsWith('wss://'))
-      ? wsPath
-      : typeof wsPath === 'string' && (wsPath.startsWith('http://') || wsPath.startsWith('https://'))
-        ? wsPath.replace(/^http(s?):/i, protocol)
-        : `${protocol}//${host}${wsPath}`;
+  let base;
+  if (typeof wsPath === 'string' && (wsPath.startsWith('ws://') || wsPath.startsWith('wss://'))) {
+    // 已经是完整的 WebSocket URL，直接使用
+    base = wsPath;
+  } else if (typeof wsPath === 'string' && (wsPath.startsWith('http://') || wsPath.startsWith('https://'))) {
+    // HTTP/HTTPS URL，转换为 WebSocket
+    base = wsPath.replace(/^http(s?):/i, protocol);
+  } else {
+    // 相对路径：需要直接连接到后端，不能通过 Vercel rewrites
+    // 优先使用环境变量配置的后端地址
+    const backendWsUrl = import.meta.env.VITE_WS_BASE_URL;
+    if (backendWsUrl) {
+      const cleanBase = backendWsUrl.endsWith('/') ? backendWsUrl.slice(0, -1) : backendWsUrl;
+      // 确保使用正确的协议
+      const wsBase = backendWsUrl.startsWith('ws://') || backendWsUrl.startsWith('wss://') 
+        ? cleanBase 
+        : `${protocol}//${cleanBase.replace(/^https?:\/\//, '')}`;
+      base = `${wsBase}${wsPath}`;
+    } else {
+      // 如果没有配置环境变量，尝试使用当前域名（但 Vercel 不支持 WebSocket rewrites）
+      // 这种情况下会失败，建议配置 VITE_WS_BASE_URL
+      base = `${protocol}//${host}${wsPath}`;
+    }
+  }
 
   const search = new URLSearchParams();
   Object.entries(params || {}).forEach(([k, v]) => {
