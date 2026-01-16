@@ -8,7 +8,7 @@ import RadarChart from '../../components/reports/RadarChart';
 import { createAssessment } from '../assessment/utils/assessmentApi';
 import { diagnosesToRadarGradeData } from '../../utils/diagnosesToRadar';
 import { createAIReport, getBackendLang } from './utils/aiReportApi';
-import { onAIReportWsEvent } from '../../services/aiReportWsClient';
+import { clearAIReportGenerating, isAIReportGenerating, onAIReportWsEvent } from '../../services/aiReportWsClient';
 
 const SkillsReportDetailPage = ({ onBack, student }) => {
     const { t } = useLanguage();
@@ -16,7 +16,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const passedTitle = location.state?.title || location.state?.assessmentData?.title;
-    const initialWaitingForAiReport = Boolean(location.state?.aiReportGenerating);
+    const initialWaitingForAiReport = Boolean(location.state?.aiReportGenerating) || isAIReportGenerating(id);
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isTrackmanDataExpanded, setIsTrackmanDataExpanded] = useState(false);
@@ -153,25 +153,16 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 }
 
                 if (response.status === 404 || (data && data.message === '找不到记录')) {
-                    console.log('[SkillsReportDetailPage] AI report not found, creating empty report');
-                    const { createAIReport } = await import('./utils/aiReportApi');
-
-                    // 创建空的 AI 报告
-                    const created = await createAIReport(id);
-                    if (created) {
-                        console.log('[SkillsReportDetailPage] Empty AI report created, reloading...');
-                        // 重新加载报告数据
-                        setReloadToken(token => token + 1);
-                        return;
-                    } else {
-                        console.error('[SkillsReportDetailPage] Failed to create AI report');
-                        setReportData(null);
-                        setLoading(false);
-                        return;
-                    }
+                    // 不再在详情页自动触发生成：避免多人/刷新时重复创建任务
+                    setReportData(null);
+                    setLoading(false);
+                    return;
                 }
 
                 if (!response.ok) throw new Error('Failed to fetch AI report data');
+
+                // 后端已能返回报告，则清理本地“正在生成”标记
+                clearAIReportGenerating(id, 'backend-fetched');
 
                 // Fetch diagnoses grades for radar chart
                 let diagnosesGradeData = null;

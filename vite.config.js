@@ -11,15 +11,25 @@ export default defineConfig({
         strictPort: false, // 如果端口被占用，自动尝试下一个可用端口
         proxy: {
             '/api': {
-                target: 'http://localhost:8080',
+                target: 'https://unwisely-unaudited-lovetta.ngrok-free.dev',
                 changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api/, '')
+                rewrite: (path) => path.replace(/^\/api/, ''),
+                configure: (proxy) => {
+                    proxy.on('proxyReq', (proxyReq) => {
+                        proxyReq.setHeader('ngrok-skip-browser-warning', 'true')
+                    })
+                }
             },
             // WebSocket proxy: backend WS hub (e.g. /ws/ai-report/:ass_id)
             '/ws': {
-                target: 'http://localhost:8080',
+                target: 'wss://unwisely-unaudited-lovetta.ngrok-free.dev',
                 changeOrigin: true,
-                ws: true
+                ws: true,
+                configure: (proxy) => {
+                    proxy.on('proxyReq', (proxyReq) => {
+                        proxyReq.setHeader('ngrok-skip-browser-warning', 'true')
+                    })
+                }
             },
             // 百度语音识别 API 代理
             '/baidu-token': {
