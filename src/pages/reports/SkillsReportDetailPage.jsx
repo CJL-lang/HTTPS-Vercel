@@ -26,6 +26,8 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
     const [isCreatingAIReport, setIsCreatingAIReport] = useState(false);
     const [isWaitingForAiReport, setIsWaitingForAiReport] = useState(initialWaitingForAiReport);
     const [aiReportFetchEnabled, setAiReportFetchEnabled] = useState(!initialWaitingForAiReport);
+    const [skipLogoLoading, setSkipLogoLoading] = useState(false);
+    const [isCompletingProgress, setIsCompletingProgress] = useState(false);
     const [showComparison, setShowComparison] = useState(false);
     const [oldReportData, setOldReportData] = useState(null);
     const [newReportData, setNewReportData] = useState(null);
@@ -110,9 +112,14 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
             if (event?.status === 'success') {
                 setAiReportFetchEnabled(true);
-                setIsWaitingForAiReport(false);
-                setLoading(true);
-                setReloadToken((x) => x + 1);
+                setIsCompletingProgress(true);
+                setTimeout(() => {
+                    setIsWaitingForAiReport(false);
+                    setIsCompletingProgress(false);
+                    setSkipLogoLoading(true);
+                    setLoading(true);
+                    setReloadToken((x) => x + 1);
+                }, 600);
                 return;
             }
 
@@ -949,7 +956,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
         }
     };
 
-    if (loading || isWaitingForAiReport) {
+    if (isWaitingForAiReport || isCompletingProgress || (loading && !skipLogoLoading)) {
         return (
             <div className="min-h-screen text-white p-6 flex items-center justify-center bg-transparent">
                 <div className="text-center">
@@ -964,7 +971,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                         <img
                             src="/logo.png"
                             alt="Logo"
-                            className="logo-progress-fill"
+                            className={`logo-progress-fill${isCompletingProgress ? ' logo-progress-fill--complete' : ''}`}
                         />
                     </div>
                     <h2 className="text-2xl font-black text-white mb-2">
@@ -985,6 +992,16 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                             </button>
                         </div>
                     ) : null}
+                </div>
+            </div>
+        );
+    }
+
+    if (loading && skipLogoLoading) {
+        return (
+            <div className="min-h-screen text-white p-6 flex items-center justify-center bg-transparent">
+                <div className="text-center animate-pulse">
+                    <p className="text-white/70 text-sm">正在加载报告...</p>
                 </div>
             </div>
         );

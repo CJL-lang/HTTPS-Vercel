@@ -120,18 +120,18 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
             const targetStep = savedStep ?? (record.currentStep ?? 0);
             if (navigate) {
                 navigate(`/add-record/physical/${stepMap[targetStep]}`,
-                {
-                    state: {
-                        student,
-                        assessmentData: {
-                            id: record.id,
-                            assessment_id: record.id,
-                            title: record.title,
-                            mode: 'single',
-                            type: 'physical'
+                    {
+                        state: {
+                            student,
+                            assessmentData: {
+                                id: record.id,
+                                assessment_id: record.id,
+                                title: record.title,
+                                mode: 'single',
+                                type: 'physical'
+                            }
                         }
-                    }
-                });
+                    });
             }
         } else if (navigate) {
             // 跳转到已完成报告的详情页
@@ -217,60 +217,60 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
                                 record?.has_ai_report === true;
                             const generating = isAIReportGenerating(record?.id) && !backendCompleted;
                             return (
-                        <div
-                            key={record.id}
-                            onClick={() => handleRecordClick(record)}
-                            className={`relative group overflow-hidden rounded-2xl sm:rounded-[32px] p-4 sm:p-6 text-left transition-all duration-500 border border-[#d4af37]/30 surface-strong hover:border-[#d4af37]/60 shadow-2xl shadow-black/50 cursor-pointer ${record.status === 'draft'
-                                ? ''
-                                : ''
-                                }`}
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="px-2 sm:px-3 py-1 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/20">
-                                    <span className="text-[11px] sm:text-xs font-bold text-[#d4af37] tracking-wider">
-                                        {new Date(record.lastModified || record.completedAt).toLocaleDateString('zh-CN')}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {generating ? (
-                                        <>
-                                            <Clock className="w-4 h-4 text-yellow-400" />
-                                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
-                                                正在生成报告
+                                <div
+                                    key={record.id}
+                                    onClick={() => handleRecordClick(record)}
+                                    className={`relative group overflow-hidden rounded-2xl sm:rounded-[32px] p-4 sm:p-6 text-left transition-all duration-500 border border-[#d4af37]/30 surface-strong hover:border-[#d4af37]/60 shadow-2xl shadow-black/50 cursor-pointer ${record.status === 'draft'
+                                        ? ''
+                                        : ''
+                                        }`}
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="px-2 sm:px-3 py-1 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/20">
+                                            <span className="text-[11px] sm:text-xs font-bold text-[#d4af37] tracking-wider">
+                                                {new Date(record.lastModified || record.completedAt).toLocaleDateString('zh-CN')}
                                             </span>
-                                        </>
-                                    ) : record.status === 'draft' ? (
-                                        <>
-                                            <Clock className="w-4 h-4 text-yellow-400" />
-                                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
-                                                {t('statusPending')}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckCircle className="w-4 h-4 text-green-400" />
-                                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-green-400">
-                                                {t('statusCompleted')}
-                                            </span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {generating ? (
+                                                <>
+                                                    <Clock className="w-4 h-4 text-yellow-400" />
+                                                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
+                                                        正在生成报告
+                                                    </span>
+                                                </>
+                                            ) : record.status === 'draft' ? (
+                                                <>
+                                                    <Clock className="w-4 h-4 text-yellow-400" />
+                                                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
+                                                        {t('statusPending')}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="w-4 h-4 text-green-400" />
+                                                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-green-400">
+                                                        {t('statusCompleted')}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
 
-                            <div className="flex items-end justify-between">
-                                <h3 className="text-base sm:text-lg font-bold text-white/90 max-w-[60%] leading-tight uppercase tracking-tight">
-                                    {record.title || t('physicalAssessment')}
-                                </h3>
-                                <div className="flex items-center gap-3">
-                                    <button className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-white/10 hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all group">
-                                        <span className="text-xs sm:text-sm font-bold text-white/60 group-hover:text-white transition-colors">
-                                            {record.status === 'draft' ? t('continue') : t('view')}
-                                        </span>
-                                        <ChevronRight className="w-4 h-4 text-[#d4af37] opacity-40 group-hover:opacity-100 transition-opacity" />
-                                    </button>
+                                    <div className="flex items-end justify-between">
+                                        <h3 className="text-base sm:text-lg font-bold text-white/90 max-w-[60%] leading-tight uppercase tracking-tight">
+                                            {record.title || t('physicalAssessment')}
+                                        </h3>
+                                        <div className="flex items-center gap-3">
+                                            <button className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-white/10 hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all group">
+                                                <span className="text-xs sm:text-sm font-bold text-white/60 group-hover:text-white transition-colors">
+                                                    {record.status === 'draft' ? t('continue') : t('view')}
+                                                </span>
+                                                <ChevronRight className="w-4 h-4 text-[#d4af37] opacity-40 group-hover:opacity-100 transition-opacity" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
                             );
                         })()
                     ))
