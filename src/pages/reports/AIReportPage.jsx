@@ -153,7 +153,8 @@ const AIReportPage = ({ onBack }) => {
     const [isGenerating, setIsGenerating] = useState(true);
 
     useEffect(() => {
-        const timer = setTimeout(() => setIsGenerating(false), 1600);
+        // 强制等待至少 10 秒，满足"如果没到10秒...也要等到第10秒"
+        const timer = setTimeout(() => setIsGenerating(false), 10000);
         return () => clearTimeout(timer);
     }, []);
 
