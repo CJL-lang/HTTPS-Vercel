@@ -45,7 +45,15 @@
                 },
                 {
                     "key": "Access-Control-Allow-Headers",
-                    "value": "Content-Type, Authorization"
+                    "value": "Content-Type, Authorization, ngrok-skip-browser-warning, X-Requested-With"
+                },
+                {
+                    "key": "Access-Control-Allow-Credentials",
+                    "value": "true"
+                },
+                {
+                    "key": "Access-Control-Max-Age",
+                    "value": "3600"
                 }
             ]
         },

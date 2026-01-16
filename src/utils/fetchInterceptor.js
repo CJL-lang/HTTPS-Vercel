@@ -103,7 +103,7 @@ export const setupFetchInterceptor = (onUnauthorized, getToken) => {
             // 保持原始错误抛出，不破坏业务逻辑的 catch
             throw error;
         }
-    };
+    };      
 
     // 返回还原函数
     return () => {
