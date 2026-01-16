@@ -7,8 +7,6 @@
  * 3. 防抖/锁机制：防止多个并发请求失效时重复触发登出
  * 4. 白名单机制：支持排除特定接口
  * 5. 防止重复注册
- * 6. CORS 错误检测和处理提示
- * 7. 自动注入必要的 CORS 相关 headers
  */
 
 // 拦截器状态锁
@@ -67,18 +65,6 @@ export const setupFetchInterceptor = (onUnauthorized, getToken) => {
             }
         }
 
-        // 2.3 对于非简单请求，确保 Content-Type 正确设置
-        // 非简单请求包括：PUT, DELETE, PATCH, 以及使用 application/json 的 POST
-        const isNonSimpleRequest = ['PUT', 'DELETE', 'PATCH'].includes(method) ||
-            (method === 'POST' && headers.get('Content-Type')?.includes('application/json'));
-
-        if (isNonSimpleRequest && !headers.has('Content-Type')) {
-            // 如果请求体存在且是对象，自动设置 Content-Type
-            if (init.body && typeof init.body === 'object' && !(init.body instanceof FormData)) {
-                headers.set('Content-Type', 'application/json');
-            }
-        }
-
         init.headers = headers;
 
         // DEBUG: log outgoing request for troubleshooting
@@ -112,29 +98,8 @@ export const setupFetchInterceptor = (onUnauthorized, getToken) => {
                 }
             }
 
-            // 4. 检测 CORS 相关错误（虽然 fetch 不会抛出 CORS 错误，但可以检测异常响应）
-            // 如果响应状态为 0 且不是真正的网络错误，可能是 CORS 问题
-            if (response.status === 0 && response.type === 'opaque') {
-                console.warn('[Fetch Interceptor] 可能的 CORS 错误:', {
-                    url,
-                    method,
-                    hint: '请检查后端 CORS 配置，确保支持 OPTIONS 预检请求'
-                });
-            }
-
             return response;
         } catch (error) {
-            // 5. 捕获网络错误和 CORS 错误
-            // CORS 错误通常表现为 TypeError: Failed to fetch
-            if (error instanceof TypeError && error.message.includes('fetch')) {
-                console.error('[Fetch Interceptor] 请求失败，可能是 CORS 或网络问题:', {
-                    url,
-                    method,
-                    error: error.message,
-                    hint: '请检查：1) 后端是否支持 CORS 2) 是否支持 OPTIONS 预检请求 3) 网络连接是否正常'
-                });
-            }
-
             // 保持原始错误抛出，不破坏业务逻辑的 catch
             throw error;
         }

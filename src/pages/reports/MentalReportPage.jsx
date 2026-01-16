@@ -13,6 +13,16 @@ import { loadAssessmentStep } from '../assessment/utils/assessmentProgress';
 import { useToast } from '../../components/toast/ToastProvider';
 import { clearAIReportGenerating, hasAIReportReadyHint, isAIReportGenerating } from '../../services/aiReportWsClient';
 
+const parseJsonResponse = async (res, contextLabel) => {
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+        const text = await res.text().catch(() => '');
+        const snippet = text ? text.slice(0, 200) : '';
+        throw new Error(`${contextLabel}: Expected JSON but got ${contentType || 'unknown'} ${snippet}`);
+    }
+    return res.json();
+};
+
 const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const { id } = useParams();
     const { t, language } = useLanguage();
@@ -47,33 +57,35 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                 const res = await fetch(`/api/assessments/${targetId}?type=1`, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    // 映射后端字段到前端格式
-                    completed = (data || []).map(c => ({
-                        has_ai_report: c.has_ai_report,
-                        id: c.assessment_id, // 后端返回的是 assessment_id
-                        title: c.title,
-                        status:
-                            (c.has_ai_report === 1 || c.has_ai_report === true || c.ai_report_id || c.aiReportId)
-                                ? 'completed'
-                                : (c.status === '已完成' ? 'completed' : 'draft'),
-                        date: new Date(c.timestamp).toLocaleDateString(),
-                        completedAt: c.timestamp,
-                        currentStep: c.status === '已完成' ? 3 : 0
-                    }));
-
-                    // 后端已显示完成时，兜底清理本地“正在生成”标记，避免列表长期卡住
-                    completed.forEach((item) => {
-                        const backendCompleted =
-                            item?.status === 'completed' ||
-                            item?.has_ai_report === 1 ||
-                            item?.has_ai_report === true;
-                        if (backendCompleted && isAIReportGenerating(item?.id)) {
-                            clearAIReportGenerating(item.id, 'backend-completed');
-                        }
-                    });
+                if (!res.ok) {
+                    const text = await res.text().catch(() => '');
+                    throw new Error(`Fetch mental assessments failed: ${res.status} ${res.statusText} ${text.slice(0, 200)}`);
                 }
+                const data = await parseJsonResponse(res, 'Fetch mental assessments');
+                // 映射后端字段到前端格式
+                completed = (data || []).map(c => ({
+                    has_ai_report: c.has_ai_report,
+                    id: c.assessment_id, // 后端返回的是 assessment_id
+                    title: c.title,
+                    status:
+                        (c.has_ai_report === 1 || c.has_ai_report === true || c.ai_report_id || c.aiReportId)
+                            ? 'completed'
+                            : (c.status === '已完成' ? 'completed' : 'draft'),
+                    date: new Date(c.timestamp).toLocaleDateString(),
+                    completedAt: c.timestamp,
+                    currentStep: c.status === '已完成' ? 3 : 0
+                }));
+
+                // 后端已显示完成时，兜底清理本地“正在生成”标记，避免列表长期卡住
+                completed.forEach((item) => {
+                    const backendCompleted =
+                        item?.status === 'completed' ||
+                        item?.has_ai_report === 1 ||
+                        item?.has_ai_report === true;
+                    if (backendCompleted && isAIReportGenerating(item?.id)) {
+                        clearAIReportGenerating(item.id, 'backend-completed');
+                    }
+                });
             } catch (error) {
                 console.error("Fetch mental assessments error:", error);
             } finally {
@@ -120,18 +132,18 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
             const targetStep = savedStep ?? (record.currentStep ?? 0);
             if (navigate) {
                 navigate(`/add-record/mental/${stepMap[targetStep]}`,
-                {
-                    state: {
-                        student,
-                        assessmentData: {
-                            id: record.id,
-                            assessment_id: record.id,
-                            title: record.title,
-                            mode: 'single',
-                            type: 'mental'
+                    {
+                        state: {
+                            student,
+                            assessmentData: {
+                                id: record.id,
+                                assessment_id: record.id,
+                                title: record.title,
+                                mode: 'single',
+                                type: 'mental'
+                            }
                         }
-                    }
-                });
+                    });
             }
         } else if (navigate) {
             // 跳转到已完成报告的详情页
@@ -217,66 +229,66 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                 record?.has_ai_report === true;
                             const generating = isAIReportGenerating(record?.id) && !backendCompleted;
                             return (
-                        <div
-                            key={record.id}
-                            onClick={() => handleRecordClick(record)}
-                            className={`relative group overflow-hidden rounded-2xl sm:rounded-[32px] p-4 sm:p-6 text-left transition-all duration-500 border border-[#d4af37]/30 surface-strong hover:border-[#d4af37]/60 shadow-2xl shadow-black/50 cursor-pointer ${record.status === 'draft'
-                                ? ''
-                                : ''
-                                }`}
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="px-2 sm:px-3 py-1 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/20">
-                                    <span className="text-[11px] sm:text-xs font-bold text-[#d4af37] tracking-wider">
-                                        {new Date(record.lastModified || record.completedAt).toLocaleDateString('zh-CN')}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {generating ? (
-                                        <>
-                                            <Clock className="w-4 h-4 text-yellow-400" />
-                                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
-                                                正在生成报告
+                                <div
+                                    key={record.id}
+                                    onClick={() => handleRecordClick(record)}
+                                    className={`relative group overflow-hidden rounded-2xl sm:rounded-[32px] p-4 sm:p-6 text-left transition-all duration-500 border border-[#d4af37]/30 surface-strong hover:border-[#d4af37]/60 shadow-2xl shadow-black/50 cursor-pointer ${record.status === 'draft'
+                                        ? ''
+                                        : ''
+                                        }`}
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="px-2 sm:px-3 py-1 rounded-xl bg-[#d4af37]/10 border border-[#d4af37]/20">
+                                            <span className="text-[11px] sm:text-xs font-bold text-[#d4af37] tracking-wider">
+                                                {new Date(record.lastModified || record.completedAt).toLocaleDateString('zh-CN')}
                                             </span>
-                                        </>
-                                    ) : record.status === 'draft' ? (
-                                        <>
-                                            <Clock className="w-4 h-4 text-yellow-400" />
-                                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
-                                                {t('statusPending')}
-                                            </span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckCircle className="w-4 h-4 text-green-400" />
-                                            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-green-400">
-                                                {t('statusCompleted')}
-                                            </span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex items-end justify-between">
-                                <h3 className="text-base sm:text-lg font-bold text-white/90 max-w-[60%] leading-tight uppercase tracking-tight">
-                                    {record.title || t('mentalAssessment')}
-                                </h3>
-                                <div className="flex items-center gap-3">
-                                    {record.has_ai_report === 1 && (
-                                        <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/20 border border-purple-500/30">
-                                            <Brain className="w-3 h-3 text-purple-400" />
-                                            <span className="text-[11px] font-bold text-purple-400 uppercase">AI</span>
                                         </div>
-                                    )}
-                                    <button className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-white/10 hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all group">
-                                        <span className="text-xs sm:text-sm font-bold text-white/60 group-hover:text-white transition-colors">
-                                            {record.status === 'draft' ? t('continue') : t('view')}
-                                        </span>
-                                        <ChevronRight className="w-4 h-4 text-[#d4af37] opacity-40 group-hover:opacity-100 transition-opacity" />
-                                    </button>
+                                        <div className="flex items-center gap-2">
+                                            {generating ? (
+                                                <>
+                                                    <Clock className="w-4 h-4 text-yellow-400" />
+                                                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
+                                                        正在生成报告
+                                                    </span>
+                                                </>
+                                            ) : record.status === 'draft' ? (
+                                                <>
+                                                    <Clock className="w-4 h-4 text-yellow-400" />
+                                                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
+                                                        {t('statusPending')}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="w-4 h-4 text-green-400" />
+                                                    <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-green-400">
+                                                        {t('statusCompleted')}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-end justify-between">
+                                        <h3 className="text-base sm:text-lg font-bold text-white/90 max-w-[60%] leading-tight uppercase tracking-tight">
+                                            {record.title || t('mentalAssessment')}
+                                        </h3>
+                                        <div className="flex items-center gap-3">
+                                            {record.has_ai_report === 1 && (
+                                                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/20 border border-purple-500/30">
+                                                    <Brain className="w-3 h-3 text-purple-400" />
+                                                    <span className="text-[11px] font-bold text-purple-400 uppercase">AI</span>
+                                                </div>
+                                            )}
+                                            <button className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-white/10 hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all group">
+                                                <span className="text-xs sm:text-sm font-bold text-white/60 group-hover:text-white transition-colors">
+                                                    {record.status === 'draft' ? t('continue') : t('view')}
+                                                </span>
+                                                <ChevronRight className="w-4 h-4 text-[#d4af37] opacity-40 group-hover:opacity-100 transition-opacity" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
                             );
                         })()
                     ))
