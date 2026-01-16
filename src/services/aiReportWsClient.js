@@ -80,6 +80,10 @@ export function isAIReportGenerating(assessmentId) {
   return Boolean(getPersistedJobMeta(assessmentId));
 }
 
+export function clearAIReportGenerating(assessmentId, _reason = 'reconciled') {
+  clearJobMeta(assessmentId);
+}
+
 function emit(event) {
   listeners.forEach((listener) => {
     try {

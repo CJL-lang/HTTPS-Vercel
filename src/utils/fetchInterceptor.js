@@ -43,21 +43,29 @@ export const setupFetchInterceptor = (onUnauthorized, getToken) => {
         // 检查是否在白名单中
         const isWhitelisted = AUTH_WHITELIST.some(path => url.includes(path));
 
-        // 2. 统一注入 Authorization Header
-        // 只有不在白名单且有 token 时才注入
+        // 2. 统一注入 Headers
+        // 兼容 Headers 对象或普通对象
+        const headers = init.headers instanceof Headers 
+            ? init.headers 
+            : new Headers(init.headers || {});
+        
+        // 2.1 注入 Authorization Header（只有不在白名单且有 token 时才注入）
         const token = getToken();
         if (token && !isWhitelisted) {
-            // 兼容 Headers 对象或普通对象
-            const headers = init.headers instanceof Headers 
-                ? init.headers 
-                : new Headers(init.headers || {});
-            
             if (!headers.has('Authorization')) {
                 headers.set('Authorization', `Bearer ${token}`);
             }
-            
-            init.headers = headers;
         }
+        
+        // 2.2 注入 ngrok-skip-browser-warning header（用于 ngrok 后端）
+        // 检查是否是 API 请求（转发到 ngrok 后端）
+        if (url.startsWith('/api/') || url.startsWith('/ws/')) {
+            if (!headers.has('ngrok-skip-browser-warning')) {
+                headers.set('ngrok-skip-browser-warning', 'true');
+            }
+        }
+        
+        init.headers = headers;
 
         // DEBUG: log outgoing request for troubleshooting
         try {

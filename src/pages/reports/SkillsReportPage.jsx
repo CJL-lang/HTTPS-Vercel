@@ -11,7 +11,7 @@ import { useLanguage } from '../../utils/LanguageContext';
 import { createAssessment } from '../assessment/utils/assessmentApi';
 import { loadAssessmentStep } from '../assessment/utils/assessmentProgress';
 import { useToast } from '../../components/toast/ToastProvider';
-import { hasAIReportReadyHint, isAIReportGenerating } from '../../services/aiReportWsClient';
+import { clearAIReportGenerating, hasAIReportReadyHint, isAIReportGenerating } from '../../services/aiReportWsClient';
 
 const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const { id } = useParams();
@@ -62,6 +62,17 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                         completedAt: c.timestamp,
                         currentStep: c.status === '已完成' ? 3 : 0
                     }));
+
+                    // 后端已显示完成时，兜底清理本地“正在生成”标记，避免列表长期卡住
+                    completed.forEach((item) => {
+                        const backendCompleted =
+                            item?.status === 'completed' ||
+                            item?.has_ai_report === 1 ||
+                            item?.has_ai_report === true;
+                        if (backendCompleted && isAIReportGenerating(item?.id)) {
+                            clearAIReportGenerating(item.id, 'backend-completed');
+                        }
+                    });
                 }
             } catch (error) {
                 console.error("Fetch skills assessments error:", error);
@@ -79,7 +90,16 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     }, [user?.token, student?.id]);
 
     const handleRecordClick = (record) => {
-        if (isAIReportGenerating(record?.id)) {
+        const backendCompleted =
+            record?.status === 'completed' ||
+            record?.has_ai_report === 1 ||
+            record?.has_ai_report === true;
+
+        if (backendCompleted && record?.id) {
+            clearAIReportGenerating(record.id, 'backend-completed');
+        }
+
+        if (isAIReportGenerating(record?.id) && !backendCompleted) {
             addToast({
                 kind: 'info',
                 title: '报告正在生成请勿重复点击',
@@ -192,7 +212,11 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                 ) : (
                     records.map((record) => (
                         (() => {
-                            const generating = isAIReportGenerating(record?.id);
+                            const backendCompleted =
+                                record?.status === 'completed' ||
+                                record?.has_ai_report === 1 ||
+                                record?.has_ai_report === true;
+                            const generating = isAIReportGenerating(record?.id) && !backendCompleted;
                             return (
                         <div
                             key={record.id}

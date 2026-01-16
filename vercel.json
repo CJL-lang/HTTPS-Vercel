@@ -1,0 +1,70 @@
+{
+    "version": 2,
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "devCommand": "npm run dev",
+    "installCommand": "npm install",
+    "framework": "vite",
+    "rewrites": [
+        {
+            "source": "/api/:path*",
+            "destination": "https://unwisely-unaudited-lovetta.ngrok-free.dev/:path*"
+        },
+        {
+            "source": "/ws/:path*",
+            "destination": "https://unwisely-unaudited-lovetta.ngrok-free.dev/ws/:path*"
+        },
+        {
+            "source": "/baidu-token",
+            "destination": "https://aip.baidubce.com/oauth/2.0/token"
+        },
+        {
+            "source": "/baidu-asr",
+            "destination": "https://vop.baidu.com/server_api"
+        },
+        {
+            "source": "/baidu-tts",
+            "destination": "https://tsn.baidu.com/text2audio"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/api/(.*)",
+            "headers": [
+                {
+                    "key": "Access-Control-Allow-Origin",
+                    "value": "*"
+                },
+                {
+                    "key": "Access-Control-Allow-Methods",
+                    "value": "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+                },
+                {
+                    "key": "Access-Control-Allow-Headers",
+                    "value": "Content-Type, Authorization"
+                }
+            ]
+        },
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "X-Content-Type-Options",
+                    "value": "nosniff"
+                },
+                {
+                    "key": "X-Frame-Options",
+                    "value": "DENY"
+                },
+                {
+                    "key": "X-XSS-Protection",
+                    "value": "1; mode=block"
+                }
+            ]
+        }
+    ]
+}
