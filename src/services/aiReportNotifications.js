@@ -17,8 +17,15 @@ function buildTitle({ status, assessmentType, title, payload }) {
   const safeTitle = (title || '').toString().trim();
   const variant = getVariantLabel(payload);
 
-  const namePart = safeTitle ? `「${safeTitle}」` : '';
+  const namePart = safeTitle ? `${safeTitle}` : '';
   const variantPart = variant ? `（${variant}）` : '';
+
+  // Prefer the concrete assessment title if available.
+  if (safeTitle) {
+    if (status === 'success') return `${namePart}${variantPart}生成完毕`;
+    if (status === 'timeout') return `${namePart}${variantPart}生成超时`;
+    return `${namePart}${variantPart}生成失败`;
+  }
 
   if (status === 'success') return `${label}报告${namePart}${variantPart}生成完毕`;
   if (status === 'timeout') return `${label}报告${namePart}${variantPart}生成超时`;
