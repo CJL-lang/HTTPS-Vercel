@@ -61,7 +61,7 @@ export default function App() {
                 }
 
                 // 验证token是否有效 - 使用一个轻量级的API调用
-                const response = await fetch('/api/students', {
+                const response = await fetch('/api/relatedStudents', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ export default function App() {
     const refreshStudents = React.useCallback(async () => {
         if (!isLoggedIn || !currentUser?.token) return;
         try {
-            const response = await fetch('/api/students', {
+            const response = await fetch('/api/relatedStudents', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

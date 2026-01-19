@@ -1,8 +1,9 @@
 /**
  * Reports API helpers (AIReport).
  *
- * Backend is proxied by Vite:
- * - /api/* -> http://192.168.31.233:8080/*
+ * Backend is proxied:
+ * - dev: Vite proxy (/api/*)
+ * - prod: hosting rewrites (e.g. Vercel)
  */
 
 import { getBackendLanguage } from '../../../utils/language';

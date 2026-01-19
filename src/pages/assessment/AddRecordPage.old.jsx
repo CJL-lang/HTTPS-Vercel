@@ -473,7 +473,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
     const savePlanToBackend = async (type, content, currentId) => {
         if (!user?.token) return null;
         try {
-            const response = await fetch('http://192.168.31.233:8080/plans', {
+            const response = await fetch('/api/plans', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -505,7 +505,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
             if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
 
             const candidateUrls = [
-                'http://192.168.31.233:8080/diagnosis' // alternate route bound to same handler
+                '/api/diagnosis' // alternate route bound to same handler
             ];
 
             // If there's no token, avoid calling protected endpoints that will return 401
@@ -691,7 +691,7 @@ const AddRecordPage = ({ onBack, initialPrimary = 0, initialSecondary = 0, asses
                     return;
                 }
 
-                const response = await fetch('http://192.168.31.233:8080/figuredata', {
+                const response = await fetch('/api/figuredata', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

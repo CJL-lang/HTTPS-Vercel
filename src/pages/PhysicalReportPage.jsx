@@ -25,7 +25,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord }) => {
         const fetchStykuData = async () => {
             try {
                 const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const response = await fetch(`http://192.168.31.233:8080/students/${studentId}/styku`, {
+                const response = await fetch(`/api/students/${studentId}/styku`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

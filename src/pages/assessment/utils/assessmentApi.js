@@ -2,7 +2,7 @@
  * 测评相关 API 调用
  */
 
-import { pickLocalizedContent } from '../../../utils/language';
+import { pickLocalizedContent, toBackendLanguage, getBackendLanguage } from '../../../utils/language';
 
 const buildDefaultGoalTitle = (index, language = 'cn') => {
     const cnStageNames = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
@@ -32,8 +32,10 @@ const normalizeGoalItem = (item, index, language = 'cn') => {
     return { title, content };
 };
 
-export const saveGoalToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
+export const saveGoalToBackend = async (type, content, currentId, user, studentId, language) => {
     if (!user?.token || !currentId) return null;
+
+    const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
 
     if (!content || (Array.isArray(content) && content.length === 0)) {
         return null;
@@ -45,7 +47,7 @@ export const saveGoalToBackend = async (type, content, currentId, user, studentI
 
         // 格式化内容数组：保留用户自定义 title；缺失时按阶段生成默认 title
         const formattedContent = (Array.isArray(content) ? content : [])
-            .map((item, index) => normalizeGoalItem(item, index, language))
+            .map((item, index) => normalizeGoalItem(item, index, backendLang))
             .filter(item => item.content.trim() !== '');
 
         if (formattedContent.length === 0) return currentId;
@@ -54,7 +56,7 @@ export const saveGoalToBackend = async (type, content, currentId, user, studentI
             assessment_id: currentId,
             type: goalType,
             content: formattedContent,
-            language: language
+            language: backendLang
         };
 
         const response = await fetch('/api/goals', {
@@ -79,8 +81,10 @@ export const saveGoalToBackend = async (type, content, currentId, user, studentI
     }
 };
 
-export const savePlanToBackend = async (type, content, currentId, user, studentId, title = '', language = 'cn') => {
+export const savePlanToBackend = async (type, content, currentId, user, studentId, title = '', language) => {
     if (!user?.token || !currentId) return null;
+
+    const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
 
     try {
         // 格式化内容数组，过滤掉空 title 和空 content 的项
@@ -96,7 +100,7 @@ export const savePlanToBackend = async (type, content, currentId, user, studentI
         const requestBody = {
             assessment_id: currentId,
             content: formattedContent,
-            language: language
+            language: backendLang
         };
 
         const response = await fetch('/api/plans', {
@@ -121,8 +125,9 @@ export const savePlanToBackend = async (type, content, currentId, user, studentI
     return null;
 };
 
-export const saveDiagnosisToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
+export const saveDiagnosisToBackend = async (type, content, currentId, user, studentId, language) => {
     try {
+        const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
         const headers = { 'Content-Type': 'application/json' };
         if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
 
@@ -137,7 +142,7 @@ export const saveDiagnosisToBackend = async (type, content, currentId, user, stu
         const requestBody = {
             assessment_id: currentId || '',
             content: formattedContent,
-            language: language
+            language: backendLang
         };
 
         console.log('[API] POST /diagnosis payload:', requestBody);
@@ -202,10 +207,11 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
 /**
  * 更新已有诊断数据 (PATCH)
  */
-export const updateDiagnosisToBackend = async (assessmentId, content, user, language = 'cn') => {
+export const updateDiagnosisToBackend = async (assessmentId, content, user, language) => {
     if (!user?.token || !assessmentId) return false;
 
     try {
+        const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
         const formattedContent = (Array.isArray(content) ? content : [])
             .map(item => ({
                 title: item.title || item.name || '',
@@ -217,7 +223,7 @@ export const updateDiagnosisToBackend = async (assessmentId, content, user, lang
         const requestBody = {
             assessment_id: assessmentId,
             content: formattedContent,
-            language: language
+            language: backendLang
         };
 
         const response = await fetch('/api/diagnoses', {
@@ -556,10 +562,11 @@ export const getPlanFromBackend = async (assessmentId, user) => {
 /**
  * 更新已有训练计划 (PATCH)
  */
-export const updatePlanToBackend = async (assessmentId, content, user, language = 'cn') => {
+export const updatePlanToBackend = async (assessmentId, content, user, language) => {
     if (!user?.token || !assessmentId) return false;
 
     try {
+        const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
         const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
             title: item.title || item.name || '',
             content: item.content || ''
@@ -568,7 +575,7 @@ export const updatePlanToBackend = async (assessmentId, content, user, language 
         const requestBody = {
             assessment_id: assessmentId,
             content: formattedContent,
-            language: language
+            language: backendLang
         };
 
         const response = await fetch('/api/plans', {
@@ -625,19 +632,20 @@ export const getGoalFromBackend = async (assessmentId, user) => {
 /**
  * 更新已有目标数据 (PATCH)
  */
-export const updateGoalToBackend = async (assessmentId, content, user, language = 'cn') => {
+export const updateGoalToBackend = async (assessmentId, content, user, language) => {
     if (!user?.token || !assessmentId) return false;
 
     try {
+        const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
         // 格式化内容数组：保留用户自定义 title；缺失时按阶段生成默认 title
         const formattedContent = (Array.isArray(content) ? content : [])
-            .map((item, index) => normalizeGoalItem(item, index, language))
+            .map((item, index) => normalizeGoalItem(item, index, backendLang))
             .filter(item => item.content.trim() !== '');
 
         const requestBody = {
             assessment_id: assessmentId,
             content: formattedContent,
-            language: language
+            language: backendLang
         };
 
         const response = await fetch('/api/goals', {
