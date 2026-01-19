@@ -330,7 +330,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                     {/* 指标 - 仅物理卡片 */}
                                     {card.path === 'physical-report' && (
                                         <div className="flex items-center gap-4 mb-5">
-                                            <div className="flex-[1]">
+                                            <div className="flex-[1] mt-4">
                                                 <svg viewBox="0 0 110 110" className="w-full h-full drop-shadow-[0_0_12px_rgba(212,175,55,0.3)]">
                                                     <defs>
                                                         {/* 渐变定义 */}

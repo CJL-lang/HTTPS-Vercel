@@ -24,7 +24,7 @@ export default defineConfig({
             // WebSocket proxy: backend WS hub (e.g. /ws/ai-report/:ass_id)
             '/ws': {
                 // target: 'wss://unwisely-unaudited-lovetta.ngrok-free.dev',
-                target: 'ws://localhost:8080',
+                target:'wss://localhost:8080',
                 changeOrigin: true,
                 ws: true,
                 configure: (proxy) => {

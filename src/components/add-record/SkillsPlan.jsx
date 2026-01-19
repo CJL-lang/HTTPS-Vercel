@@ -325,6 +325,11 @@ const SkillsPlan = ({ data, update }) => {
         const newItems = [...planItems, newItem];
         update('skillsPlan', newItems);
         setShowTitleSelector(null);
+        // 自动滚动到新添加的项
+        setTimeout(() => {
+            const lastItem = containerRef.current?.lastElementChild;
+            lastItem?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     };
 
     const removeItem = (id) => {
