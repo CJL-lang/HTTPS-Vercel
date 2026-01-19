@@ -38,19 +38,16 @@
    - **Output Directory**: `dist` (自动检测)
 5. 点击 **Deploy**
 
-### 3. 配置环境变量（必需）
+### 3. 配置环境变量（可选）
 
 在 Vercel 项目设置 → Environment Variables 中添加：
 
 ```
+VITE_API_BASE_URL=https://your-backend.com
 VITE_WS_BASE_URL=wss://your-backend.com
 ```
 
-> **重要**: 
-> - `VITE_WS_BASE_URL` 是**必需的**，因为 Vercel 的 `rewrites` **不支持 WebSocket 连接转发**
-> - WebSocket 必须直接连接到后端服务器
-> - 确保后端支持 WSS（WebSocket Secure）协议
-> - 如果后端是 ngrok，使用 `wss://your-ngrok-domain.ngrok-free.dev`
+> **注意**: 如果使用 `vercel.json` 中的 `rewrites`，环境变量是可选的。
 
 ### 4. 验证部署
 
@@ -88,11 +85,7 @@ vercel --prod
 A: 检查 `vercel.json` 中的后端域名是否正确
 
 **Q: WebSocket 连接失败？**
-A: 
-1. 确保在 Vercel 环境变量中配置了 `VITE_WS_BASE_URL=wss://your-backend.com`
-2. 确保后端支持 WSS（WebSocket Secure）协议
-3. 检查浏览器控制台的错误信息，确认 WebSocket URL 是否正确
-4. 如果使用 ngrok，确保使用 `wss://` 协议（不是 `ws://`）
+A: 确保后端支持 WSS（WebSocket Secure）协议
 
 **Q: 如何绑定自定义域名？**
 A: 在 Vercel 项目设置 → Domains 中添加域名，按照提示配置 DNS
