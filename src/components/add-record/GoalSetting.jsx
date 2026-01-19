@@ -245,7 +245,7 @@ const GoalSetting = ({ data, update, dataKey, title, subtitle }) => {
                     <div className="add-button-icon">
                         <Plus size={20} />
                     </div>
-                    <span className="add-button-text">添加下一阶段目标</span>
+                    <span className="add-button-text">{t('addNextStageGoal')}</span>
                 </motion.button>
             </div>
         </div>

@@ -40,36 +40,10 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
             return;
         }
 
-        // 如果没有初始学员或ID不匹配，则主动 GET 学员详情
-        if (id && (!student || String(student?.id) !== String(id))) {
-            const saved = localStorage.getItem('user');
-            let token = null;
-            try {
-                token = saved ? JSON.parse(saved)?.token : null;
-            } catch (e) {
-                token = null;
-            }
-
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-
-            setLoading(true);
-            fetch(`/api/students/${id}`, { method: 'GET', headers })
-                .then(async (res) => {
-                    if (!res.ok) throw new Error(`GET /api/students/${id} failed: ${res.status}`);
-                    const data = await res.json();
-                    setStudent({
-                        ...data,
-                        gender: typeof data.gender === 'number' ? (data.gender === 0 ? t('female') : t('male')) : data.gender,
-                        yearsOfGolf: data.golf_of_year ?? data.years_of_golf ?? data.yearsOfGolf,
-                        history: data.bio || data.history
-                    });
-                })
-                .catch(() => {
-                    // 保守降级：如果获取失败，保持加载结束以避免卡住
-                })
-                .finally(() => setLoading(false));
-        }
+        // 不再在首页兜底请求学员详情（GET /api/students/:id）。
+        // 如果上游没有传入 initialStudent 或 ID 不匹配，则结束 loading 并显示占位信息。
+        setStudent(initialStudent);
+        setLoading(false);
     }, [id, initialStudent, t]);
 
     // 使用处理后的学员数据

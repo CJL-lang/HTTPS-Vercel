@@ -588,6 +588,13 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
         navigateBackToList();
     };
 
+    useEffect(() => {
+        // 不显示“还未生成AI报告”空态页：无报告时直接返回列表
+        if (!loading && !reportData) {
+            navigateBackToList();
+        }
+    }, [loading, reportData]);
+
     const handleSaveAndGoHome = () => {
         // 保存并返回对应学员的测评工作台
         if (reportData?.studentId) {
@@ -1018,31 +1025,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
         );
     }
 
-    if (!reportData) {
-        return (
-            <div className="report-empty">
-                <Sparkles className="w-12 h-12 text-[#d4af37] mb-4" />
-                <p className="report-empty-title">还未生成AI报告</p>
-                <p className="text-white/60 text-sm mb-6">请点击下方按钮生成智能分析报告</p>
-                <div className="flex gap-3">
-                    <button
-                        onClick={handleBack}
-                        className="px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
-                    >
-                        {t('backToList')}
-                    </button>
-                    <button
-                        onClick={handleGenerateAIReport}
-                        disabled={isCreatingAIReport}
-                        className="px-6 py-3 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm shadow-[0_10px_20px_rgba(212,175,55,0.3)] flex items-center gap-2 hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Sparkles className="w-4 h-4" />
-                        <span>{isCreatingAIReport ? '生成中...' : '生成AI报告'}</span>
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    if (!reportData) return null;
 
     return (
         <div className={`report-detail-page ${showComparison ? 'pb-32 sm:pb-40' : ''}`}>
