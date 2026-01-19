@@ -182,6 +182,7 @@ const GoalSetting = ({ data, update, dataKey, title, subtitle }) => {
     }, [data[dataKey], dataKey, update]);
 
     const goalItems = data[dataKey] || [];
+    const containerRef = useRef(null);
 
     const addItem = () => {
         const newItem = {
@@ -190,6 +191,11 @@ const GoalSetting = ({ data, update, dataKey, title, subtitle }) => {
         };
         const newItems = [...goalItems, newItem];
         update(dataKey, newItems);
+        // 自动滚动到新添加的项
+        setTimeout(() => {
+            const lastItem = containerRef.current?.lastElementChild;
+            lastItem?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     };
 
     const removeItem = (id) => {
@@ -213,8 +219,8 @@ const GoalSetting = ({ data, update, dataKey, title, subtitle }) => {
                 </div>
             </div>
 
-            <div className="space-y-6">
-                <AnimatePresence mode="popLayout">
+            <div ref={containerRef} className="space-y-6 pb-20">
+                <AnimatePresence mode="popLayout" initial={false}>
                     {goalItems.map((item, index) => (
                         <GoalItem
                             key={item.id}

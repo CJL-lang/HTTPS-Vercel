@@ -203,7 +203,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
             </div>
 
             {/* Records List - 可滚动区域 */}
-            <div className="space-y-4 relative z-10 max-w-md mx-auto records-scroll-container">
+            <div className="space-y-4 relative z-10 max-w-md mx-auto ">
                 {records.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-white/40">
                         <p className="text-sm sm:text-base">{t('noRecord')}</p>

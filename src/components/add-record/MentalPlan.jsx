@@ -256,6 +256,7 @@ const MentalPlan = ({ data, update }) => {
     }, [data.mentalPlan, update]);
 
     const planItems = data.mentalPlan || [];
+    const containerRef = useRef(null);
 
     const addItem = () => {
         // 找到下一个未被使用的标题
@@ -273,6 +274,11 @@ const MentalPlan = ({ data, update }) => {
         const newItems = [...planItems, newItem];
         update('mentalPlan', newItems);
         setShowTitleSelector(null);
+        // 自动滚动到新添加的项
+        setTimeout(() => {
+            const lastItem = containerRef.current?.lastElementChild;
+            lastItem?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     };
 
     const removeItem = (id) => {
@@ -313,8 +319,8 @@ const MentalPlan = ({ data, update }) => {
                 </div>
             </div>
 
-            <div className="space-y-6">
-                <AnimatePresence mode="popLayout">
+            <div ref={containerRef} className="space-y-6 pb-20">
+                <AnimatePresence mode="popLayout" initial={false}>
                     {planItems.map((item) => (
                         <MentalPlanItem
                             key={item.id}

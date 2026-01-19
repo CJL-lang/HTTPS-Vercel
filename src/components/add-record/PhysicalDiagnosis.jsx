@@ -236,38 +236,36 @@ const PhysicalDiagnosisItem = forwardRef(({
                                 <ChevronDown size={12} className={cn("transition-transform shrink-0", showTitleSelector === item.id && "rotate-180")} />
                             </button>
 
-                            {/* 等级下拉框 - 显示逻辑：在 titlesWithGrade 列表中的标题或自定义项都显示等级选择器 */}
-                            {(item.isCustom || titlesWithGrade.includes(item.title)) && (
-                                <div className="relative-container">
-                                    <button
-                                        ref={gradeButtonRef}
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setShowGradeSelector(!showGradeSelector);
-                                        }}
-                                        className="title-selector-btn"
-                                    >
-                                        <span className="truncate">{item.grade || 'L1'}</span>
-                                        <ChevronDown size={12} className={cn("transition-transform shrink-0", showGradeSelector && "rotate-180")} />
-                                    </button>
+                            {/* 等级下拉框 - 始终显示，与技能诊断一致 */}
+                            <div className="relative-container">
+                                <button
+                                    ref={gradeButtonRef}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setShowGradeSelector(!showGradeSelector);
+                                    }}
+                                    className="title-selector-btn"
+                                >
+                                    <span className="truncate">{item.grade || 'L1'}</span>
+                                    <ChevronDown size={12} className={cn("transition-transform shrink-0", showGradeSelector && "rotate-180")} />
+                                </button>
 
-                                    <AnimatePresence>
-                                        {showGradeSelector && (
-                                            <GradeDropdown
-                                                buttonRef={gradeButtonRef}
-                                                grades={getGradeOptions(item.title)}
-                                                onSelect={(grade) => {
-                                                    updateItem(item.id, { grade });
-                                                    setShowGradeSelector(false);
-                                                }}
-                                                onClose={() => setShowGradeSelector(false)}
-                                            />
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            )}
+                                <AnimatePresence>
+                                    {showGradeSelector && (
+                                        <GradeDropdown
+                                            buttonRef={gradeButtonRef}
+                                            grades={getGradeOptions(item.title)}
+                                            onSelect={(grade) => {
+                                                updateItem(item.id, { grade });
+                                                setShowGradeSelector(false);
+                                            }}
+                                            onClose={() => setShowGradeSelector(false)}
+                                        />
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
 
                         {item.isCustom && (
@@ -289,11 +287,10 @@ const PhysicalDiagnosisItem = forwardRef(({
                                     onBlur={(e) => {
                                         const finalValue = e.target.value.trim();
                                         if (finalValue) {
-                                            const customFlag = !presetTitles.includes(finalValue);
-                                            updateItem(item.id, { title: finalValue, isCustom: customFlag });
+                                            updateItem(item.id, { title: finalValue, isCustom: false });
                                         } else {
-                                            // 如果没填内容，恢复回原标题或第一个预设标题，保持原有 isCustom 状态
-                                            updateItem(item.id, { title: item.title || presetTitles[0], isCustom: Boolean(item.isCustom) });
+                                            // 如果没填内容，恢复回原标题或第一个预设标题
+                                            updateItem(item.id, { title: item.title || presetTitles[0], isCustom: false });
                                         }
                                     }}
                                     placeholder={t('enterTitle')}
@@ -485,6 +482,7 @@ const PhysicalDiagnosis = ({ data, update }) => {
     }, [data.physicalDiagnosis, update]);
 
     const diagnosisItems = data.physicalDiagnosis || [];
+    const containerRef = useRef(null);
 
     const addItem = () => {
         // 找到下一个未被使用的标题
@@ -504,6 +502,11 @@ const PhysicalDiagnosis = ({ data, update }) => {
         const newItems = [...diagnosisItems, newItem];
         update('physicalDiagnosis', newItems);
         setShowTitleSelector(null);
+        // 自动滚动到新添加的项
+        setTimeout(() => {
+            const lastItem = containerRef.current?.lastElementChild;
+            lastItem?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     };
 
     const removeItem = (id) => {
@@ -544,8 +547,8 @@ const PhysicalDiagnosis = ({ data, update }) => {
                 </div>
             </div>
 
-            <div className="space-y-6">
-                <AnimatePresence mode="popLayout">
+            <div ref={containerRef} className="space-y-6 pb-20">
+                <AnimatePresence mode="popLayout" initial={false}>
                     {diagnosisItems.map((item) => (
                         <PhysicalDiagnosisItem
                             key={item.id}
