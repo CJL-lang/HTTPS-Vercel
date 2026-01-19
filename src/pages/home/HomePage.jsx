@@ -33,7 +33,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                 gender: typeof initialStudent.gender === 'number'
                     ? (initialStudent.gender === 0 ? t('female') : t('male'))
                     : initialStudent.gender,
-                yearsOfGolf: initialStudent.years_of_golf || initialStudent.yearsOfGolf,
+                yearsOfGolf: initialStudent.golf_of_year ?? initialStudent.years_of_golf ?? initialStudent.yearsOfGolf,
                 history: initialStudent.bio || initialStudent.history
             });
             setLoading(false);
@@ -61,7 +61,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                     setStudent({
                         ...data,
                         gender: typeof data.gender === 'number' ? (data.gender === 0 ? t('female') : t('male')) : data.gender,
-                        yearsOfGolf: data.years_of_golf || data.yearsOfGolf,
+                        yearsOfGolf: data.golf_of_year ?? data.years_of_golf ?? data.yearsOfGolf,
                         history: data.bio || data.history
                     });
                 })
