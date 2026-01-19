@@ -322,6 +322,7 @@ const MentalDiagnosis = ({ data, update }) => {
     }, [data.mentalDiagnosis, update]);
 
     const diagnosisItems = data.mentalDiagnosis || [];
+    const containerRef = useRef(null);
 
     const addItem = () => {
         // 找到下一个未被使用的标题
@@ -340,6 +341,11 @@ const MentalDiagnosis = ({ data, update }) => {
         const newItems = [...diagnosisItems, newItem];
         update('mentalDiagnosis', newItems);
         setShowTitleSelector(null);
+        // 自动滚动到新添加的项
+        setTimeout(() => {
+            const lastItem = containerRef.current?.lastElementChild;
+            lastItem?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
     };
 
     const removeItem = (id) => {
@@ -380,8 +386,8 @@ const MentalDiagnosis = ({ data, update }) => {
                 </div>
             </div>
 
-            <div className="space-y-6 px-2">
-                <AnimatePresence mode="popLayout">
+            <div ref={containerRef} className="space-y-6 px-2 pb-20">
+                <AnimatePresence mode="popLayout" initial={false}>
                     {diagnosisItems.map((item) => (
                         <MentalDiagnosisItem
                             key={item.id}

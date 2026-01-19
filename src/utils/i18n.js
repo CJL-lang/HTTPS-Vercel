@@ -651,7 +651,7 @@ const translations = {
         currentScore: "当前评分",
         singleEvaluation: "测评分析",
         completedEvaluation: "已完成测评分析",
-        waitAIReport:"正在为您定制专属训练方案，大约需要3-5分钟，请耐心等待...",
+        waitAIReport: "正在为您定制专属训练方案，大约需要3-5分钟，请耐心等待...",
 
         // Report Detail Page
         assessmentDetailLabel: "报告详情",
@@ -942,8 +942,8 @@ const translations = {
         // Add Record Page
         addRecordTitle: "New Assessment",
         allModulesCompleted: "All modules completed and saved!",
-        generateLater: "Generate Later",
-        generateAIReport: "Generate AI Report",
+        generateLater: "continue",
+        generateAIReport: "generate report and continue",
         saveAndContinue: "Save and Continue",
         viewDetail: "View Detail Record",
         backToHistory: "Back to History",
@@ -1393,7 +1393,7 @@ const translations = {
         currentScore: "Current Score",
         singleEvaluation: "Assessment Analysis",
         completedEvaluation: "Completed Assessment Analysis",
-        waitAIReport:"We are customizing a personalized training plan for you. This will take about 3-5 minutes, please be patient...",
+        waitAIReport: "We are customizing a personalized training plan for you. This will take about 3-5 minutes, please be patient...",
 
         // Report Detail Page
         assessmentDetailLabel: "REPORT DETAIL",
