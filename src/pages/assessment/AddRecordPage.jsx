@@ -480,8 +480,8 @@ const AddRecordPage = ({
                     save.handleGenerateAIReport(navigate, actualAssessmentData, draft.recordId, isNavigating, setIsNavigating);
                 }}
                 isNavigating={isNavigating}
-                generateLaterText={hasNextInCompleteFlow ? '继续下一项测评' : undefined}
-                generateAIText={hasNextInCompleteFlow ? '生成报告并继续下一项测评' : undefined}
+                generateLaterText={hasNextInCompleteFlow ? t('continueNextAssessment') : undefined}
+                generateAIText={hasNextInCompleteFlow ? t('generateReportAndContinue') : undefined}
                 t={t}
             />
 

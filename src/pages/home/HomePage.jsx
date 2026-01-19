@@ -5,7 +5,7 @@
  * 大白话：这是登录后的主工作台，显示当前学员的基本信息、评估进度、历史报告入口，还有开始新测评的按钮
  */
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { ChevronRight, Activity, Brain, Trophy, User, ChevronLeft } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { cn } from '../../utils/cn';
@@ -121,6 +121,38 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
         }
     ];
 
+    // 滚动动画：监听滚动位置，实现折叠效果
+    const { scrollY } = useScroll();
+    const scrollThreshold = 50; // 滚动阈值，超过这个值开始折叠
+
+    // 头像缩放：从 1 缩小到 0.6
+    const avatarScale = useTransform(
+        scrollY,
+        [0, scrollThreshold],
+        [1, 0.6]
+    );
+
+    // 头像和文本的透明度：从 1 到 0.3
+    const opacity = useTransform(
+        scrollY,
+        [0, scrollThreshold],
+        [1, 0.3]
+    );
+
+    // 文本和ID的缩放：从 1 缩小到 0.7
+    const textScale = useTransform(
+        scrollY,
+        [0, scrollThreshold],
+        [1, 0.7]
+    );
+
+    // 垂直位置：向上移动
+    const yOffset = useTransform(
+        scrollY,
+        [0, scrollThreshold],
+        [0, -20]
+    );
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center text-white">
@@ -151,15 +183,39 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                 </header>
 
                 {/* Student Info Card - Second Row */}
-                <div className="student-info-card p-3 sm:p-4 flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6 w-full h-[120px]">
-                    <div className="student-avatar">
-                        <User size={32} />
+                <motion.div
+                    className="flex flex-col items-center mb-6 sm:mb-8"
+                    style={{
+                        scale: textScale,
+                        opacity: opacity,
+                        y: yOffset
+                    }}
+                >
+                    <motion.div
+                        className="relative mb-4"
+                        style={{
+                            scale: avatarScale
+                        }}
+                    >
+                        {/* 多层金色光晕效果 */}
+                        <div className="absolute inset-0 rounded-full bg-[#d4af37]/40 blur-xl animate-pulse-slow"></div>
+                        <div className="absolute inset-[-8px] rounded-full bg-[#d4af37]/30 blur-2xl animate-pulse-slow" style={{ animationDelay: '0.5s' }}></div>
+                        <div className="absolute inset-[-16px] rounded-full bg-[#d4af37]/20 blur-[40px] animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+                        <div className="absolute inset-[-24px] rounded-full bg-[#d4af37]/15 blur-[60px] animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
+
+                        {/* 头像容器 */}
+                        <div className="student-avatar shadow-2xl shadow-[#d4af37]/50 border-4 border-black/20 relative z-10 w-[100px] h-[100px] sm:w-[120px] sm:h-[120px]">
+                            <User size={50} className="sm:w-[60px] sm:h-[60px]" />
+                        </div>
+                    </motion.div>
+                    <div className="text-center">
+                        <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black mb-3 tracking-tighter text-white uppercase">{displayStudent.name}</p>
+                        <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-black/40 border border-white/10 shadow-inner">
+                            <span className="text-[10px] sm:text-xs font-black text-[#d4af37] uppercase tracking-[0.2em] mr-3">OFFICIAL ID</span>
+                            <span className="student-info-value text-xs sm:text-sm font-mono tracking-widest text-white/90">{fmtId(student?.id)}</span>
+                        </div>
                     </div>
-                    <div className="flex-1 min-w-0 text-left">
-                        <p className="text-lg sm:text-xl md:text-2xl font-black mb-2 truncate tracking-tight text-[#d4af37]">{displayStudent.name}</p>
-                        <p className="student-info-value text-xs sm:text-sm truncate">ID: {fmtId(student?.id)}</p>
-                    </div>
-                </div>
+                </motion.div>
 
                 {/* Student Info Section - 3 Column Layout */}
                 <div className="grid w-full grid-cols-[repeat(3,minmax(0,max-content))] justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-6">
@@ -346,27 +402,27 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                                                         </linearGradient>
                                                         {/* 光晕效果 */}
                                                         <filter id="glow">
-                                                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                                            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
                                                             <feMerge>
-                                                                <feMergeNode in="coloredBlur"/>
-                                                                <feMergeNode in="SourceGraphic"/>
+                                                                <feMergeNode in="coloredBlur" />
+                                                                <feMergeNode in="SourceGraphic" />
                                                             </feMerge>
                                                         </filter>
                                                     </defs>
                                                     {/* 外圈 - 更柔和的样式 */}
-                                                    <polygon 
-                                                        points="55,10 95,35 80,85 30,85 15,35" 
-                                                        fill="none" 
-                                                        stroke="rgba(255,255,255,0.08)" 
+                                                    <polygon
+                                                        points="55,10 95,35 80,85 30,85 15,35"
+                                                        fill="none"
+                                                        stroke="rgba(255,255,255,0.08)"
                                                         strokeWidth="1.2"
                                                         strokeLinecap="round"
                                                         strokeLinejoin="round"
                                                     />
                                                     {/* 内圈 - 带渐变填充 */}
-                                                    <polygon 
-                                                        points="55,25 85,45 75,75 35,75 25,45" 
-                                                        fill="url(#radarGradient)" 
-                                                        stroke="url(#radarStrokeGradient)" 
+                                                    <polygon
+                                                        points="55,25 85,45 75,75 35,75 25,45"
+                                                        fill="url(#radarGradient)"
+                                                        stroke="url(#radarStrokeGradient)"
                                                         strokeWidth="2"
                                                         strokeLinecap="round"
                                                         strokeLinejoin="round"
