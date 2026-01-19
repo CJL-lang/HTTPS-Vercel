@@ -4,7 +4,7 @@
  * 功能：选择 Lottie 角色进行 AI 对话
  * 路由：/three-d
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lottie from 'lottie-react';
 import DialogBubbles from '../../components/DialogBubbles';
@@ -26,27 +26,17 @@ const animationsPaths = {
     chatbot: '/animations/chatbot.json',
 };
 
-// 卡通人物数据（关联 Lottie 动画）
-const characters = [
-    { id: 1, name: '智慧小兔', animationKey: 'bunny', description: '聪慧机灵的助手' },
-    { id: 2, name: '未来机器人', animationKey: 'robot', description: '科技感十足的伙伴' },
-    { id: 3, name: '活力老虎', animationKey: 'tiger', description: '充满能量的精灵' },
-    { id: 4, name: '温柔猫咪', animationKey: 'cat', description: '温暖贴心的陪伴' },
-    { id: 5, name: '小小机甲', animationKey: 'powerRobot', description: '强大的机械助手' },
-    { id: 6, name: '自在飞鸽', animationKey: 'pigeon', description: '自由飞翔的朋友' },
-    { id: 7, name: '智能聊天机器人', animationKey: 'chatbot', description: '贴心的AI助手' },
-];
-
-const confirmFields = [
-    { key: 'name', label: '学员姓名', type: 'text', placeholder: '请输入学员姓名' },
-    { key: 'age', label: '年龄', type: 'text', placeholder: '请输入年龄' },
-    { key: 'gender', label: '性别', type: 'text', placeholder: '男/女' },
-    { key: 'email', label: '邮箱', type: 'email', placeholder: '请输入邮箱' },
-    { key: 'years_of_golf', label: '球龄', type: 'text', placeholder: '请输入球龄' },
-    { key: 'history', label: '高尔夫训练或比赛经历', type: 'textarea', placeholder: '请输入高尔夫训练或比赛经历' },
-    { key: 'medical_history', label: '伤病历史', type: 'textarea', placeholder: '请输入伤病历史' },
-    { key: 'purpose', label: '训练目标', type: 'textarea', placeholder: '请输入训练目标' },
-];
+// 字段关键词映射 - 用于检测 AI 提问与进度显示是否一致
+const fieldKeywords = {
+    name: ['姓名', '名字', '叫什么', '称呼'],
+    age: ['年龄', '多大', '几岁', '岁数'],
+    gender: ['性别', '男', '女', '先生', '女士'],
+    email: ['邮箱', '邮件', 'email', '联系方式', '联系'],
+    years_of_golf: ['球龄', '打球', '高尔夫', '接触', '学球'],
+    history: ['经历', '打过', '训练', '比赛', '学过', '练过'],
+    medical_history: ['伤病', '受伤', '病史', '身体', '健康'],
+    purpose: ['目标', '希望', '想提升', '想改善', '想提高', '目的是'],
+};
 
 /**
  * 辅助函数：将中文或其他格式的数字强转为 Number
@@ -92,6 +82,79 @@ const AnimationPlayer = ({ animationKey, size = 'w-16 h-16' }) => {
 
 const ThreeDPage = () => {
     const { t } = useLanguage();
+
+    // 卡通人物数据（关联 Lottie 动画）
+    const characters = useMemo(() => [
+        { id: 1, name: t('smartBunny'), animationKey: 'bunny', description: t('smartBunnyDesc') },
+        { id: 2, name: t('futureRobot'), animationKey: 'robot', description: t('futureRobotDesc') },
+        { id: 3, name: t('energeticTiger'), animationKey: 'tiger', description: t('energeticTigerDesc') },
+        { id: 4, name: t('gentleCat'), animationKey: 'cat', description: t('gentleCatDesc') },
+        { id: 5, name: t('littleMecha'), animationKey: 'powerRobot', description: t('littleMechaDesc') },
+        { id: 6, name: t('freePigeon'), animationKey: 'pigeon', description: t('freePigeonDesc') },
+        { id: 7, name: t('smartChatbot'), animationKey: 'chatbot', description: t('smartChatbotDesc') },
+    ], [t]);
+
+    const confirmFields = useMemo(() => [
+        { key: 'name', label: t('studentNameLabel'), type: 'text', placeholder: t('studentNamePlaceholder') },
+        { key: 'age', label: t('age'), type: 'text', placeholder: t('agePlaceholder') },
+        { key: 'gender', label: t('gender'), type: 'text', placeholder: t('genderPlaceholder') },
+        { key: 'email', label: t('emailLabel'), type: 'email', placeholder: t('emailPlaceholder') },
+        { key: 'years_of_golf', label: t('yearsOfGolf'), type: 'text', placeholder: t('golfYearsPlaceholder') },
+        { key: 'history', label: t('golfHistory'), type: 'textarea', placeholder: t('golfHistoryPlaceholder') },
+        { key: 'medical_history', label: t('injuryHistory'), type: 'textarea', placeholder: t('medicalHistoryPlaceholder') },
+        { key: 'purpose', label: t('personalTrainingGoals'), type: 'textarea', placeholder: t('trainingGoalPlaceholder') },
+    ], [t]);
+
+    const fieldDisplayNames = useMemo(() => ({
+        name: t('statusName'),
+        age: t('statusAge'),
+        gender: t('statusGender'),
+        email: t('statusEmail'),
+        years_of_golf: t('statusGolfYears'),
+        history: t('statusGolfHistory'),
+        medical_history: t('statusInjuryHistory'),
+        purpose: t('statusTrainingGoal'),
+    }), [t]);
+
+    /**
+     * 检测 AI 提问内容与 nextField 是否匹配
+     * @param {string} aiMessage - AI 的回复内容
+     * @param {string} nextField - 后端返回的下一个字段
+     * @returns {object} { isMatch: boolean, detectedField: string|null, warning: string|null }
+     */
+    const detectFieldMismatch = (aiMessage, nextField) => {
+        if (!aiMessage || !nextField || nextField === 'done') {
+            return { isMatch: true, detectedField: null, warning: null };
+        }
+
+        // 检查 AI 消息中是否包含 nextField 的关键词
+        const nextFieldKeywords = fieldKeywords[nextField] || [];
+        const hasNextFieldKeywords = nextFieldKeywords.some(keyword =>
+            aiMessage.includes(keyword)
+        );
+
+        if (hasNextFieldKeywords) {
+            return { isMatch: true, detectedField: nextField, warning: null };
+        }
+
+        // 尝试检测 AI 实际在问什么字段
+        for (const [field, keywords] of Object.entries(fieldKeywords)) {
+            if (field === nextField) continue; // 跳过已检查的字段
+
+            const hasKeyword = keywords.some(keyword => aiMessage.includes(keyword));
+            if (hasKeyword) {
+                return {
+                    isMatch: false,
+                    detectedField: field,
+                    warning: `⚠️ 检测到不一致：AI 询问"${fieldDisplayNames[field]}"，但进度显示为"${fieldDisplayNames[nextField]}"`
+                };
+            }
+        }
+
+        // 无法明确检测到任何字段，返回匹配
+        return { isMatch: true, detectedField: null, warning: null };
+    };
+
     const [selectedChar, setSelectedChar] = useState(null);
     const [isSelecting, setIsSelecting] = useState(false);
     const [tempChar, setTempChar] = useState(null);
@@ -208,6 +271,8 @@ const ThreeDPage = () => {
     const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmInfo, setConfirmInfo] = useState({});
+    const [confirmError, setConfirmError] = useState('');
+    const [errorFields, setErrorFields] = useState([]); // 存储出错的字段名
     const confirmOpenedRef = useRef(false);
 
     const handleConfirm = () => {
@@ -222,6 +287,8 @@ const ThreeDPage = () => {
         confirmOpenedRef.current = false;
         setIsConfirmOpen(false);
         setConfirmInfo({});
+        setConfirmError('');
+        setErrorFields([]);
 
         // 如果选择 VAD 模式，启动连续对话
         if (voiceMode === 'vad') {
@@ -280,10 +347,12 @@ const ThreeDPage = () => {
 
             // 1. 基于 is_valid 决定是否更新信息（避免写入错误数据）
             const isValid = res.is_valid !== false; // 默认为 true
+            const newNextField = res.next_field || null;
+
             if (isValid) {
                 const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
                 setCurrentInfo(prev => ({ ...(prev || {}), ...updatedInfo })); // 用函数式 setState 防止闭包陷阱
-                setNextField(res.next_field || null);
+                setNextField(newNextField);
             } else {
                 // 若数据无效，不更新 currentInfo 和 nextField，只展示回复让 AI 重新追问
                 console.warn('Invalid response from AI, not updating state');
@@ -291,21 +360,49 @@ const ThreeDPage = () => {
 
             // 2. 展示 AI 回复
             const aiMessage = res.reply || '...';
-            setMessages(prev => {
-                const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
-            });
-            speakMessage(aiMessage);
+
+            // 3. 检测 AI 提问与 nextField 是否一致
+            if (isValid && newNextField) {
+                const mismatch = detectFieldMismatch(aiMessage, newNextField);
+                if (!mismatch.isMatch && mismatch.warning) {
+                    console.warn(mismatch.warning);
+                    // 在控制台输出警告，方便调试
+                    console.log(`AI Message: "${aiMessage}"`);
+                    console.log(`Expected Field: ${newNextField}, Detected: ${mismatch.detectedField}`);
+                }
+            }
+
+            // 前端拦截：当数据收集完成时，不显示 AI 消息也不播放语音
+            if (newNextField !== 'done') {
+                setMessages(prev => {
+                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                    return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
+                });
+                speakMessage(aiMessage);
+            } else {
+                console.log('数据收集完成，跳过 AI 消息显示，直接准备打开确认窗口');
+            }
 
         } catch (err) {
             console.error('AIDialog request failed', err);
-            // Basic fallback UI feedback
+            const errorMsg = t('networkOrServiceUnavailable');
+
+            // Add error message to chat
             setMessages(prev => {
                 const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                return [...prev, { id: lastId + 1, sender: 'ai', text: '网络或服务暂不可用，请稍后再试。', timestamp: Date.now() }];
+                return [...prev, { id: lastId + 1, sender: 'ai', text: errorMsg, timestamp: Date.now() }];
             });
-            // Minimal user-facing alert
-            try { alert('网络或服务暂不可用，请稍后再试。'); } catch (e) { /* ignore in non-browser env */ }
+
+            // If collection appears complete, offer confirmation modal with error
+            const collectedFields = Object.keys(currentInfo).length;
+            if (collectedFields >= 3) { // Arbitrary threshold - adjust as needed
+                setTimeout(() => {
+                    openConfirmModal(currentInfo);
+                    setConfirmError(t('aiDialogError'));
+                }, 1000);
+            }
+
+            try { alert(errorMsg); } catch (e) { /* ignore in non-browser env */ }
         } finally {
             setIsLoading(false);
         }
@@ -340,7 +437,7 @@ const ThreeDPage = () => {
             if (!res) {
                 // 后端不可用时的静默失败或基础降级
                 console.error('Failed to start AI dialog');
-                const aiMessage = '你好，我是你的 AI 助手。（连接服务失败）';
+                const aiMessage = t('helloIAmAssistant');
                 setMessages(prev => {
                     const lastId = prev.length ? prev[prev.length - 1].id : 0;
                     return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
@@ -349,22 +446,41 @@ const ThreeDPage = () => {
             } else {
                 // 1. 基于 is_valid 决定是否更新信息
                 const isValid = res.is_valid !== false;
+                const newNextField = res.next_field || null;
+
                 if (isValid) {
                     const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
                     setCurrentInfo(prev => ({ ...(prev || {}), ...updatedInfo })); // 用函数式 setState
-                    setNextField(res.next_field || null);
+                    setNextField(newNextField);
                 } else {
                     // 若数据无效，不更新 currentInfo / nextField
                     console.warn('Invalid startAIDialog response, not updating state');
                 }
 
                 // 2. 展示回复
-                const aiMessage = res.reply || '你好';
-                setMessages(prev => {
-                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                    return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
-                });
-                speakMessage(aiMessage);
+                const aiMessage = res.reply || t('hello');
+
+                // 3. 检测 AI 提问与 nextField 是否一致
+                if (isValid && newNextField) {
+                    const mismatch = detectFieldMismatch(aiMessage, newNextField);
+                    if (!mismatch.isMatch && mismatch.warning) {
+                        console.warn(mismatch.warning);
+                        // 在控制台输出警告，方便调试
+                        console.log(`AI Message: "${aiMessage}"`);
+                        console.log(`Expected Field: ${newNextField}, Detected: ${mismatch.detectedField}`);
+                    }
+                }
+
+                // 前端拦截：当数据收集完成时，不显示 AI 消息也不播放语音
+                if (newNextField !== 'done') {
+                    setMessages(prev => {
+                        const lastId = prev.length ? prev[prev.length - 1].id : 0;
+                        return [...prev, { id: lastId + 1, sender: 'ai', text: aiMessage, timestamp: Date.now() }];
+                    });
+                    speakMessage(aiMessage);
+                } else {
+                    console.log('startAIDialog: 数据收集完成，跳过 AI 消息显示');
+                }
             }
         } catch (err) {
             console.error('startAIDialog failed', err);
@@ -385,6 +501,42 @@ const ThreeDPage = () => {
             purpose: info?.purpose || '',
         });
         setIsConfirmOpen(true);
+    };
+
+    const handleConfirmSubmit = () => {
+        // Clear previous errors
+        setConfirmError('');
+        setErrorFields([]);
+
+        // Update currentInfo with confirmed data
+        setCurrentInfo(prev => ({ ...(prev || {}), ...confirmInfo }));
+
+        // Don't close modal here - let createStudent handle it on success
+        createStudent(confirmInfo);
+    };
+
+    const handleCancelConfirm = () => {
+        setIsConfirmOpen(false);
+        setConfirmError('');
+        setErrorFields([]);
+        // Reset flag to allow reopening modal if needed
+        confirmOpenedRef.current = false;
+    };
+
+    const resetConversation = () => {
+        // 清除所有对话数据
+        setCurrentInfo({});
+        setMessages([]);
+        setNextField(null);
+        setIsComplete(false);
+        submittedRef.current = false;
+        confirmOpenedRef.current = false;
+        setIsConfirmOpen(false);
+        setConfirmInfo({});
+        setConfirmError('');
+        setErrorFields([]);
+        setInputValue('');
+        setIsLoading(false);
     };
 
     // 监听完成状态：当 AI 指示 next_field="done" 时，弹出确认框
@@ -456,32 +608,85 @@ const ThreeDPage = () => {
 
             if (!res.ok) {
                 console.error('Create student failed', res.status, result);
-                let errorText = '保存学员时遇到问题，请重试或联系管理员。';
-                if (result.detail && result.detail.includes('23505')) {
-                    errorText = '该邮箱已被注册，请使用其他邮箱。';
+                console.log('Error result detail:', result.detail);
+                console.log('Error result message:', result.message);
+                console.log('Error result error_fields:', result.error_fields);
+
+                let errorText = t('errorSavingStudent');
+                let fields = []; // 默认没有特定字段错误
+
+                // 如果后端直接返回了 message，优先使用
+                if (result.message) {
+                    errorText = `⚠️ ${result.message}`;
+                    console.log('Using backend message:', errorText);
                 }
-                setMessages(prev => {
-                    const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                    return [...prev, { id: lastId + 1, sender: 'ai', text: errorText, timestamp: Date.now() }];
-                });
+
+                // 根据不同的错误类型识别字段
+                if (result.detail) {
+                    if (result.detail.includes('23505')) {
+                        // 唯一约束 violation - 通常是邮箱
+                        errorText = t('emailAlreadyRegistered');
+                        fields = ['email'];
+                    } else if (result.detail.includes('email')) {
+                        errorText = t('emailFormatIncorrect');
+                        fields = ['email'];
+                    } else if (result.detail.includes('name')) {
+                        errorText = t('nameCannotBeEmpty');
+                        fields = ['name'];
+                    } else if (result.detail.includes('age') || result.detail.includes('年龄')) {
+                        errorText = t('ageFormatIncorrect');
+                        fields = ['age'];
+                    } else if (result.detail.includes('gender') || result.detail.includes('性别')) {
+                        errorText = t('genderFormatIncorrect');
+                        fields = ['gender'];
+                    }
+                }
+
+                // 如果有详细的字段错误信息
+                if (result.error_fields && Array.isArray(result.error_fields)) {
+                    fields = result.error_fields;
+
+                    // 生成更友好的多字段错误提示
+                    const fieldLabels = {
+                        email: '邮箱',
+                        name: '姓名',
+                        age: '年龄',
+                        gender: '性别',
+                        years_of_golf: '球龄',
+                        history: '高尔夫经历',
+                        medical_history: '伤病历史',
+                        purpose: '训练目标'
+                    };
+
+                    const errorFieldNames = fields.map(f => fieldLabels[f] || f).join('、');
+                    errorText = result.message || `⚠️ 以下字段填写有误：${errorFieldNames}`;
+                }
+
+                // Show error in modal - modal stays open for retry
+                console.log('Setting error text:', errorText);
+                console.log('Setting error fields:', fields);
+                setConfirmError(errorText);
+                setErrorFields(fields);
                 return;
             }
 
             // 成功：展示成功提示
             setMessages(prev => {
                 const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                const successText = `你的档案已建立！(ID: ${result.student_user_id || 'unknown'})`;
+                const successText = t('yourProfileCreated').replace('{id}', result.student_user_id || 'unknown');
                 return [...prev, { id: lastId + 1, sender: 'ai', text: successText, timestamp: Date.now() }];
             });
+
+            // Close modal only on success
+            setIsConfirmOpen(false);
+
             setIsComplete(true);
             setNextField(null);
 
         } catch (err) {
             console.error('createStudent error', err);
-            setMessages(prev => {
-                const lastId = prev.length ? prev[prev.length - 1].id : 0;
-                return [...prev, { id: lastId + 1, sender: 'ai', text: '保存学员时出现异常。', timestamp: Date.now() }];
-            });
+            // Show error in modal - modal stays open for retry
+            setConfirmError(t('savingStudentException'));
         } finally {
             setIsSubmittingStudent(false);
         }
@@ -500,6 +705,8 @@ const ThreeDPage = () => {
                             if (voiceMode === 'vad') {
                                 stopVoiceChat();
                             }
+                            // 清除所有对话状态
+                            resetConversation();
                             setSelectedChar(null);
                         }}
                         className="p-2 text-slate-300 hover:text-white transition-colors"
@@ -520,17 +727,17 @@ const ThreeDPage = () => {
                     <div className="px-4 py-2 bg-white/5 border-b border-white/5 shrink-0">
                         <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2 text-slate-400">
-                                <span>正在收集：</span>
+                                <span>{t('collectingInfo')}</span>
                                 <span className="text-[#d4af37]">
-                                    {nextField === 'name' && '姓名'}
-                                    {nextField === 'age' && '年龄'}
-                                    {nextField === 'email' && '邮箱'}
-                                    {nextField === 'gender' && '性别'}
-                                    {nextField === 'years_of_golf' && '球龄'}
-                                    {nextField === 'history' && '高尔夫历史'}
-                                    {nextField === 'medical_history' && '伤病历史'}
-                                    {nextField === 'purpose' && '训练目的'}
-                                    {nextField === 'done' && '✅ 完成'}
+                                    {nextField === 'name' && t('statusName')}
+                                    {nextField === 'age' && t('statusAge')}
+                                    {nextField === 'email' && t('statusEmail')}
+                                    {nextField === 'gender' && t('statusGender')}
+                                    {nextField === 'years_of_golf' && t('statusGolfYears')}
+                                    {nextField === 'history' && t('statusGolfHistory')}
+                                    {nextField === 'medical_history' && t('statusInjuryHistory')}
+                                    {nextField === 'purpose' && t('statusTrainingGoal')}
+                                    {nextField === 'done' && t('statusCompleted')}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -540,25 +747,25 @@ const ThreeDPage = () => {
                                         {isUserSpeaking && (
                                             <span className="text-red-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
-                                                说话中
+                                                {t('speaking')}
                                             </span>
                                         )}
                                         {isProcessing && (
                                             <span className="text-yellow-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
-                                                识别中
+                                                {t('recognizing')}
                                             </span>
                                         )}
                                         {isTtsPlaying && (
                                             <span className="text-blue-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-                                                播放中
+                                                {t('playing')}
                                             </span>
                                         )}
                                         {!isUserSpeaking && !isProcessing && !isTtsPlaying && (
                                             <span className="text-green-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                                                等待
+                                                {t('waiting')}
                                             </span>
                                         )}
                                     </>
@@ -569,13 +776,13 @@ const ThreeDPage = () => {
                                         {isListening && (
                                             <span className="text-red-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
-                                                录音中
+                                                {t('recording')}
                                             </span>
                                         )}
                                         {isTtsSpeaking && !isListening && (
                                             <span className="text-blue-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
-                                                播放中
+                                                {t('playing')}
                                             </span>
                                         )}
                                     </>
@@ -614,6 +821,21 @@ const ThreeDPage = () => {
                 {/* 底部输入区 */}
                 <footer className="fixed bottom-20 left-0 right-0 p-4 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/95 to-transparent pt-6 z-20">
                     <div className="max-w-2xl mx-auto space-y-3">
+                        {/* 当数据收集完成时，显示打开确认窗口按钮 */}
+                        {nextField === 'done' && !isConfirmOpen && !isComplete && (
+                            <motion.button
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                onClick={() => openConfirmModal(currentInfo)}
+                                className="w-full h-12 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <path d="M5 13l4 4L19 7" />
+                                </svg>
+                                打开确认窗口
+                            </motion.button>
+                        )}
+
                         {/* 语音控制区 */}
                         {voiceMode === 'vad' ? (
                             <div className="space-y-2">
@@ -621,13 +843,13 @@ const ThreeDPage = () => {
                                 <div className="text-center text-sm text-slate-400">
                                     {isVoiceActive ? (
                                         <>
-                                            {isUserSpeaking && '🎤 正在说话...'}
-                                            {isProcessing && '⏳ 识别中...'}
-                                            {isTtsPlaying && '🔊 AI 回复中...'}
-                                            {!isUserSpeaking && !isProcessing && !isTtsPlaying && '👂 等待你说话'}
+                                            {isUserSpeaking && t('currentlySpeaking')}
+                                            {isProcessing && t('currentlyRecognizing')}
+                                            {isTtsPlaying && t('aiReplying')}
+                                            {!isUserSpeaking && !isProcessing && !isTtsPlaying && t('waitingForYou')}
                                         </>
                                     ) : (
-                                        'VAD 连续对话已关闭'
+                                        t('vadContinuousClosed')
                                     )}
                                 </div>
 
@@ -647,12 +869,12 @@ const ThreeDPage = () => {
                                                 <rect x="6" y="4" width="4" height="16" rx="1" />
                                                 <rect x="14" y="4" width="4" height="16" rx="1" />
                                             </svg>
-                                            关闭连续对话
+                                            {t('closeContinuousChat')}
                                         </>
                                     ) : (
                                         <>
                                             <Mic size={18} strokeWidth={2.5} />
-                                            启动连续对话
+                                            {t('startContinuousChat')}
                                         </>
                                     )}
                                 </button>
@@ -673,7 +895,7 @@ const ThreeDPage = () => {
                                     strokeWidth={2.5}
                                     className={isListening ? "animate-pulse" : ""}
                                 />
-                                {isListening ? "正在录音，点击停止并发送" : "点击说话"}
+                                {isListening ? t('recordingClickToSend') : t('clickToSpeak')}
                             </button>
                         )}
 
@@ -695,7 +917,7 @@ const ThreeDPage = () => {
                                         handleSendMessage();
                                     }
                                 }}
-                                placeholder="输入消息或直接说话..."
+                                placeholder={t('inputMessageOrSpeak')}
                                 rows={1}
                                 disabled={isLoading}
                                 className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] text-white placeholder-slate-400/60 resize-none max-h-32 py-2.5 px-3"
@@ -730,44 +952,89 @@ const ThreeDPage = () => {
                                 exit={{ y: 20, opacity: 0 }}
                                 className="w-full max-w-xl bg-slate-900/90 border border-white/10 rounded-2xl p-6 shadow-2xl max-h-[70vh] overflow-y-auto"
                             >
-                                <h3 className="text-white text-lg font-bold mb-4">确认学员信息</h3>
+                                <h3 className="text-white text-lg font-bold mb-4">{t('confirmStudentInfo')}</h3>
+
+                                {/* Error message display */}
+                                {confirmError && (
+                                    <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl">
+                                        <p className="text-red-400 text-sm font-medium">{confirmError}</p>
+                                        {errorFields.length > 0 && (
+                                            <p className="text-red-300/70 text-xs mt-1">
+                                                {t('modifyRedFields')}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {confirmFields.map(field => (
-                                        <div key={field.key} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
-                                            <label className="block text-xs text-slate-400 mb-1">{field.label}</label>
-                                            {field.type === 'textarea' ? (
-                                                <textarea
-                                                    value={confirmInfo[field.key] || ''}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        setConfirmInfo(prev => ({ ...prev, [field.key]: value }));
-                                                    }}
-                                                    placeholder={field.placeholder}
-                                                    rows={3}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-white/30"
-                                                />
-                                            ) : (
-                                                <input
-                                                    type={field.type}
-                                                    value={confirmInfo[field.key] || ''}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        setConfirmInfo(prev => ({ ...prev, [field.key]: value }));
-                                                    }}
-                                                    placeholder={field.placeholder}
-                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-white/30"
-                                                />
-                                            )}
-                                        </div>
-                                    ))}
+                                    {confirmFields.map(field => {
+                                        const hasError = errorFields.includes(field.key);
+                                        return (
+                                            <div key={field.key} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                                                <label className={cn(
+                                                    "block text-xs mb-1",
+                                                    hasError ? "text-red-400" : "text-slate-400"
+                                                )}>
+                                                    {field.label}
+                                                    {hasError && <span className="ml-1 text-red-400">⚠️</span>}
+                                                </label>
+                                                {field.type === 'textarea' ? (
+                                                    <textarea
+                                                        value={confirmInfo[field.key] || ''}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            setConfirmInfo(prev => ({ ...prev, [field.key]: value }));
+                                                            // 清除该字段的错误状态
+                                                            if (hasError) {
+                                                                setErrorFields(prev => prev.filter(f => f !== field.key));
+                                                            }
+                                                        }}
+                                                        placeholder={field.placeholder}
+                                                        rows={3}
+                                                        className={cn(
+                                                            "w-full rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition-all",
+                                                            hasError
+                                                                ? "bg-red-500/10 border-2 border-red-500/50 focus:border-red-500"
+                                                                : "bg-white/5 border border-white/10 focus:border-white/30"
+                                                        )}
+                                                    />
+                                                ) : (
+                                                    <input
+                                                        type={field.type}
+                                                        value={confirmInfo[field.key] || ''}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            setConfirmInfo(prev => ({ ...prev, [field.key]: value }));
+                                                            // 清除该字段的错误状态
+                                                            if (hasError) {
+                                                                setErrorFields(prev => prev.filter(f => f !== field.key));
+                                                            }
+                                                        }}
+                                                        placeholder={field.placeholder}
+                                                        className={cn(
+                                                            "w-full rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition-all",
+                                                            hasError
+                                                                ? "bg-red-500/10 border-2 border-red-500/50 focus:border-red-500"
+                                                                : "bg-white/5 border border-white/10 focus:border-white/30"
+                                                        )}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                                 <div className="mt-6 flex items-center justify-end gap-3">
+                                    {/* Cancel button - return to AI chat */}
                                     <button
-                                        onClick={() => {
-                                            setCurrentInfo(prev => ({ ...(prev || {}), ...confirmInfo }));
-                                            setIsConfirmOpen(false);
-                                            createStudent(confirmInfo);
-                                        }}
+                                        onClick={handleCancelConfirm}
+                                        className="px-6 h-10 rounded-full font-bold bg-white/10 text-white hover:bg-white/15 transition-all"
+                                    >
+                                        {t('returnToChat')}
+                                    </button>
+
+                                    {/* Submit button */}
+                                    <button
+                                        onClick={handleConfirmSubmit}
                                         disabled={isSubmittingStudent}
                                         className={cn(
                                             "px-6 h-10 rounded-full font-bold transition-all",
@@ -776,7 +1043,7 @@ const ThreeDPage = () => {
                                                 : "bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black active:scale-95"
                                         )}
                                     >
-                                        {isSubmittingStudent ? '提交中...' : '确认信息并提交'}
+                                        {isSubmittingStudent ? t('submitting') : t('confirmAndSubmit')}
                                     </button>
                                 </div>
                             </motion.div>
@@ -795,11 +1062,11 @@ const ThreeDPage = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center max-w-md w-full space-y-6"
             >
-                <h2 className="text-2xl font-bold mb-6">选择你的对话伙伴</h2>
+                <h2 className="text-2xl font-bold mb-6">{t('selectChatPartner')}</h2>
 
                 {/* 语音模式选择 */}
                 <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 space-y-3">
-                    <p className="text-sm text-slate-300 mb-3">选择语音交互模式：</p>
+                    <p className="text-sm text-slate-300 mb-3">{t('selectVoiceMode')}</p>
 
                     <button
                         onClick={() => setVoiceMode('vad')}
@@ -818,11 +1085,8 @@ const ThreeDPage = () => {
                                 </svg>
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-bold text-white mb-1">🎤 VAD 连续对话 (推荐)</h3>
-                                <p className="text-xs text-slate-400">
-                                    麦克风常开，自动检测语音开始/结束<br />
-                                    可随时打断 AI 回复，像微信语音通话
-                                </p>
+                                <h3 className="font-bold text-white mb-1">{t('vadContinuousChat')}</h3>
+                                <p className="text-xs text-slate-400" dangerouslySetInnerHTML={{ __html: t('vadContinuousChatDesc') }}></p>
                             </div>
                         </div>
                     </button>
@@ -844,11 +1108,8 @@ const ThreeDPage = () => {
                                 </svg>
                             </div>
                             <div className="flex-1">
-                                <h3 className="font-bold text-white mb-1">🔘 按键语音输入</h3>
-                                <p className="text-xs text-slate-400">
-                                    按下按钮开始录音，再次按下停止<br />
-                                    适合安静环境，手动控制
-                                </p>
+                                <h3 className="font-bold text-white mb-1">{t('manualVoiceInput')}</h3>
+                                <p className="text-xs text-slate-400" dangerouslySetInnerHTML={{ __html: t('manualVoiceInputDesc') }}></p>
                             </div>
                         </div>
                     </button>
@@ -864,7 +1125,7 @@ const ThreeDPage = () => {
                             : "opacity-50 cursor-not-allowed"
                     )}
                 >
-                    {voiceMode ? '开始对话' : '请先选择语音模式'}
+                    {voiceMode ? t('startChat') : t('pleaseSelectVoiceMode')}
                 </button>
             </motion.div>
 
@@ -884,7 +1145,7 @@ const ThreeDPage = () => {
                             className="w-full bg-slate-500/20 backdrop-blur-xl border-b border-white/10 rounded-b-3xl p-6 pb-8 max-h-[85vh] flex flex-col mt-16 shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <h3 className="text-white text-lg font-bold mb-4">选择对话伙伴</h3>
+                            <h3 className="text-white text-lg font-bold mb-4">{t('selectDialogPartner')}</h3>
                             <div className="grid grid-cols-2 gap-3 max-h-[55vh] overflow-y-auto flex-1">
                                 {characters.map(char => (
                                     <motion.button
@@ -910,7 +1171,7 @@ const ThreeDPage = () => {
                                 disabled={!tempChar}
                                 className="w-full mt-8 h-10 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold disabled:opacity-50"
                             >
-                                确认
+                                {t('confirm')}
                             </button>
                         </motion.div>
                     </motion.div>
