@@ -7,6 +7,7 @@ import { TextSection } from '../../components/reports/ReportSharedComponents';
 import RadarChart from '../../components/reports/RadarChart';
 import { createAssessment, updateAssessment } from '../assessment/utils/assessmentApi';
 import { diagnosesToRadarGradeData } from '../../utils/diagnosesToRadar';
+import { pickLocalizedContent } from '../../utils/language';
 import { createAIReport, getBackendLang } from './utils/aiReportApi';
 import { clearAIReportGenerating, isAIReportGenerating, onAIReportWsEvent, startAIReportWsJob } from '../../services/aiReportWsClient';
 import AssessmentHeader from '../assessment/components/AssessmentHeader';
@@ -238,6 +239,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                     const diagnosesRes = await fetch(`/api/diagnoses/${id}`, { headers });
                     if (diagnosesRes.ok) {
                         const diagnosesJson = await diagnosesRes.json();
+                        diagnosesJson.content = pickLocalizedContent(diagnosesJson);
                         const mapped = diagnosesToRadarGradeData(diagnosesJson, 'skills');
                         if (mapped.totalCount > 0) {
                             diagnosesGradeData = mapped; // 新格式: {labels: [], values: []}
@@ -253,7 +255,11 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
                 // 辅助函数：获取本地化字段
                 const getLocalizedField = (fieldName) => {
-                    return isEnglish ? (data[`${fieldName}_en`] || data[fieldName]) : data[fieldName];
+                    if (!isEnglish) return data[fieldName];
+                    // AIReport 特殊字段命名：diagnosis_en / plan_en
+                    if (fieldName === 'fitness_diagnosis') return data.diagnosis_en || data.fitness_diagnosis;
+                    if (fieldName === 'training_plan') return data.plan_en || data.training_plan;
+                    return data[`${fieldName}_en`] || data[fieldName];
                 };
 
                 // 辅助函数：解析文本为结构化数组
@@ -793,7 +799,8 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 const diagGetRes = await fetch(`/api/diagnoses/${id}`, { headers });
                 if (diagGetRes.ok) {
                     const diagData = await diagGetRes.json();
-                    diagnosisContent = (diagData?.content || []).map(item => ({
+                    const selected = pickLocalizedContent(diagData, backendLang === 'en' ? 'en' : 'zh');
+                    diagnosisContent = (selected || []).map(item => ({
                         title: item.title || '',
                         grade: item.grade || item.level || 'L1',
                         content: item.content || ''
@@ -854,7 +861,11 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
             const currentLanguage = localStorage.getItem('language') || 'zh';
             const isEnglish = currentLanguage === 'en';
             const getLocalizedField = (fieldName) => {
-                return isEnglish ? (newReportRaw[`${fieldName}_en`] || newReportRaw[fieldName]) : newReportRaw[fieldName];
+                if (!isEnglish) return newReportRaw[fieldName];
+                // AIReport 特殊字段命名：diagnosis_en / plan_en
+                if (fieldName === 'fitness_diagnosis') return newReportRaw.diagnosis_en || newReportRaw.fitness_diagnosis;
+                if (fieldName === 'training_plan') return newReportRaw.plan_en || newReportRaw.training_plan;
+                return newReportRaw[`${fieldName}_en`] || newReportRaw[fieldName];
             };
             const parseTextToSections = (text) => {
                 if (!text) return [];
@@ -1401,7 +1412,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                     <div className="mt-4 sm:mt-6 mb-2 sm:mb-3 px-2">
                                         <div className="h-px bg-gradient-to-r from-transparent via-[#d4af37]/30 to-transparent"></div>
                                         <div className="mt-2 text-xs sm:text-sm text-[#d4af37]/80 font-bold uppercase tracking-widest text-center">
-                                            新版本
+                                            {t('NewVersion')}
                                         </div>
                                     </div>
                                     <div className={`report-outlook-card border border-[#d4af37]/30 bg-[#d4af37]/10 relative ${selectedVersions.trainingOutlook === 'new' ? 'ring-2 ring-[#d4af37]' : ''}`}>
@@ -1467,7 +1478,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                 disabled={loading || isCreatingAIReport}
                                 className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-base sm:text-lg shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                重新生成
+                                {t('RegenerateReport')}
                             </motion.button>
                         )}
                     </div>

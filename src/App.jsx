@@ -151,7 +151,7 @@ export default function App() {
                         ...student,
                         gender: student.gender === 0 ? '女性' : student.gender === 1 ? '男性' : '未知',
                         displayId: student.id ? student.id.slice(-6) : '未知',
-                        yearsOfGolf: student.years_of_golf || student.yearsOfGolf,
+                        yearsOfGolf: student.golf_of_year ?? student.years_of_golf ?? student.yearsOfGolf,
                         history: student.bio || student.history
                     }));
                     setStudents(mappedStudents);

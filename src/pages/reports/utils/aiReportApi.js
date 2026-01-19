@@ -5,6 +5,8 @@
  * - /api/* -> http://192.168.31.233:8080/*
  */
 
+import { getBackendLanguage } from '../../../utils/language';
+
 const getToken = () => {
   try {
     const raw = localStorage.getItem('user');
@@ -16,9 +18,8 @@ const getToken = () => {
 };
 
 export const getBackendLang = () => {
-  const lang = (localStorage.getItem('language') || 'zh').toLowerCase();
-  // backend doc uses "cn"
-  return lang === 'en' ? 'en' : 'cn';
+  // backend doc uses "cn" / "en"
+  return getBackendLanguage('zh');
 };
 
 export async function createAIReport(assessmentId, { token = getToken(), language = getBackendLang() } = {}) {

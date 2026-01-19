@@ -2,6 +2,36 @@
  * 测评相关 API 调用
  */
 
+import { pickLocalizedContent } from '../../../utils/language';
+
+const buildDefaultGoalTitle = (index, language = 'cn') => {
+    const cnStageNames = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+    const enStageNames = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"];
+
+    if (language === 'en') {
+        return `${enStageNames[index] || `Stage ${index + 1}`} Goal`;
+    }
+    return `第${cnStageNames[index] || (index + 1)}阶段目标`;
+};
+
+const normalizeGoalItem = (item, index, language = 'cn') => {
+    const titleCandidate =
+        item?.title ??
+        item?.name ??
+        item?.label ??
+        item?.stage_title ??
+        item?.stageTitle;
+
+    const title = (typeof titleCandidate === 'string' && titleCandidate.trim() !== '')
+        ? titleCandidate.trim()
+        : buildDefaultGoalTitle(index, language);
+
+    const contentCandidate = item?.content ?? item?.stage_content ?? '';
+    const content = typeof contentCandidate === 'string' ? contentCandidate : String(contentCandidate ?? '');
+
+    return { title, content };
+};
+
 export const saveGoalToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
     if (!user?.token || !currentId) return null;
 
@@ -13,11 +43,10 @@ export const saveGoalToBackend = async (type, content, currentId, user, studentI
         // 将 'skills' 映射为后端期望的 'technique'
         const goalType = type === 'skills' || type === 'technique' ? 'technique' : type;
 
-        // 格式化内容数组
-        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
-            title: item.title || item.name || '目标',
-            content: item.content || item.stage_content || ''
-        })).filter(item => item.content.trim() !== '');
+        // 格式化内容数组：保留用户自定义 title；缺失时按阶段生成默认 title
+        const formattedContent = (Array.isArray(content) ? content : [])
+            .map((item, index) => normalizeGoalItem(item, index, language))
+            .filter(item => item.content.trim() !== '');
 
         if (formattedContent.length === 0) return currentId;
 
@@ -152,8 +181,8 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
         if (response.ok) {
             const data = await response.json();
             console.log('[API] GET /diagnoses success:', data);
-            // 后端返回的对象包含 content 数组
-            return data.content || [];
+            // 后端返回: {content, content_en}
+            return pickLocalizedContent(data);
         }
 
         // 404 是正常的（新 assessment 还没有诊断数据）
@@ -506,7 +535,8 @@ export const getPlanFromBackend = async (assessmentId, user) => {
         if (response.ok) {
             const data = await response.json();
             console.log('[API] GET /plans success:', data);
-            return data.content || [];
+            // 后端返回: {content, content_en}
+            return pickLocalizedContent(data);
         }
 
         // 404 是正常的（新 assessment 还没有训练计划数据）
@@ -574,7 +604,8 @@ export const getGoalFromBackend = async (assessmentId, user) => {
         if (response.ok) {
             const data = await response.json();
             console.log('[API] GET /goals success:', data);
-            return data.content || [];
+            // 后端返回: {content, content_en}
+            return pickLocalizedContent(data);
         }
 
         // 404 是正常的（新 assessment 还没有目标数据）
@@ -598,10 +629,10 @@ export const updateGoalToBackend = async (assessmentId, content, user, language 
     if (!user?.token || !assessmentId) return false;
 
     try {
-        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
-            title: item.title || item.name || '',
-            content: item.content || ''
-        })).filter(item => item.content.trim() !== '');
+        // 格式化内容数组：保留用户自定义 title；缺失时按阶段生成默认 title
+        const formattedContent = (Array.isArray(content) ? content : [])
+            .map((item, index) => normalizeGoalItem(item, index, language))
+            .filter(item => item.content.trim() !== '');
 
         const requestBody = {
             assessment_id: assessmentId,

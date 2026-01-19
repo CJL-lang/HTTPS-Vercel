@@ -652,6 +652,9 @@ const translations = {
         singleEvaluation: "测评分析",
         completedEvaluation: "已完成测评分析",
         waitAIReport:"正在为您定制专属训练方案，大约需要3-5分钟，请耐心等待...",
+        RegenerateReport: "重新生成",
+        NewVersion: "新版本",
+
 
         // Report Detail Page
         assessmentDetailLabel: "报告详情",
@@ -1314,6 +1317,8 @@ const translations = {
         singleEvaluation: "Assessment Analysis",
         completedEvaluation: "Completed Assessment Analysis",
         waitAIReport:"We are customizing a personalized training plan for you. This will take about 3-5 minutes, please be patient...",
+        RegenerateReport: "Regenerate Report",
+        NewVersion: "New Version",
 
         // Report Detail Page
         assessmentDetailLabel: "REPORT DETAIL",
