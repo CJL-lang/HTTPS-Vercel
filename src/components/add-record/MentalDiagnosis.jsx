@@ -165,8 +165,8 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                             // 确认自定义标题，保留grade字段
                                             updateItem(item.id, { title: finalValue, isCustom: false });
                                         } else {
-                                            // 如果没填内容，恢复为第一个预设标题，并移除grade字段
-                                            updateItem(item.id, { title: presetTitles[0], isCustom: false, grade: undefined });
+                                            // 如果没填内容，保持原有标题/状态，避免触发重复标题提示
+                                            updateItem(item.id, { title: item.title, isCustom: item.isCustom });
                                         }
                                     }}
                                     placeholder={t('enterTitle')}
@@ -178,8 +178,8 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        // 取消自定义，恢复为第一个预设标题，并移除grade字段
-                                        updateItem(item.id, { isCustom: false, title: presetTitles[0], grade: undefined });
+                                        // 取消自定义，保留原标题，避免触发重复标题提示
+                                        updateItem(item.id, { isCustom: false, title: item.title });
                                     }}
                                     className="custom-title-cancel-btn"
                                 >

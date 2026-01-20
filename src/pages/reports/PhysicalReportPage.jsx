@@ -72,13 +72,13 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
             const fetchKey = `${targetId}_${user.token}`;
             const isFirstLoad = lastFetchedRef.current !== fetchKey;
             lastFetchedRef.current = fetchKey;
-            
+
             // 如果不是首次加载且已有原始数据，只重新排序
             if (!isFirstLoad && rawRecordsRef.current.length > 0) {
                 const sortedRecords = [...rawRecordsRef.current].sort((a, b) => {
                     const dateA = new Date(a.completedAt || a.timestamp || 0);
                     const dateB = new Date(b.completedAt || b.timestamp || 0);
-                    return sortOrder === 'desc' 
+                    return sortOrder === 'desc'
                         ? dateB - dateA  // 从新到旧
                         : dateA - dateB; // 从旧到新
                 });
@@ -131,12 +131,12 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
 
             // 保存原始数据
             rawRecordsRef.current = completed || [];
-            
+
             const allRecords = [...rawRecordsRef.current]
                 .sort((a, b) => {
                     const dateA = new Date(a.completedAt || a.timestamp || 0);
                     const dateB = new Date(b.completedAt || b.timestamp || 0);
-                    return sortOrder === 'desc' 
+                    return sortOrder === 'desc'
                         ? dateB - dateA  // 从新到旧
                         : dateA - dateB; // 从旧到新
                 });

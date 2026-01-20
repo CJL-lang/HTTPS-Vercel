@@ -129,6 +129,15 @@ export default function App() {
         }
     }, [isLoggedIn, location.pathname, navigate, currentUser, isCheckingAuth]);
 
+    // 路由变化时滚动到页面顶部（解决局域网环境下的滚动问题）
+    useEffect(() => {
+        // 延迟执行确保页面已渲染
+        const timer = setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [location.pathname]);
+
     const [students, setStudents] = useState([]);
     const lastFetchedStudentsTokenRef = useRef(null);
 
@@ -418,6 +427,11 @@ export default function App() {
                 navigate(`/add-record/${routeType}/data`, {
                     state: { assessmentData: finalAssessmentData, student }
                 });
+                
+                // 滚动到页面顶部（延迟执行确保页面已渲染）
+                setTimeout(() => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 100);
             } else {
                 alert(language === 'en' ? 'Failed to create assessment' : '创建测评记录失败');
             }
