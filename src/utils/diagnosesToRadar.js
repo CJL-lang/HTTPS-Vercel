@@ -1,5 +1,70 @@
 import translations from './i18n';
 
+function getUiLang() {
+    try {
+        const v = (localStorage.getItem('language') || 'zh').toLowerCase();
+        return v === 'en' ? 'en' : 'zh';
+    } catch {
+        return 'zh';
+    }
+}
+
+function tByLang(key, lang) {
+    const table = translations?.[lang];
+    if (!table) return '';
+    const val = table[key];
+    return val == null ? '' : String(val);
+}
+
+function getRadarLabelI18nKey(type, fieldKey) {
+    if (type === 'physical') {
+        if (fieldKey === 'flexibility') return 'flexibilityLevel';
+        if (fieldKey === 'upperBodyStrength') return 'upperBodyStrengthLevel';
+        if (fieldKey === 'lowerBodyStrength') return 'lowerBodyStrengthLevel';
+        if (fieldKey === 'coordination') return 'coordinationLevel';
+        if (fieldKey === 'coreStability') return 'coreStabilityLevel';
+        if (fieldKey === 'explosiveness') return 'rotationalExplosivenessLevel';
+        if (fieldKey === 'cardio') return 'cardiorespiratoryEndurance';
+        return '';
+    }
+
+    if (type === 'mental') {
+        if (fieldKey === 'focus') return 'focusAbility';
+        if (fieldKey === 'stability') return 'mentalResilience';
+        if (fieldKey === 'confidence') return 'confidenceAndMotivation';
+        return '';
+    }
+
+    if (type === 'skills') {
+        if (fieldKey === 'driver') return 'clubDriver';
+        if (fieldKey === 'mainIron') return 'clubMainIron';
+        if (fieldKey === 'wood') return 'clubWood';
+        if (fieldKey === 'putting') return 'clubPutting';
+        if (fieldKey === 'scrambling') return 'clubScrambling';
+        if (fieldKey === 'finesseWedges') return 'clubFinesseWedges';
+        if (fieldKey === 'irons') return 'clubIrons';
+        return '';
+    }
+
+    return '';
+}
+
+function translateRadarLabel(title, type, lang) {
+    const raw = (title ?? '').toString();
+    if (!raw) return raw;
+
+    const candidateMap = buildCandidateMap(type);
+    const norm = normalizeTitle(raw);
+    const fieldKey = findBestFieldKey(norm, candidateMap);
+    if (!fieldKey) return raw;
+
+    const i18nKey = getRadarLabelI18nKey(type, fieldKey);
+    if (!i18nKey) return raw;
+
+    const translated = tByLang(i18nKey, lang);
+    return translated || raw;
+}
+
 function normalizeTitle(input) {
     if (input == null) return '';
     return String(input)
@@ -161,9 +226,11 @@ export function diagnosesToRadarGradeData(diagnosesResponse, type) {
     const labels = [];
     const values = [];
 
+    const lang = getUiLang();
+
     for (const item of content) {
         if (item?.title) {
-            labels.push(item.title);
+            labels.push(translateRadarLabel(item.title, type, lang));
             values.push(item?.grade ?? 0);
         }
     }

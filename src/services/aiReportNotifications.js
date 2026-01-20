@@ -1,35 +1,48 @@
-function getAssessmentLabel(assessmentType) {
+function getUiLang() {
+  try {
+    const v = (localStorage.getItem('language') || 'zh').toLowerCase();
+    return v === 'en' ? 'en' : 'zh';
+  } catch {
+    return 'zh';
+  }
+}
+
+function getAssessmentLabel(assessmentType, lang) {
   const type = String(assessmentType || '').toLowerCase();
-  if (type === 'physical') return '身体素质测评';
-  if (type === 'mental') return '心理测评';
-  if (type === 'skills' || type === 'technique') return '技能测评';
-  return '测评';
+  const isEn = lang === 'en';
+  if (type === 'physical') return isEn ? 'Physical' : '体能';
+  if (type === 'mental') return isEn ? 'Mental' : '心理';
+  if (type === 'skills' || type === 'technique') return isEn ? 'Skills' : '技术';
+  return isEn ? 'Assessment' : '测评';
 }
 
-function getVariantLabel(payload) {
-  const backendType = String(payload?.type || '').toLowerCase();
-  if (backendType === 'completed_compare') return '对比版';
-  return '';
-}
-
-function buildTitle({ status, assessmentType, title, payload }) {
-  const label = getAssessmentLabel(assessmentType);
+function buildSuccessTitle({ assessmentType, title }) {
+  const lang = getUiLang();
+  const label = getAssessmentLabel(assessmentType, lang);
   const safeTitle = (title || '').toString().trim();
-  const variant = getVariantLabel(payload);
+  const base = safeTitle || label;
+  const isCompare = String(arguments?.[0]?.payload?.type || '').toLowerCase() === 'completed_compare';
 
-  const namePart = safeTitle ? `${safeTitle}` : '';
-  const variantPart = variant ? `（${variant}）` : '';
-
-  // Prefer the concrete assessment title if available.
-  if (safeTitle) {
-    if (status === 'success') return `${namePart}${variantPart}生成完毕`;
-    if (status === 'timeout') return `${namePart}${variantPart}生成超时`;
-    return `${namePart}${variantPart}生成失败`;
+  if (lang === 'en') {
+    if (isCompare) {
+      const hasReportWord = /\breport\b/i.test(base);
+      return hasReportWord ? `${base} comparison generated successfully` : `${base} comparison report generated successfully`;
+    }
+    const hasReportWord = /\breport\b/i.test(base);
+    return hasReportWord ? `${base} generated successfully` : `${base} report generated successfully`;
   }
 
-  if (status === 'success') return `${label}报告${namePart}${variantPart}生成完毕`;
-  if (status === 'timeout') return `${label}报告${namePart}${variantPart}生成超时`;
-  return `${label}报告${namePart}${variantPart}生成失败`;
+  if (isCompare) {
+    // 需求：{title}对比报告生成完成
+    return `${base}对比报告生成完成`;
+  }
+  const hasReportWord = base.includes('报告');
+  return hasReportWord ? `${base}生成成功` : `${base}报告生成成功`;
+}
+
+function buildFailureTitle() {
+  const lang = getUiLang();
+  return lang === 'en' ? 'Report generation failed' : '报告生成失败';
 }
 
 function sanitizeToastDescription(input) {
@@ -60,34 +73,21 @@ function sanitizeToastDescription(input) {
 }
 
 export function buildAIReportToast({ status, assessmentId, assessmentType, title, message, payload }) {
-  const safeMsg = sanitizeToastDescription(message);
-  const safePayloadErr = sanitizeToastDescription(payload?.error);
-
   if (status === 'success') {
     return {
       kind: 'success',
-      title: buildTitle({ status, assessmentType, title, payload }),
-      description:
-        safeMsg ||
-        (assessmentId ? `测评ID：${assessmentId}` : ''),
+      title: buildSuccessTitle({ assessmentType, title, payload }),
+      description: '',
       durationMs: 5000
     };
   }
 
-  if (status === 'timeout') {
+  // 对客户展示：失败/超时等只提示失败，不暴露错误细节
+  if (status === 'timeout' || status === 'failure') {
     return {
       kind: 'error',
-      title: buildTitle({ status, assessmentType, title, payload }),
-      description: safeMsg || (assessmentId ? `测评ID：${assessmentId}` : ''),
-      durationMs: 7000
-    };
-  }
-
-  if (status === 'failure') {
-    return {
-      kind: 'error',
-      title: buildTitle({ status, assessmentType, title, payload }),
-      description: safeMsg || safePayloadErr || (assessmentId ? `测评ID：${assessmentId}` : ''),
+      title: buildFailureTitle(),
+      description: '',
       durationMs: 7000
     };
   }

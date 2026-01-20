@@ -382,14 +382,12 @@ export const useAssessmentSave = ({
         // 最后一步：写回学员数据
         persistModuleToStudent(activePrimary, recordData, data, setData);
 
-        // 完整测评：点击“完成测评”时，确保把当前标题写回后端（防止用户改标题未点保存）
-        if (!isSingleMode) {
-            const titleNow = (recordData?.title || '').toString().trim();
-            if (titleNow) {
-                await patchCurrentTitleIfNeeded();
-            } else {
-                await ensureDefaultTitlePatchedIfNeeded();
-            }
+        // 点击“完成测评”时，确保把当前标题写回后端（防止用户改标题未点保存）
+        const titleNow = (recordData?.title || '').toString().trim();
+        if (titleNow) {
+            await patchCurrentTitleIfNeeded();
+        } else {
+            await ensureDefaultTitlePatchedIfNeeded();
         }
 
         // 每次完成一个测评类别（无论是单项还是完整测评）都显示完成操作面板

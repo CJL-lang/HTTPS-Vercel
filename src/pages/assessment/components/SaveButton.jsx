@@ -32,7 +32,7 @@ const SaveButton = ({
                             className="w-full h-[48px] sm:h-[52px] md:h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-xs sm:text-sm md:text-base uppercase tracking-wider sm:tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4"
                         >
                             <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                            <span className="text-[11px] sm:text-sm md:text-base">正在生成报告...</span>
+                            <span className="text-[11px] sm:text-sm md:text-base">{t('generatingReport')}</span>
                         </motion.div>
                     ) : !shouldShowCompleteActions ? (
                         <motion.button
