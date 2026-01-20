@@ -103,7 +103,7 @@ const MentalPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
                                         if (finalValue) {
                                             updateItem(item.id, { title: finalValue, isCustom: false });
                                         } else {
-                                            updateItem(item.id, { title: presetTitles[0], isCustom: false });
+                                            updateItem(item.id, { title: item.title, isCustom: item.isCustom });
                                         }
                                     }}
                                     placeholder={t('enterTitle')}
@@ -115,7 +115,7 @@ const MentalPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        updateItem(item.id, { isCustom: false, title: presetTitles[0] });
+                                        updateItem(item.id, { isCustom: false, title: item.title });
                                     }}
                                     className="custom-title-cancel-btn"
                                 >
@@ -219,6 +219,7 @@ const MentalPlan = ({ data, update }) => {
     const { startListening } = useVoiceInput();
     const [listeningId, setListeningId] = useState(null);
     const [showTitleSelector, setShowTitleSelector] = useState(null);
+    const containerRef = useRef(null);
 
     // 点击外部关闭下拉菜单
     useEffect(() => {
@@ -256,7 +257,6 @@ const MentalPlan = ({ data, update }) => {
     }, [data.mentalPlan, update]);
 
     const planItems = data.mentalPlan || [];
-    const containerRef = useRef(null);
 
     const addItem = () => {
         // 找到下一个未被使用的标题
@@ -319,7 +319,7 @@ const MentalPlan = ({ data, update }) => {
                 </div>
             </div>
 
-            <div ref={containerRef} className="space-y-6 pb-20">
+            <div ref={containerRef} className="space-y-6">
                 <AnimatePresence mode="popLayout" initial={false}>
                     {planItems.map((item) => (
                         <MentalPlanItem

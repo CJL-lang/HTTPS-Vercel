@@ -145,7 +145,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
         };
 
         fetchRecords();
-    }, [user?.token, id, student?.id, sortOrder]);
+    }, [user?.token, student?.id, sortOrder]);
 
     const handleRecordClick = (record) => {
         const backendCompleted =

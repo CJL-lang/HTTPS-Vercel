@@ -289,8 +289,8 @@ const PhysicalDiagnosisItem = forwardRef(({
                                         if (finalValue) {
                                             updateItem(item.id, { title: finalValue, isCustom: false });
                                         } else {
-                                            // 如果没填内容，恢复回原标题或第一个预设标题
-                                            updateItem(item.id, { title: item.title || presetTitles[0], isCustom: false });
+                                            // 如果没填内容，保持原有标题/状态，避免触发重复标题提示
+                                            updateItem(item.id, { title: item.title, isCustom: item.isCustom });
                                         }
                                     }}
                                     placeholder={t('enterTitle')}

@@ -1545,14 +1545,24 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                 {isCreatingAIReport ? t('saving') : (allSectionsSelected() ? t('saveChanges') : t('chooseVersion'))}
                             </motion.button>
                         ) : (
-                            <motion.button
-                                whileTap={{ scale: loading || isCreatingAIReport ? 1 : 0.95 }}
-                                onClick={handleRegenerate}
-                                disabled={loading || isCreatingAIReport}
-                                className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-base sm:text-lg shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {t('RegenerateReport')}
-                            </motion.button>
+                            <div className="flex items-center gap-3">
+                                <motion.button
+                                    whileTap={{ scale: loading || isCreatingAIReport ? 1 : 0.95 }}
+                                    onClick={handleSaveAndGoHome}
+                                    disabled={loading || isCreatingAIReport}
+                                    className="flex-1 h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-base sm:text-lg shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {t('saveOnly')}
+                                </motion.button>
+                                <motion.button
+                                    whileTap={{ scale: loading || isCreatingAIReport ? 1 : 0.95 }}
+                                    onClick={handleRegenerate}
+                                    disabled={loading || isCreatingAIReport}
+                                    className="flex-1 h-[54px] rounded-full surface-weak border border-white/10 text-white/80 font-bold text-base sm:text-lg flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {t('RegenerateReport')}
+                                </motion.button>
+                            </div>
                         )}
                     </div>
                 </div>

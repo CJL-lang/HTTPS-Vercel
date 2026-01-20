@@ -2,40 +2,8 @@
  * 测评相关 API 调用
  */
 
-import { pickLocalizedContent, toBackendLanguage, getBackendLanguage } from '../../../utils/language';
-
-const buildDefaultGoalTitle = (index, language = 'cn') => {
-    const cnStageNames = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
-    const enStageNames = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"];
-
-    if (language === 'en') {
-        return `${enStageNames[index] || `Stage ${index + 1}`} Goal`;
-    }
-    return `第${cnStageNames[index] || (index + 1)}阶段目标`;
-};
-
-const normalizeGoalItem = (item, index, language = 'cn') => {
-    const titleCandidate =
-        item?.title ??
-        item?.name ??
-        item?.label ??
-        item?.stage_title ??
-        item?.stageTitle;
-
-    const title = (typeof titleCandidate === 'string' && titleCandidate.trim() !== '')
-        ? titleCandidate.trim()
-        : buildDefaultGoalTitle(index, language);
-
-    const contentCandidate = item?.content ?? item?.stage_content ?? '';
-    const content = typeof contentCandidate === 'string' ? contentCandidate : String(contentCandidate ?? '');
-
-    return { title, content };
-};
-
-export const saveGoalToBackend = async (type, content, currentId, user, studentId, language) => {
+export const saveGoalToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
     if (!user?.token || !currentId) return null;
-
-    const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
 
     if (!content || (Array.isArray(content) && content.length === 0)) {
         return null;
@@ -45,10 +13,11 @@ export const saveGoalToBackend = async (type, content, currentId, user, studentI
         // 将 'skills' 映射为后端期望的 'technique'
         const goalType = type === 'skills' || type === 'technique' ? 'technique' : type;
 
-        // 格式化内容数组：保留用户自定义 title；缺失时按阶段生成默认 title
-        const formattedContent = (Array.isArray(content) ? content : [])
-            .map((item, index) => normalizeGoalItem(item, index, backendLang))
-            .filter(item => item.content.trim() !== '');
+        // 格式化内容数组
+        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
+            title: item.title || item.name || '目标',
+            content: item.content || item.stage_content || ''
+        })).filter(item => item.content.trim() !== '');
 
         if (formattedContent.length === 0) return currentId;
 
@@ -56,7 +25,7 @@ export const saveGoalToBackend = async (type, content, currentId, user, studentI
             assessment_id: currentId,
             type: goalType,
             content: formattedContent,
-            language: backendLang
+            language: language
         };
 
         const response = await fetch('/api/goals', {
@@ -81,10 +50,45 @@ export const saveGoalToBackend = async (type, content, currentId, user, studentI
     }
 };
 
-export const savePlanToBackend = async (type, content, currentId, user, studentId, title = '', language) => {
-    if (!user?.token || !currentId) return null;
+/**
+ * 删除测评
+ * 建议后端使用与 create/update 相同的资源路径：DELETE /api/assessment
+ * @param {string} assessmentId
+ * @param {object} user
+ */
+export const deleteAssessment = async (assessmentId, user) => {
+    if (!user?.token || !assessmentId) {
+        console.warn('[API] deleteAssessment aborted: missing token or id', { assessmentId, hasToken: !!user?.token });
+        return false;
+    }
 
-    const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
+    try {
+        const payload = { assessment_id: assessmentId };
+        console.log('[API] DELETE /assessment payload:', payload);
+
+        const response = await fetch('/api/assessment', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error('[API] DELETE /assessment failed:', response.status, errText);
+        }
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error deleting assessment:', error);
+        return false;
+    }
+};
+
+export const savePlanToBackend = async (type, content, currentId, user, studentId, title = '', language = 'cn') => {
+    if (!user?.token || !currentId) return null;
 
     try {
         // 格式化内容数组，过滤掉空 title 和空 content 的项
@@ -100,7 +104,7 @@ export const savePlanToBackend = async (type, content, currentId, user, studentI
         const requestBody = {
             assessment_id: currentId,
             content: formattedContent,
-            language: backendLang
+            language: language
         };
 
         const response = await fetch('/api/plans', {
@@ -125,9 +129,8 @@ export const savePlanToBackend = async (type, content, currentId, user, studentI
     return null;
 };
 
-export const saveDiagnosisToBackend = async (type, content, currentId, user, studentId, language) => {
+export const saveDiagnosisToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
     try {
-        const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
         const headers = { 'Content-Type': 'application/json' };
         if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
 
@@ -142,7 +145,7 @@ export const saveDiagnosisToBackend = async (type, content, currentId, user, stu
         const requestBody = {
             assessment_id: currentId || '',
             content: formattedContent,
-            language: backendLang
+            language: language
         };
 
         console.log('[API] POST /diagnosis payload:', requestBody);
@@ -186,8 +189,8 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
         if (response.ok) {
             const data = await response.json();
             console.log('[API] GET /diagnoses success:', data);
-            // 后端返回: {content, content_en}
-            return pickLocalizedContent(data);
+            // 后端返回的对象包含 content 数组
+            return data.content || [];
         }
 
         // 404 是正常的（新 assessment 还没有诊断数据）
@@ -207,11 +210,10 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
 /**
  * 更新已有诊断数据 (PATCH)
  */
-export const updateDiagnosisToBackend = async (assessmentId, content, user, language) => {
+export const updateDiagnosisToBackend = async (assessmentId, content, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
 
     try {
-        const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
         const formattedContent = (Array.isArray(content) ? content : [])
             .map(item => ({
                 title: item.title || item.name || '',
@@ -223,7 +225,7 @@ export const updateDiagnosisToBackend = async (assessmentId, content, user, lang
         const requestBody = {
             assessment_id: assessmentId,
             content: formattedContent,
-            language: backendLang
+            language: language
         };
 
         const response = await fetch('/api/diagnoses', {
@@ -461,44 +463,6 @@ export const updateAssessment = async (assessmentId, updateData, user) => {
     }
 };
 
-export const deleteAssessment = async (assessmentId, user) => {
-    console.log('[API] deleteAssessment trigger:', { assessmentId });
-    if (!user?.token || !assessmentId) {
-        console.warn('[API] deleteAssessment aborted: missing token or id', { assessmentId, hasToken: !!user?.token });
-        return false;
-    }
-
-    try {
-        const payload = {
-            assessment_id: assessmentId.toString()
-        };
-
-        console.log('[API] DELETE /assessment payload:', payload);
-
-        const response = await fetch('/api/assessment', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.token}`
-            },
-            body: JSON.stringify(payload),
-        });
-
-        console.log('[API] DELETE /assessment response status:', response.status);
-
-        if (response.ok) {
-            return true;
-        } else {
-            const errData = await response.text();
-            console.error('Failed to delete assessment:', errData);
-            return false;
-        }
-    } catch (error) {
-        console.error('Error deleting assessment:', error);
-        return false;
-    }
-};
-
 export const createAssessment = async (studentId, type, user, title = '', language = 'cn') => {
     if (!user?.token || !studentId) {
         console.error('[API] createAssessment: Missing token or studentId');
@@ -579,8 +543,7 @@ export const getPlanFromBackend = async (assessmentId, user) => {
         if (response.ok) {
             const data = await response.json();
             console.log('[API] GET /plans success:', data);
-            // 后端返回: {content, content_en}
-            return pickLocalizedContent(data);
+            return data.content || [];
         }
 
         // 404 是正常的（新 assessment 还没有训练计划数据）
@@ -600,11 +563,10 @@ export const getPlanFromBackend = async (assessmentId, user) => {
 /**
  * 更新已有训练计划 (PATCH)
  */
-export const updatePlanToBackend = async (assessmentId, content, user, language) => {
+export const updatePlanToBackend = async (assessmentId, content, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
 
     try {
-        const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
         const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
             title: item.title || item.name || '',
             content: item.content || ''
@@ -613,7 +575,7 @@ export const updatePlanToBackend = async (assessmentId, content, user, language)
         const requestBody = {
             assessment_id: assessmentId,
             content: formattedContent,
-            language: backendLang
+            language: language
         };
 
         const response = await fetch('/api/plans', {
@@ -649,8 +611,7 @@ export const getGoalFromBackend = async (assessmentId, user) => {
         if (response.ok) {
             const data = await response.json();
             console.log('[API] GET /goals success:', data);
-            // 后端返回: {content, content_en}
-            return pickLocalizedContent(data);
+            return data.content || [];
         }
 
         // 404 是正常的（新 assessment 还没有目标数据）
@@ -670,20 +631,19 @@ export const getGoalFromBackend = async (assessmentId, user) => {
 /**
  * 更新已有目标数据 (PATCH)
  */
-export const updateGoalToBackend = async (assessmentId, content, user, language) => {
+export const updateGoalToBackend = async (assessmentId, content, user, language = 'cn') => {
     if (!user?.token || !assessmentId) return false;
 
     try {
-        const backendLang = language ? toBackendLanguage(language) : getBackendLanguage('zh');
-        // 格式化内容数组：保留用户自定义 title；缺失时按阶段生成默认 title
-        const formattedContent = (Array.isArray(content) ? content : [])
-            .map((item, index) => normalizeGoalItem(item, index, backendLang))
-            .filter(item => item.content.trim() !== '');
+        const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
+            title: item.title || item.name || '',
+            content: item.content || ''
+        })).filter(item => item.content.trim() !== '');
 
         const requestBody = {
             assessment_id: assessmentId,
             content: formattedContent,
-            language: backendLang
+            language: language
         };
 
         const response = await fetch('/api/goals', {

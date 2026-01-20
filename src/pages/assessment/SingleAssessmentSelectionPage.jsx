@@ -91,7 +91,7 @@ const SingleAssessmentSelectionPage = ({ onBack, onStartAssessment, assessmentCo
 
             {/* Header */}
             <div className="relative z-10 mb-8 flex justify-between items-center">
-                <button 
+                <button
                     onClick={onBack}
                     className="btn-back"
                 >
@@ -112,15 +112,15 @@ const SingleAssessmentSelectionPage = ({ onBack, onStartAssessment, assessmentCo
                     {assessmentTypes.map((type) => {
                         const Icon = type.icon;
                         const isSelected = selectedType === type.id;
-                        
+
                         return (
                             <motion.div
                                 key={type.id}
                                 onClick={() => setSelectedType(type.id)}
                                 className={cn(
                                     "relative overflow-hidden rounded-2xl p-5 cursor-pointer transition-all duration-300 border-2 backdrop-blur-lg",
-                                    isSelected 
-                                        ? `bg-gradient-to-br ${type.color} ${type.borderColor} shadow-lg ${type.shadowColor}` 
+                                    isSelected
+                                        ? `bg-gradient-to-br ${type.color} ${type.borderColor} shadow-lg ${type.shadowColor}`
                                         : "bg-black/50 border-white/30 hover:border-white/40"
                                 )}
                                 whileHover={{ scale: 1.02 }}
@@ -149,8 +149,8 @@ const SingleAssessmentSelectionPage = ({ onBack, onStartAssessment, assessmentCo
                                     </div>
                                     <div className={cn(
                                         "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                                        isSelected 
-                                            ? "border-white bg-white" 
+                                        isSelected
+                                            ? "border-white bg-white"
                                             : "border-white/30"
                                     )}>
                                         {isSelected && (

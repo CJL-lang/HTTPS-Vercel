@@ -691,6 +691,7 @@ const translations = {
         generatingReport: "正在生成报告...",
         chooseVersion: "请选择要保留的内容",
         saving: "保存中...",
+        saveOnly: "保存",
 
 
         // Report Detail Page
@@ -1473,6 +1474,7 @@ const translations = {
         generatingReport: "Generating Report...",
         chooseVersion: "Please select the content to keep",
         saving: "Saving...",
+        saveOnly: "Save",
 
         // Report Detail Page
         assessmentDetailLabel: "REPORT DETAIL",
