@@ -62,6 +62,9 @@ const translations = {
         statusPendingFill: "待填写",
         statusPending: "待处理",
         startNewAssessment: "开始新测评",
+        sortByTime: "按时间排序",
+        sortAscending: "从旧到新",
+        sortDescending: "从新到旧",
 
         // Assessment Type Selection
         selectAssessmentMode: "请选择测评模式",
@@ -283,6 +286,7 @@ const translations = {
         lowerBodyStrength: "下肢力量",
         coordination: "协调性",
         coreStability: "核心稳定性",
+        coreStabilityShort: "核心稳定",
         explosiveness: "爆发力",
         cardio: "心肺功能",
         physicalQualityAssessment: "身体素质评估",
@@ -308,6 +312,12 @@ const translations = {
         clubScrambling: "救球率",
         clubFinesseWedges: "切杆",
         clubIrons: "铁杆",
+        // Skills Diagnosis - Preset Titles
+        basicAction: "基础动作",
+        swingAnalysis: "挥杆分析",
+        // Skills Plan - Preset Titles
+        coreImprovementPoint: "核心改进点",
+        auxiliaryPracticeSuggestion: "辅助练习建议",
 
         // Physical Data (Styku)
         stykuTitle: "Styku 3D 自动采集",
@@ -523,6 +533,16 @@ const translations = {
         plansGenerated: "方案生成",
         activeHours: "活跃时长",
         hoursUnit: "小时",
+        changeAvatar: "更换头像",
+        selectAvatar: "选择头像",
+        avatarUpdated: "头像已更新",
+        uploadAvatar: "上传头像",
+        takePhoto: "拍照",
+        chooseFromAlbum: "从相册选择",
+        cancel: "取消",
+        confirm: "确认",
+        cropAvatar: "裁剪头像",
+        pleaseSelectImage: "请选择图片",
 
         // Three-D Page
         threeDTitle: "3D 形象选择",
@@ -827,6 +847,9 @@ const translations = {
         statusPendingTest: "Pending Test",
         statusPendingFill: "Pending Fill",
         statusPending: "Pending",
+        sortByTime: "Sort by Time",
+        sortAscending: "Oldest First",
+        sortDescending: "Newest First",
         startNewAssessment: "Start New Assessment",
 
         // Assessment Type Selection
@@ -1033,8 +1056,8 @@ const translations = {
         focusAbility: "Focus Ability",
         stressManagement: "Stress Management",
         stability: "Stability",
-        mentalResilience: "Mental Resilience",
-        confidenceAndMotivation: "Confidence & Motivation",
+        mentalResilience: "Resilience",
+        confidenceAndMotivation: "Confidence",
         // Physical Diagnosis Preset Titles
         flexibilityLevel: "Flexibility Level",
         upperBodyStrengthLevel: "Upper Body Strength Level",
@@ -1049,6 +1072,7 @@ const translations = {
         lowerBodyStrength: "Lower Body Strength",
         coordination: "Coordination",
         coreStability: "Core Stability",
+        coreStabilityShort: "Core Stability",
         explosiveness: "Explosiveness",
         cardio: "Cardio Function",
         physicalQualityAssessment: "Physical Quality Assessment",
@@ -1059,9 +1083,9 @@ const translations = {
         coreImprovement: "Core Improvement",
         flexibilityAndCoordinationImprovement: "Flexibility & Coordination Improvement",
         // Mental Plan Preset Titles
-        focusAbilityImprovement: "Focus Ability Improvement",
-        mentalResilienceImprovement: "Mental Resilience Improvement",
-        confidenceAndMotivationImprovement: "Confidence & Motivation Improvement",
+        focusAbilityImprovement: "Focus Boost",
+        mentalResilienceImprovement: "Resilience Boost",
+        confidenceAndMotivationImprovement: "Confidence Boost",
         // Add Item Buttons
         addDiagnosisItem: "Add Diagnosis Item",
         addTrainingPlan: "Add Training Plan",
@@ -1074,6 +1098,12 @@ const translations = {
         clubScrambling: "SCRAMBLING",
         clubFinesseWedges: "FINESSE WEDGES",
         clubIrons: "IRONS",
+        // Skills Diagnosis - Preset Titles
+        basicAction: "Basic Action",
+        swingAnalysis: "Swing Analysis",
+        // Skills Plan - Preset Titles
+        coreImprovementPoint: "Core Improvement",
+        auxiliaryPracticeSuggestion: "Auxiliary Practice",
 
         // Physical Data (Styku)
         stykuTitle: "Styku 3D Auto-Sync",
@@ -1269,6 +1299,16 @@ const translations = {
         plansGenerated: "Plans",
         activeHours: "Active Hours",
         hoursUnit: "Hours",
+        changeAvatar: "Change Avatar",
+        selectAvatar: "Select Avatar",
+        avatarUpdated: "Avatar Updated",
+        uploadAvatar: "Upload Avatar",
+        takePhoto: "Take Photo",
+        chooseFromAlbum: "Choose from Album",
+        cancel: "Cancel",
+        confirm: "Confirm",
+        cropAvatar: "Crop Avatar",
+        pleaseSelectImage: "Please select an image",
 
         // Three-D Page
         threeDTitle: "3D Avatar Selection",

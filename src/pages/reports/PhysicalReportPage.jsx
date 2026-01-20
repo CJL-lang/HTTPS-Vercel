@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Clock, CheckCircle, Brain } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, CheckCircle, Brain, ArrowUpDown } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '../../utils/LanguageContext';
 import { createAssessment } from '../assessment/utils/assessmentApi';
@@ -20,8 +20,11 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = 从新到旧, 'asc' = 从旧到新
     // 用于防止重复加载的 Ref
     const lastFetchedRef = useRef(null);
+    // 存储原始数据，用于排序
+    const rawRecordsRef = useRef([]);
 
     const backendLang = language === 'en' ? 'en' : 'cn';
 
@@ -35,8 +38,21 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
 
             // 如果已经加载过这个目标的记录，不再重复加载
             const fetchKey = `${targetId}_${user.token}`;
-            if (lastFetchedRef.current === fetchKey) return;
+            const isFirstLoad = lastFetchedRef.current !== fetchKey;
             lastFetchedRef.current = fetchKey;
+            
+            // 如果不是首次加载且已有原始数据，只重新排序
+            if (!isFirstLoad && rawRecordsRef.current.length > 0) {
+                const sortedRecords = [...rawRecordsRef.current].sort((a, b) => {
+                    const dateA = new Date(a.completedAt || a.timestamp || 0);
+                    const dateB = new Date(b.completedAt || b.timestamp || 0);
+                    return sortOrder === 'desc' 
+                        ? dateB - dateA  // 从新到旧
+                        : dateA - dateB; // 从旧到新
+                });
+                setRecords(sortedRecords);
+                return;
+            }
 
             setLoading(true);
 
@@ -60,6 +76,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
                                 : (c.status === '已完成' ? 'completed' : 'draft'),
                         date: new Date(c.timestamp).toLocaleDateString(),
                         completedAt: c.timestamp,
+                        timestamp: c.timestamp, // 保留原始时间戳字段
                         currentStep: c.status === '已完成' ? 3 : 0
                     }));
 
@@ -80,14 +97,23 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
                 setLoading(false);
             }
 
-            const allRecords = (completed || [])
-                .sort((a, b) => new Date(b.sortTime || b.lastModified || b.completedAt) - new Date(a.sortTime || a.lastModified || a.completedAt));
+            // 保存原始数据
+            rawRecordsRef.current = completed || [];
+            
+            const allRecords = [...rawRecordsRef.current]
+                .sort((a, b) => {
+                    const dateA = new Date(a.completedAt || a.timestamp || 0);
+                    const dateB = new Date(b.completedAt || b.timestamp || 0);
+                    return sortOrder === 'desc' 
+                        ? dateB - dateA  // 从新到旧
+                        : dateA - dateB; // 从旧到新
+                });
 
             setRecords(allRecords);
         };
 
         fetchRecords();
-    }, [user?.token, student?.id]);
+    }, [user?.token, student?.id, sortOrder]);
 
     const handleRecordClick = (record) => {
         const backendCompleted =
@@ -200,6 +226,16 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
                     <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
                 </button>
                 <h1 className="title-workbench flex-1 min-w-0">{t('physicalHistory')}</h1>
+                <button
+                    onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl surface-weak border border-white/10 hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all group"
+                    title={sortOrder === 'desc' ? t('sortDescending') : t('sortAscending')}
+                >
+                    <ArrowUpDown size={18} className={`text-[#d4af37] transition-transform ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />
+                    <span className="text-xs font-bold text-white/60 group-hover:text-white transition-colors hidden sm:inline">
+                        {sortOrder === 'desc' ? t('sortDescending') : t('sortAscending')}
+                    </span>
+                </button>
             </div>
 
             {/* Records List - 可滚动区域 */}
