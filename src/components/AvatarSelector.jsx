@@ -48,6 +48,7 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
         }
     }, [step, stream]);
 
+
     // 处理文件选择
     const handleFileSelect = (file) => {
         if (!file) return;
@@ -67,7 +68,7 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
         const reader = new FileReader();
         reader.onloadend = (e) => {
             setSelectedImage(e.target.result);
-            // 重置变换状态
+            // 重置变换状态，稍后在图片加载完成后会调整
             setScale(1);
             setPosition({ x: 0, y: 0 });
             setStep('crop');
@@ -112,33 +113,35 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
 
     // 捕获照片
     const capturePhoto = () => {
-        console.log('开始捕获照片...', { 
-            videoRef: !!videoRef.current, 
-            videoReady: videoRef.current?.readyState,
-            videoWidth: videoRef.current?.videoWidth,
-            videoHeight: videoRef.current?.videoHeight
-        });
-
         if (!videoRef.current) {
-            console.error('videoRef.current 不存在');
+            console.error('视频元素不存在');
             setError('视频未准备好，请稍候再试');
             return;
         }
 
         const video = videoRef.current;
         
-        // 检查视频是否已加载
+        // 检查视频是否已准备好
         if (!video.videoWidth || !video.videoHeight) {
-            console.error('视频尺寸无效', { width: video.videoWidth, height: video.videoHeight });
-            setError('视频未准备好，请稍候再试');
+            console.error('视频尺寸无效:', { width: video.videoWidth, height: video.videoHeight });
+            setError('视频未准备好，请等待摄像头启动完成');
+            return;
+        }
+
+        // 如果canvas不存在，创建一个临时的
+        let canvas = canvasRef.current;
+        if (!canvas) {
+            canvas = document.createElement('canvas');
+        }
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.error('无法获取canvas上下文');
+            setError('拍照失败，请重试');
             return;
         }
 
         try {
-            // 创建临时canvas（不需要ref，直接创建）
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
             // 设置canvas尺寸与视频相同
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -150,13 +153,12 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
             const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
             
             if (!imageDataUrl || imageDataUrl === 'data:,') {
-                throw new Error('捕获的照片数据为空');
+                throw new Error('图片数据为空');
             }
             
-            console.log('照片捕获成功');
             setSelectedImage(imageDataUrl);
             
-            // 重置变换状态
+            // 重置变换状态，稍后在图片加载完成后会应用边界限制
             setScale(1);
             setPosition({ x: 0, y: 0 });
             
@@ -164,8 +166,8 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
             stopCamera();
             setStep('crop');
         } catch (error) {
-            console.error('捕获照片失败:', error);
-            setError('捕获照片失败：' + (error.message || '未知错误'));
+            console.error('拍照失败:', error);
+            setError('拍照失败，请重试');
         }
     };
 
@@ -194,6 +196,73 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
         return Math.sqrt(dx * dx + dy * dy);
     };
 
+    // 计算图片边界限制，确保圆形裁剪框不超出图片
+    const calculateBounds = useCallback((currentScale, currentPosition) => {
+        const container = cropContainerRef.current;
+        const img = cropImageRef.current;
+        
+        if (!container || !img || !selectedImage || !img.naturalWidth || !img.naturalHeight) {
+            return { minX: 0, maxX: 0, minY: 0, maxY: 0, minScale: 0.5, maxScale: 3 };
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const containerSize = Math.min(containerRect.width, containerRect.height);
+        
+        // 圆形裁剪框的半径（占容器的40%）
+        const cropRadius = containerSize * 0.4;
+        
+        // 获取图片的原始尺寸和显示尺寸
+        const imgNaturalWidth = img.naturalWidth;
+        const imgNaturalHeight = img.naturalHeight;
+        const imgAspect = imgNaturalWidth / imgNaturalHeight;
+        
+        // 由于使用object-fit: contain，计算图片在容器中的实际显示尺寸
+        let imgDisplayWidth, imgDisplayHeight;
+        if (imgAspect > 1) {
+            // 图片更宽，以宽度为准
+            imgDisplayWidth = containerSize;
+            imgDisplayHeight = containerSize / imgAspect;
+        } else {
+            // 图片更高，以高度为准
+            imgDisplayHeight = containerSize;
+            imgDisplayWidth = containerSize * imgAspect;
+        }
+        
+        // 图片在容器中的实际显示区域（考虑缩放）
+        const scaledImgWidth = imgDisplayWidth * currentScale;
+        const scaledImgHeight = imgDisplayHeight * currentScale;
+        
+        // 图片中心相对于容器中心的位置（考虑位移）
+        const imgCenterX = containerSize / 2 + currentPosition.x;
+        const imgCenterY = containerSize / 2 + currentPosition.y;
+        
+        // 图片的边界（相对于容器中心）
+        const imgLeft = imgCenterX - scaledImgWidth / 2;
+        const imgRight = imgCenterX + scaledImgWidth / 2;
+        const imgTop = imgCenterY - scaledImgHeight / 2;
+        const imgBottom = imgCenterY + scaledImgHeight / 2;
+        
+        // 圆形裁剪框的中心必须在图片范围内
+        // 圆形框中心的最小和最大位置（相对于容器中心）
+        const minX = imgLeft + cropRadius - containerSize / 2;
+        const maxX = imgRight - cropRadius - containerSize / 2;
+        const minY = imgTop + cropRadius - containerSize / 2;
+        const maxY = imgBottom - cropRadius - containerSize / 2;
+        
+        // 计算最小缩放比例，确保圆形框可以完全包含在图片内
+        // 需要满足：2 * cropRadius <= min(scaledImgWidth, scaledImgHeight)
+        const minScaleForFit = (2 * cropRadius) / Math.min(imgDisplayWidth, imgDisplayHeight);
+        
+        return {
+            minX: Math.min(minX, 0),
+            maxX: Math.max(maxX, 0),
+            minY: Math.min(minY, 0),
+            maxY: Math.max(maxY, 0),
+            minScale: Math.max(minScaleForFit, 0.5),
+            maxScale: 3
+        };
+    }, [selectedImage]);
+
     // 处理鼠标/触摸开始
     const handleStart = (e) => {
         if (e.touches && e.touches.length === 2) {
@@ -216,16 +285,37 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
             const distance = getDistance(e.touches[0], e.touches[1]);
             if (lastTouchDistance !== null) {
                 const scaleChange = distance / lastTouchDistance;
-                setScale(prev => Math.max(0.5, Math.min(3, prev * scaleChange)));
+                setScale(prev => {
+                    const newScale = Math.max(0.5, Math.min(3, prev * scaleChange));
+                    // 应用缩放后，检查并限制位置
+                    const bounds = calculateBounds(newScale, position);
+                    const clampedScale = Math.max(bounds.minScale, Math.min(bounds.maxScale, newScale));
+                    // 如果缩放被限制，重新计算位置
+                    if (clampedScale !== newScale) {
+                        const finalBounds = calculateBounds(clampedScale, position);
+                        setPosition({
+                            x: Math.max(finalBounds.minX, Math.min(finalBounds.maxX, position.x)),
+                            y: Math.max(finalBounds.minY, Math.min(finalBounds.maxY, position.y))
+                        });
+                    }
+                    return clampedScale;
+                });
             }
             setLastTouchDistance(distance);
         } else if (isDragging) {
             // 单指拖动
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            setPosition({
+            const newPosition = {
                 x: clientX - dragStart.x,
                 y: clientY - dragStart.y
+            };
+            
+            // 应用边界限制
+            const bounds = calculateBounds(scale, newPosition);
+            setPosition({
+                x: Math.max(bounds.minX, Math.min(bounds.maxX, newPosition.x)),
+                y: Math.max(bounds.minY, Math.min(bounds.maxY, newPosition.y))
             });
         }
     };
@@ -240,11 +330,26 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
     const handleWheel = (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        setScale(prev => Math.max(0.5, Math.min(3, prev * delta)));
+        setScale(prev => {
+            const newScale = prev * delta;
+            const bounds = calculateBounds(newScale, position);
+            const clampedScale = Math.max(bounds.minScale, Math.min(bounds.maxScale, newScale));
+            
+            // 如果缩放被限制，调整位置以确保圆形框在图片内
+            if (clampedScale !== newScale || clampedScale === bounds.minScale) {
+                const finalBounds = calculateBounds(clampedScale, position);
+                setPosition({
+                    x: Math.max(finalBounds.minX, Math.min(finalBounds.maxX, position.x)),
+                    y: Math.max(finalBounds.minY, Math.min(finalBounds.maxY, position.y))
+                });
+            }
+            
+            return clampedScale;
+        });
     };
 
     // 圆形裁剪图片（根据当前变换参数）
-    const cropImageToCircle = useCallback((imageSrc, currentScale, currentPosition) => {
+    const cropImageToCircle = useCallback((imageSrc, currentScale, currentPosition, containerWidth, containerHeight) => {
         return new Promise((resolve, reject) => {
             if (!imageSrc) {
                 reject(new Error('图片源为空'));
@@ -272,36 +377,52 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                 ctx.arc(cropSize / 2, cropSize / 2, cropSize / 2, 0, Math.PI * 2);
                 ctx.clip();
                 
-                // 容器大小（像素）- 使用响应式容器的参考值
-                // 实际容器是 max-w-md (28rem = 448px)，使用400px作为参考
-                const containerSize = 400;
-                // 圆形裁剪区域是容器的80% (w-4/5 h-4/5)
-                const cropCircleSize = containerSize * 0.8; // 320px
+                // 使用实际容器尺寸（取较小值，因为容器是正方形）
+                const containerSize = Math.min(containerWidth || 320, containerHeight || 320);
                 
-                // 图片在容器中的显示尺寸（图片初始是100%容器大小，然后通过scale缩放）
-                const displaySize = containerSize * currentScale;
+                // 圆形裁剪区域的半径（占容器的40%，与UI中的遮罩一致）
+                const cropRadius = containerSize * 0.4;
                 
-                // 裁剪区域中心在容器中心
-                const cropCenter = containerSize / 2;
+                // 获取图片在容器中的实际显示尺寸
+                // 图片使用objectFit: contain，所以需要计算实际显示尺寸
+                const imageAspect = img.width / img.height;
+                const containerAspect = 1; // 容器是正方形
+                
+                let displayWidth, displayHeight;
+                if (imageAspect > containerAspect) {
+                    // 图片更宽，以宽度为准
+                    displayWidth = containerSize;
+                    displayHeight = containerSize / imageAspect;
+                } else {
+                    // 图片更高，以高度为准
+                    displayHeight = containerSize;
+                    displayWidth = containerSize * imageAspect;
+                }
+                
+                // 应用缩放
+                const scaledDisplayWidth = displayWidth * currentScale;
+                const scaledDisplayHeight = displayHeight * currentScale;
                 
                 // 图片中心在容器中的位置（考虑位移）
-                const imageCenterX = cropCenter + currentPosition.x;
-                const imageCenterY = cropCenter + currentPosition.y;
+                const containerCenter = containerSize / 2;
+                const imageCenterX = containerCenter + currentPosition.x;
+                const imageCenterY = containerCenter + currentPosition.y;
                 
                 // 裁剪区域中心相对于图片中心的偏移（容器坐标）
-                const offsetX = cropCenter - imageCenterX;
-                const offsetY = cropCenter - imageCenterY;
+                const offsetX = containerCenter - imageCenterX;
+                const offsetY = containerCenter - imageCenterY;
                 
                 // 转换为图片原始坐标
                 // 图片原始尺寸与显示尺寸的比例
-                const imageToDisplayRatio = img.width / displaySize;
+                const imageToDisplayRatioX = img.width / scaledDisplayWidth;
+                const imageToDisplayRatioY = img.height / scaledDisplayHeight;
                 
-                // 裁剪区域在图片中的大小（使用圆形直径）
-                const sourceCropSize = cropCircleSize * imageToDisplayRatio;
+                // 裁剪区域在图片中的大小（使用半径的2倍作为直径）
+                const sourceCropSize = cropRadius * 2 * Math.max(imageToDisplayRatioX, imageToDisplayRatioY);
                 
                 // 裁剪区域中心在图片中的位置
-                const sourceCropCenterX = (img.width / 2) + (offsetX * imageToDisplayRatio);
-                const sourceCropCenterY = (img.height / 2) + (offsetY * imageToDisplayRatio);
+                const sourceCropCenterX = (img.width / 2) + (offsetX * imageToDisplayRatioX);
+                const sourceCropCenterY = (img.height / 2) + (offsetY * imageToDisplayRatioY);
                 
                 // 裁剪区域的左上角坐标
                 const sourceX = sourceCropCenterX - sourceCropSize / 2;
@@ -354,9 +475,20 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
 
         try {
             setIsProcessing(true);
-            console.log('开始裁剪图片...', { scale, position });
             
-            const cropped = await cropImageToCircle(selectedImage, scale, position);
+            // 获取容器的实际尺寸
+            const container = cropContainerRef.current;
+            if (!container) {
+                throw new Error('无法获取容器尺寸');
+            }
+            
+            const containerRect = container.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+            
+            console.log('开始裁剪图片...', { scale, position, containerWidth, containerHeight });
+            
+            const cropped = await cropImageToCircle(selectedImage, scale, position, containerWidth, containerHeight);
             
             if (!cropped) {
                 throw new Error('裁剪失败');
@@ -448,11 +580,11 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                             onChange={(e) => handleFileSelect(e.target.files?.[0])}
                             className="hidden"
                         />
-                        
-                        {/* 隐藏的canvas用于拍照 */}
-                        <canvas ref={canvasRef} className="hidden" />
                     </>
                 )}
+
+                {/* 隐藏的canvas用于拍照 - 在所有步骤中都存在 */}
+                <canvas ref={canvasRef} className="hidden" />
 
                 {step === 'camera' && (
                     <>
@@ -474,13 +606,13 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                             </div>
                         )}
 
-                        <div className="relative mb-4 rounded-2xl overflow-hidden bg-black" style={{ aspectRatio: '1/1', maxHeight: '60vh' }}>
+                        <div className="relative mb-4 rounded-2xl overflow-hidden bg-black" style={{ aspectRatio: '4/3', maxHeight: '60vh' }}>
                             <video
                                 ref={videoRef}
                                 autoPlay
                                 playsInline
                                 muted
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
                                 style={{ display: stream ? 'block' : 'none' }}
                             />
                         </div>
@@ -525,10 +657,10 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                         )}
 
                         <div className="relative mb-6 flex items-center justify-center" style={{ minHeight: '320px' }}>
-                            {/* 图片容器 - 显示完整图片，不被裁剪 */}
+                            {/* 外层容器 - 用于显示完整图片 */}
                             <div 
                                 ref={cropContainerRef}
-                                className="relative w-full max-w-md aspect-square rounded-2xl overflow-hidden bg-black/20"
+                                className="relative w-full max-w-md aspect-square overflow-hidden bg-black/20 rounded-2xl"
                                 onMouseDown={handleStart}
                                 onMouseMove={handleMove}
                                 onMouseUp={handleEnd}
@@ -539,38 +671,78 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                                 onWheel={handleWheel}
                                 style={{ touchAction: 'none', cursor: isDragging ? 'grabbing' : 'grab' }}
                             >
-                                {/* 可拖动的完整图片 */}
+                                {/* 可拖动的图片 - 完整显示 */}
                                 <img
                                     ref={cropImageRef}
                                     src={selectedImage}
                                     alt="Preview"
                                     className="absolute top-1/2 left-1/2 select-none"
                                     style={{
-                                        width: `${100 * scale}%`,
-                                        height: `${100 * scale}%`,
+                                        width: '100%',
+                                        height: '100%',
                                         objectFit: 'contain',
-                                        transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
+                                        transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${scale})`,
                                         transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                                         willChange: 'transform'
                                     }}
                                     draggable={false}
+                                    onLoad={(e) => {
+                                        // 图片加载完成后，应用边界限制确保圆形框在图片内
+                                        const img = e.target;
+                                        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                                            setTimeout(() => {
+                                                const bounds = calculateBounds(scale, position);
+                                                // 检查并调整位置和缩放
+                                                let newPosition = { ...position };
+                                                let newScale = scale;
+                                                
+                                                // 如果位置超出边界，调整位置
+                                                if (position.x < bounds.minX || position.x > bounds.maxX ||
+                                                    position.y < bounds.minY || position.y > bounds.maxY) {
+                                                    newPosition = {
+                                                        x: Math.max(bounds.minX, Math.min(bounds.maxX, position.x)),
+                                                        y: Math.max(bounds.minY, Math.min(bounds.maxY, position.y))
+                                                    };
+                                                }
+                                                
+                                                // 如果缩放太小，调整到最小缩放
+                                                if (scale < bounds.minScale) {
+                                                    newScale = bounds.minScale;
+                                                    // 重新计算边界
+                                                    const newBounds = calculateBounds(newScale, newPosition);
+                                                    newPosition = {
+                                                        x: Math.max(newBounds.minX, Math.min(newBounds.maxX, newPosition.x)),
+                                                        y: Math.max(newBounds.minY, Math.min(newBounds.maxY, newPosition.y))
+                                                    };
+                                                }
+                                                
+                                                // 如果有变化，更新状态
+                                                if (newPosition.x !== position.x || newPosition.y !== position.y) {
+                                                    setPosition(newPosition);
+                                                }
+                                                if (newScale !== scale) {
+                                                    setScale(newScale);
+                                                }
+                                            }, 50);
+                                        }
+                                    }}
                                 />
                                 
-                                {/* 圆形裁剪遮罩层 */}
+                                {/* 圆形裁剪遮罩层 - 使用SVG遮罩 */}
                                 <div className="absolute inset-0 pointer-events-none">
-                                    {/* 使用SVG创建圆形遮罩 */}
                                     <svg className="w-full h-full">
                                         <defs>
                                             <mask id="cropCircleMask">
-                                                <rect width="100%" height="100%" fill="white" />
-                                                <circle cx="50%" cy="50%" r="40%" fill="black" />
+                                                <rect width="100%" height="100%" fill="black" />
+                                                <circle cx="50%" cy="50%" r="40%" fill="white" />
                                             </mask>
                                         </defs>
-                                        <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#cropCircleMask)" />
+                                        <rect width="100%" height="100%" fill="rgba(0,0,0,0.5)" mask="url(#cropCircleMask)" />
                                     </svg>
-                                    {/* 圆形边框指示器 */}
-                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 h-4/5 rounded-full border-4 border-[#d4af37] shadow-lg"></div>
                                 </div>
+                                
+                                {/* 圆形裁剪边框指示器 */}
+                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 h-4/5 rounded-full border-4 border-[#d4af37] shadow-lg pointer-events-none"></div>
                             </div>
                         </div>
 

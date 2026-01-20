@@ -10,6 +10,12 @@ const presetTitles = [
     "辅助练习建议"
 ];
 
+// 中文标题 -> 翻译键映射
+const titleToTranslationKey = {
+    "核心改进点": "coreImprovementPoint",
+    "辅助练习建议": "auxiliaryPracticeSuggestion",
+};
+
 const SkillsPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTitleSelector, setShowTitleSelector, setListeningId, listeningId, startListening }, ref) => {
     const { t } = useLanguage();
     const [displayTitle, setDisplayTitle] = useState(item.title);
@@ -19,15 +25,44 @@ const SkillsPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
     // 获取标题的显示文本
     const getTitleDisplay = (title) => {
         if (!title) return '';
-        // 如果是带数字的核心改进点，保持原样
-        if (title.startsWith("核心改进点")) return title;
-        return t(title) || title;
+        // 如果是带数字的核心改进点，提取基础部分进行翻译
+        if (title.startsWith("核心改进点")) {
+            const match = title.match(/^核心改进点(\d+)?$/);
+            if (match) {
+                const number = match[1] || '';
+                const baseTranslation = t('coreImprovementPoint');
+                return number ? `${baseTranslation} ${number}` : baseTranslation;
+            }
+        }
+        if (titleToTranslationKey[title]) {
+            return t(titleToTranslationKey[title]);
+        }
+        return title; // 自定义标题直接返回
     };
 
     // 当外部 title 改变时，同步显示状态
     useEffect(() => {
-        setDisplayTitle(item.title);
-    }, [item.title, item.isCustom]);
+        // 如果是预设标题，显示翻译后的文本；否则显示原始标题
+        if (!item.isCustom) {
+            if (item.title.startsWith("核心改进点")) {
+                // 核心改进点带数字的情况，提取数字并翻译
+                const match = item.title.match(/^核心改进点(\d+)?$/);
+                if (match) {
+                    const number = match[1] || '';
+                    const baseTranslation = t('coreImprovementPoint');
+                    setDisplayTitle(number ? `${baseTranslation} ${number}` : baseTranslation);
+                } else {
+                    setDisplayTitle(item.title);
+                }
+            } else if (titleToTranslationKey[item.title]) {
+                setDisplayTitle(t(titleToTranslationKey[item.title]));
+            } else {
+                setDisplayTitle(item.title);
+            }
+        } else {
+            setDisplayTitle(item.title);
+        }
+    }, [item.title, item.isCustom, t]);
 
     return (
         <motion.div
@@ -73,7 +108,13 @@ const SkillsPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
                                     ref={inputRef}
                                     type="text"
                                     value={displayTitle}
-                                    onChange={(e) => setDisplayTitle(e.target.value)}
+                                    onChange={(e) => {
+                                        // 如果开始编辑预设标题，转换为自定义标题
+                                        if (!item.isCustom && presetTitles.includes(item.title)) {
+                                            updateItem(item.id, { title: item.title, isCustom: true });
+                                        }
+                                        setDisplayTitle(e.target.value);
+                                    }}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
                                             e.currentTarget.blur();
@@ -82,7 +123,33 @@ const SkillsPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
                                     onBlur={(e) => {
                                         const finalValue = e.target.value.trim();
                                         if (finalValue) {
-                                            updateItem(item.id, { title: finalValue, isCustom: false });
+                                            // 检查是否是预设标题的翻译文本
+                                            const presetTitle = Object.keys(titleToTranslationKey).find(
+                                                key => {
+                                                    const translation = t(titleToTranslationKey[key]);
+                                                    // 处理核心改进点带数字的情况
+                                                    if (key === "核心改进点") {
+                                                        return finalValue === translation || finalValue.startsWith(translation + " ");
+                                                    }
+                                                    return finalValue === translation;
+                                                }
+                                            );
+                                            if (presetTitle) {
+                                                // 如果是核心改进点，检查是否有数字
+                                                if (presetTitle === "核心改进点" && finalValue.includes(" ")) {
+                                                    const match = finalValue.match(/^(.+?)\s*(\d+)$/);
+                                                    if (match) {
+                                                        const number = match[2];
+                                                        updateItem(item.id, { title: `核心改进点${number}`, isCustom: false });
+                                                    } else {
+                                                        updateItem(item.id, { title: presetTitle, isCustom: false });
+                                                    }
+                                                } else {
+                                                    updateItem(item.id, { title: presetTitle, isCustom: false });
+                                                }
+                                            } else {
+                                                updateItem(item.id, { title: finalValue, isCustom: true });
+                                            }
                                         } else {
                                             // 如果没填内容，恢复回原标题或第一个预设标题
                                             updateItem(item.id, { title: item.title || presetTitles[0], isCustom: false });
@@ -156,10 +223,45 @@ const SkillsPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
                                                     e.preventDefault();
                                                     const finalValue = displayTitle.trim();
                                                     if (finalValue) {
-                                                        updateItem(item.id, {
-                                                            title: finalValue,
-                                                            isCustom: !presetTitles.includes(finalValue)
-                                                        });
+                                                        // 检查是否是预设标题的翻译文本
+                                                        const presetTitle = Object.keys(titleToTranslationKey).find(
+                                                            key => {
+                                                                const translation = t(titleToTranslationKey[key]);
+                                                                // 处理核心改进点带数字的情况
+                                                                if (key === "核心改进点") {
+                                                                    return finalValue === translation || finalValue.startsWith(translation + " ");
+                                                                }
+                                                                return finalValue === translation;
+                                                            }
+                                                        );
+                                                        if (presetTitle) {
+                                                            // 如果是核心改进点，检查是否有数字
+                                                            if (presetTitle === "核心改进点" && finalValue.includes(" ")) {
+                                                                const match = finalValue.match(/^(.+?)\s*(\d+)$/);
+                                                                if (match) {
+                                                                    const number = match[2];
+                                                                    updateItem(item.id, {
+                                                                        title: `核心改进点${number}`,
+                                                                        isCustom: false
+                                                                    });
+                                                                } else {
+                                                                    updateItem(item.id, {
+                                                                        title: presetTitle,
+                                                                        isCustom: false
+                                                                    });
+                                                                }
+                                                            } else {
+                                                                updateItem(item.id, {
+                                                                    title: presetTitle,
+                                                                    isCustom: false
+                                                                });
+                                                            }
+                                                        } else {
+                                                            updateItem(item.id, {
+                                                                title: finalValue,
+                                                                isCustom: true
+                                                            });
+                                                        }
                                                         setDisplayTitle('');
                                                         setShowTitleSelector(null);
                                                     }
@@ -173,10 +275,45 @@ const SkillsPlanItem = React.forwardRef(({ item, updateItem, removeItem, showTit
                                                 setTimeout(() => {
                                                     const finalValue = e.target.value.trim();
                                                     if (finalValue) {
-                                                        updateItem(item.id, {
-                                                            title: finalValue,
-                                                            isCustom: !presetTitles.includes(finalValue)
-                                                        });
+                                                        // 检查是否是预设标题的翻译文本
+                                                        const presetTitle = Object.keys(titleToTranslationKey).find(
+                                                            key => {
+                                                                const translation = t(titleToTranslationKey[key]);
+                                                                // 处理核心改进点带数字的情况
+                                                                if (key === "核心改进点") {
+                                                                    return finalValue === translation || finalValue.startsWith(translation + " ");
+                                                                }
+                                                                return finalValue === translation;
+                                                            }
+                                                        );
+                                                        if (presetTitle) {
+                                                            // 如果是核心改进点，检查是否有数字
+                                                            if (presetTitle === "核心改进点" && finalValue.includes(" ")) {
+                                                                const match = finalValue.match(/^(.+?)\s*(\d+)$/);
+                                                                if (match) {
+                                                                    const number = match[2];
+                                                                    updateItem(item.id, {
+                                                                        title: `核心改进点${number}`,
+                                                                        isCustom: false
+                                                                    });
+                                                                } else {
+                                                                    updateItem(item.id, {
+                                                                        title: presetTitle,
+                                                                        isCustom: false
+                                                                    });
+                                                                }
+                                                            } else {
+                                                                updateItem(item.id, {
+                                                                    title: presetTitle,
+                                                                    isCustom: false
+                                                                });
+                                                            }
+                                                        } else {
+                                                            updateItem(item.id, {
+                                                                title: finalValue,
+                                                                isCustom: true
+                                                            });
+                                                        }
                                                     }
                                                     setDisplayTitle('');
                                                 }, 150);
@@ -409,7 +546,7 @@ const SkillsPlan = ({ data, update }) => {
                     <div className="add-button-icon">
                         <Plus size={20} />
                     </div>
-                    <span className="add-button-text">添加训练方案</span>
+                    <span className="add-button-text">{t('addTrainingPlan')}</span>
                 </motion.button>
             </div>
         </div>

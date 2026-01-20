@@ -29,7 +29,7 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
         } else {
             console.error('裁剪后的图片为空');
         }
-        
+
         // TODO: 后续接入后端接口时，在这里调用上传接口
         // 示例：
         // uploadAvatar(croppedImage).then(response => {
@@ -73,9 +73,9 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
                                 <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-[#d4af37] to-[#b8860b] p-[2px] shadow-2xl shadow-yellow-500/20 rotate-3 group-hover:rotate-0 transition-transform duration-500">
                                     <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
                                         {avatarUrl ? (
-                                            <img 
-                                                src={avatarUrl} 
-                                                alt="Avatar" 
+                                            <img
+                                                src={avatarUrl}
+                                                alt="Avatar"
                                                 className="w-full h-full object-cover rounded-full"
                                             />
                                         ) : (

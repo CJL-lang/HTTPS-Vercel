@@ -95,6 +95,19 @@ const presetTitles = [
     "切杆"
 ];
 
+// 中文标题 -> 翻译键映射
+const titleToTranslationKey = {
+    "基础动作": "basicAction",
+    "挥杆分析": "swingAnalysis",
+    "1号木杆": "clubDriver",
+    "主力铁杆": "clubMainIron",
+    "铁杆": "clubIrons",
+    "木杆": "clubWood",
+    "推杆": "clubPutting",
+    "救球率": "clubScrambling",
+    "切杆": "clubFinesseWedges",
+};
+
 // 需要显示等级下拉框的标题列表 - 技能测评全项目都需要等级
 const titlesWithGrade = [...presetTitles];
 
@@ -123,9 +136,23 @@ const SkillsDiagnosisItem = forwardRef(({
     const dropdownInputRef = useRef(null);
     const gradeButtonRef = useRef(null);
 
+    // 获取标题的翻译显示文本
+    const getTitleDisplay = (title) => {
+        if (!title) return '';
+        if (titleToTranslationKey[title]) {
+            return t(titleToTranslationKey[title]);
+        }
+        return title; // 自定义标题直接返回
+    };
+
     useEffect(() => {
-        setDisplayTitle(item.title);
-    }, [item.title]);
+        // 如果是预设标题，显示翻译后的文本；否则显示原始标题
+        if (!item.isCustom && titleToTranslationKey[item.title]) {
+            setDisplayTitle(t(titleToTranslationKey[item.title]));
+        } else {
+            setDisplayTitle(item.title);
+        }
+    }, [item.title, item.isCustom, t]);
 
     useEffect(() => {
         if (isEditingTitle && inputRef.current) {
@@ -184,7 +211,7 @@ const SkillsDiagnosisItem = forwardRef(({
                                     className="title-selector-btn"
                                 >
                                     <Sparkles size={12} className="icon-sparkles" />
-                                    <span className="truncate">{item.isCustom ? (displayTitle || t('enterTitle')) : (t(item.title) || item.title)}</span>
+                                    <span className="truncate">{item.isCustom ? (displayTitle || t('enterTitle')) : getTitleDisplay(item.title)}</span>
                                     <ChevronDown size={12} className={cn("transition-transform shrink-0", showTitleSelector === item.id && "rotate-180")} />
                                 </button>
 
@@ -229,7 +256,13 @@ const SkillsDiagnosisItem = forwardRef(({
                                         ref={inputRef}
                                         type="text"
                                         value={displayTitle}
-                                        onChange={(e) => setDisplayTitle(e.target.value)}
+                                        onChange={(e) => {
+                                            // 如果开始编辑预设标题，转换为自定义标题
+                                            if (!item.isCustom && presetTitles.includes(item.title)) {
+                                                updateItem(item.id, { title: item.title, isCustom: true });
+                                            }
+                                            setDisplayTitle(e.target.value);
+                                        }}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.currentTarget.blur();
@@ -238,7 +271,15 @@ const SkillsDiagnosisItem = forwardRef(({
                                         onBlur={(e) => {
                                             const finalValue = e.target.value.trim();
                                             if (finalValue) {
-                                                updateItem(item.id, { title: finalValue, isCustom: false });
+                                                // 检查是否是预设标题的翻译文本，如果是则恢复为原始预设标题
+                                                const presetTitle = Object.keys(titleToTranslationKey).find(
+                                                    key => t(titleToTranslationKey[key]) === finalValue
+                                                );
+                                                if (presetTitle) {
+                                                    updateItem(item.id, { title: presetTitle, isCustom: false });
+                                                } else {
+                                                    updateItem(item.id, { title: finalValue, isCustom: true });
+                                                }
                                             } else {
                                                 // 如果没填内容，恢复回原标题或第一个预设标题
                                                 updateItem(item.id, { title: item.title || presetTitles[0], isCustom: false });
@@ -291,7 +332,7 @@ const SkillsDiagnosisItem = forwardRef(({
                                                             idx < presetTitles.length - 1 && presetTitles[idx + 1] === "1号木杆" && "border-b-0"
                                                         )}
                                                     >
-                                                        {t(title) || title}
+                                                        {getTitleDisplay(title)}
                                                     </button>
                                                     {/* 在“挥杆分析”和“1号木杆”之间插入唯一的金色分割线 */}
                                                     {title === "挥杆分析" && idx < presetTitles.length - 1 && presetTitles[idx + 1] === "1号木杆" && (
@@ -310,10 +351,21 @@ const SkillsDiagnosisItem = forwardRef(({
                                                             e.preventDefault();
                                                             const finalValue = displayTitle.trim();
                                                             if (finalValue) {
-                                                                updateItem(item.id, {
-                                                                    title: finalValue,
-                                                                    isCustom: !presetTitles.includes(finalValue)
-                                                                });
+                                                                // 检查是否是预设标题的翻译文本
+                                                                const presetTitle = Object.keys(titleToTranslationKey).find(
+                                                                    key => t(titleToTranslationKey[key]) === finalValue
+                                                                );
+                                                                if (presetTitle) {
+                                                                    updateItem(item.id, {
+                                                                        title: presetTitle,
+                                                                        isCustom: false
+                                                                    });
+                                                                } else {
+                                                                    updateItem(item.id, {
+                                                                        title: finalValue,
+                                                                        isCustom: true
+                                                                    });
+                                                                }
                                                                 setDisplayTitle('');
                                                                 setShowTitleSelector(null);
                                                             }
@@ -327,10 +379,21 @@ const SkillsDiagnosisItem = forwardRef(({
                                                         setTimeout(() => {
                                                             const finalValue = e.target.value.trim();
                                                             if (finalValue) {
-                                                                updateItem(item.id, {
-                                                                    title: finalValue,
-                                                                    isCustom: !presetTitles.includes(finalValue)
-                                                                });
+                                                                // 检查是否是预设标题的翻译文本
+                                                                const presetTitle = Object.keys(titleToTranslationKey).find(
+                                                                    key => t(titleToTranslationKey[key]) === finalValue
+                                                                );
+                                                                if (presetTitle) {
+                                                                    updateItem(item.id, {
+                                                                        title: presetTitle,
+                                                                        isCustom: false
+                                                                    });
+                                                                } else {
+                                                                    updateItem(item.id, {
+                                                                        title: finalValue,
+                                                                        isCustom: true
+                                                                    });
+                                                                }
                                                             }
                                                             setDisplayTitle('');
                                                         }, 150);
