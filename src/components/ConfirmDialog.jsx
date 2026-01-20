@@ -26,7 +26,7 @@ const ConfirmDialog = ({
                 <h3 className="text-xl font-bold text-white mb-4 text-center">
                     {title}
                 </h3>
-                <p className="text-white/60 text-sm mb-8 text-center">
+                <p className="text-white/60 text-sm mb-8 text-center whitespace-pre-line">
                     {message}
                 </p>
 
@@ -34,12 +34,14 @@ const ConfirmDialog = ({
                     <button onClick={onConfirm} className={confirmClassName}>
                         {confirmText}
                     </button>
-                    <button
-                        onClick={onCancel}
-                        className="w-full py-3 rounded-full surface-weak border border-white/10 text-white/60 font-bold text-sm active:scale-95 transition-all"
-                    >
-                        {cancelText}
-                    </button>
+                    {cancelText ? (
+                        <button
+                            onClick={onCancel}
+                            className="w-full py-3 rounded-full surface-weak border border-white/10 text-white/60 font-bold text-sm active:scale-95 transition-all"
+                        >
+                            {cancelText}
+                        </button>
+                    ) : null}
                 </div>
             </div>
         </div>

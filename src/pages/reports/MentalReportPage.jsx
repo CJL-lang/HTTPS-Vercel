@@ -347,11 +347,11 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-end justify-between">
-                                        <h3 className="text-base sm:text-lg font-bold text-white/90 max-w-[60%] leading-tight uppercase tracking-tight">
+                                    <div className="flex items-end gap-3">
+                                        <h3 className="flex-1 min-w-0 text-base sm:text-lg font-bold text-white/90 leading-tight uppercase tracking-tight">
                                             {record.title || t('mentalAssessment')}
                                         </h3>
-                                        <div className="flex items-center gap-2 sm:gap-3">
+                                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                             {record.has_ai_report === 1 && (
                                                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/20 border border-purple-500/30">
                                                     <Brain className="w-3 h-3 text-purple-400" />
@@ -365,14 +365,14 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                                     e.stopPropagation();
                                                     requestDeleteRecord(record);
                                                 }}
-                                                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-red-500/30 hover:bg-red-500/10 transition-all disabled:opacity-50"
+                                                className="flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-red-500/30 hover:bg-red-500/10 transition-all disabled:opacity-50"
                                             >
-                                                <span className="text-xs sm:text-sm font-bold text-red-400">
+                                                <span className="text-xs sm:text-sm font-bold text-red-400 whitespace-nowrap">
                                                     {t('delete')}
                                                 </span>
                                             </button>
-                                            <button className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-white/10 hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all group">
-                                                <span className="text-xs sm:text-sm font-bold text-white/60 group-hover:text-white transition-colors">
+                                            <button className="flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-white/10 hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all group">
+                                                <span className="text-xs sm:text-sm font-bold text-white/60 group-hover:text-white transition-colors whitespace-nowrap">
                                                     {record.status === 'draft' ? t('continue') : t('view')}
                                                 </span>
                                                 <ChevronRight className="w-4 h-4 text-[#d4af37] opacity-40 group-hover:opacity-100 transition-opacity" />
