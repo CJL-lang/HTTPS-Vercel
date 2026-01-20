@@ -202,6 +202,9 @@ export const useAssessmentSave = ({
                     // 如果后端已有数据，使用 PATCH
                     console.log('[useAssessmentSave] Updating existing diagnosis via PATCH');
                     success = await updateDiagnosisToBackend(recordData.assessmentId, diagnosisContent, user, backendLang);
+                    if (success) {
+                        setHasBackendData(prev => ({ ...prev, diagnosis: true }));
+                    }
                 } else {
                     // 否则使用 POST
                     console.log('[useAssessmentSave] Creating new diagnosis via POST');
@@ -245,7 +248,10 @@ export const useAssessmentSave = ({
 
                 if (hasBackendData.plan) {
                     console.log('[useAssessmentSave] Updating existing plans via PATCH');
-                    await updatePlanToBackend(currentAssessmentId, cleanContent, user, backendLang);
+                    const ok = await updatePlanToBackend(currentAssessmentId, cleanContent, user, backendLang);
+                    if (ok) {
+                        setHasBackendData(prev => ({ ...prev, plan: true }));
+                    }
                 } else {
                     console.log('[useAssessmentSave] Creating new plans via POST');
                     const newId = await savePlanToBackend(
@@ -286,6 +292,9 @@ export const useAssessmentSave = ({
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing styku via PATCH');
                         const ok = await updateStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
+                        if (ok) {
+                            setHasBackendData(prev => ({ ...prev, assessment_data: true }));
+                        }
                         if (!ok) {
                             console.warn('[useAssessmentSave] PATCH styku failed; falling back to POST');
                             const created = await saveStykuDataToBackend(finalId, stykuDataPayload, user, backendLang);
@@ -310,7 +319,10 @@ export const useAssessmentSave = ({
 
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing mental via PATCH');
-                        await updateMentalDataToBackend(finalId, mentalDataPayload, user, backendLang);
+                        const ok = await updateMentalDataToBackend(finalId, mentalDataPayload, user, backendLang);
+                        if (ok) {
+                            setHasBackendData(prev => ({ ...prev, assessment_data: true }));
+                        }
                     } else {
                         console.log('[useAssessmentSave] Creating new mental via POST');
                         await saveMentalDataToBackend(finalId, mentalDataPayload, user, backendLang);
@@ -331,6 +343,9 @@ export const useAssessmentSave = ({
                     if (hasBackendData.assessment_data) {
                         console.log('[useAssessmentSave] Updating existing trackman via PATCH');
                         const ok = await updateTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);
+                        if (ok) {
+                            setHasBackendData(prev => ({ ...prev, assessment_data: true }));
+                        }
                         if (!ok) {
                             console.warn('[useAssessmentSave] PATCH trackman failed; falling back to POST');
                             const created = await saveTrackmanDataToBackend(finalId, trackmanDataPayload, user, backendLang);
@@ -357,7 +372,10 @@ export const useAssessmentSave = ({
             if (goalContent != null && currentAssessmentId) {
                 if (hasBackendData.goal) {
                     console.log('[useAssessmentSave] Updating existing goals via PATCH');
-                    await updateGoalToBackend(currentAssessmentId, goalContent, user, backendLang);
+                    const ok = await updateGoalToBackend(currentAssessmentId, goalContent, user, backendLang);
+                    if (ok) {
+                        setHasBackendData(prev => ({ ...prev, goal: true }));
+                    }
                 } else {
                     console.log('[useAssessmentSave] Creating new goals via POST');
                     const newAssessmentId = await saveGoalToBackend(type, goalContent, currentAssessmentId, user, student?.id, backendLang);

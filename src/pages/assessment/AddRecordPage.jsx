@@ -27,11 +27,18 @@ import SecondaryNavigation from './components/SecondaryNavigation';
 import AssessmentContent from './components/AssessmentContent';
 import SaveButton from './components/SaveButton';
 import UnsavedChangesDialog from './components/UnsavedChangesDialog';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 // Utils
 import { ROUTE_MAP, TYPE_MAP } from './utils/assessmentConstants';
 import { updateAssessment } from './utils/assessmentApi';
 import { saveAssessmentStep } from './utils/assessmentProgress';
+import {
+    getSingleAssessment,
+    getDiagnosisFromBackend,
+    getPlanFromBackend,
+    getGoalFromBackend
+} from './utils/assessmentApi';
 
 const AddRecordPage = ({ 
     onBack, 
@@ -59,6 +66,11 @@ const AddRecordPage = ({
     // 标题编辑状态
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+
+    // 生成报告前的完整性校验弹窗
+    const [showIncompleteDialog, setShowIncompleteDialog] = useState(false);
+    const [incompleteMessage, setIncompleteMessage] = useState('');
+    const [isCheckingBeforeGenerate, setIsCheckingBeforeGenerate] = useState(false);
 
     // 自定义 Hooks
     const unsavedChanges = useUnsavedChanges(null, null, t);
@@ -120,6 +132,102 @@ const AddRecordPage = ({
     };
 
     const assessmentData_hook = useAssessmentData(actualAssessmentData, navigation.activePrimary, navigation.activeSecondary, t, user);
+
+    const hydrateMissingBackendFlags = async (assessmentId, backendFlags) => {
+        if (!assessmentId || !user?.token) return {};
+
+        const updates = {};
+        const tasks = [];
+
+        if (!backendFlags.assessment_data) {
+            tasks.push(
+                getSingleAssessment(assessmentId, user).then((res) => {
+                    const basicData = res?.data ?? res?.assessment_data ?? res?.content ?? res;
+                    updates.assessment_data = !!basicData;
+                }).catch(() => {
+                    updates.assessment_data = false;
+                })
+            );
+        }
+
+        if (!backendFlags.diagnosis) {
+            tasks.push(
+                getDiagnosisFromBackend(assessmentId, user).then((list) => {
+                    updates.diagnosis = Array.isArray(list) ? list.length > 0 : !!list;
+                }).catch(() => {
+                    updates.diagnosis = false;
+                })
+            );
+        }
+
+        if (!backendFlags.plan) {
+            tasks.push(
+                getPlanFromBackend(assessmentId, user).then((list) => {
+                    updates.plan = Array.isArray(list) ? list.length > 0 : !!list;
+                }).catch(() => {
+                    updates.plan = false;
+                })
+            );
+        }
+
+        if (!backendFlags.goal) {
+            tasks.push(
+                getGoalFromBackend(assessmentId, user).then((list) => {
+                    updates.goal = Array.isArray(list) ? list.length > 0 : !!list;
+                }).catch(() => {
+                    updates.goal = false;
+                })
+            );
+        }
+
+        if (tasks.length === 0) return {};
+
+        await Promise.allSettled(tasks);
+        assessmentData_hook.setHasBackendData?.((prev) => ({ ...prev, ...updates }));
+        return updates;
+    };
+
+    const guardGenerateAIReport = async () => {
+        const missing = [];
+        const backendFlags = assessmentData_hook.hasBackendData || {};
+        const assessmentId =
+            assessmentData_hook.recordData?.assessmentId ||
+            actualAssessmentData?.assessment_id ||
+            actualAssessmentData?.id;
+
+        const diagnosisLabel = navigation.activePrimary === 0
+            ? t('bodyDiagnosis')
+            : navigation.activePrimary === 1
+                ? t('mentalDiagnosis')
+                : t('skillsDiagnosis');
+
+        let effectiveFlags = backendFlags;
+
+        // 防止“隔天继续填写”时未打开旧 Tab 导致 flags 还是 false：生成前补拉取缺失模块
+        if ((!backendFlags.assessment_data || !backendFlags.diagnosis || !backendFlags.plan || !backendFlags.goal) && !isCheckingBeforeGenerate) {
+            setIsCheckingBeforeGenerate(true);
+            try {
+                const hydrated = await hydrateMissingBackendFlags(assessmentId, backendFlags);
+                effectiveFlags = { ...backendFlags, ...hydrated };
+            } finally {
+                setIsCheckingBeforeGenerate(false);
+            }
+        }
+
+        if (!effectiveFlags.assessment_data) missing.push(t('dataCollection'));
+        if (!effectiveFlags.diagnosis) missing.push(diagnosisLabel);
+        if (!effectiveFlags.plan) missing.push(t('trainingPlan'));
+        if (!effectiveFlags.goal) missing.push(t('goalSetting'));
+
+        if (missing.length > 0) {
+            const prefix = t('incompleteBeforeGeneratePrefix') || '请先完成并保存以下内容后再生成报告：';
+            setIncompleteMessage(`${prefix}\n${missing.map(x => `• ${x}`).join('\n')}`);
+            setShowIncompleteDialog(true);
+            return false;
+        }
+
+        return true;
+    };
 
     // 任何页面修改标题后，后续导航都携带最新值
     useEffect(() => {
@@ -469,20 +577,37 @@ const AddRecordPage = ({
                 onSave={() => save.handleSave(navigation.navigateToSecondary)}
                 onGenerateLater={handleGenerateLater}
                 onGenerateAI={() => {
-                    // 清除完成状态
-                    try {
-                        const key = getShowCompleteActionsKey();
-                        sessionStorage.removeItem(key);
-                        setShowCompleteActions(false);
-                    } catch (e) {
+                    if (isCheckingBeforeGenerate) return;
+                    (async () => {
+                        const ok = await guardGenerateAIReport();
+                        if (!ok) return;
+                        // 清除完成状态
+                        try {
+                            const key = getShowCompleteActionsKey();
+                            sessionStorage.removeItem(key);
+                            setShowCompleteActions(false);
+                        } catch (e) {
 
-                    }
-                    save.handleGenerateAIReport(navigate, actualAssessmentData, draft.recordId, isNavigating, setIsNavigating);
+                        }
+                        save.handleGenerateAIReport(navigate, actualAssessmentData, draft.recordId, isNavigating, setIsNavigating);
+                    })();
                 }}
                 isNavigating={isNavigating}
                 generateLaterText={hasNextInCompleteFlow ? t('continueNextAssessment') : undefined}
                 generateAIText={hasNextInCompleteFlow ? t('generateReportAndContinue') : undefined}
                 t={t}
+            />
+
+            <ConfirmDialog
+                show={showIncompleteDialog}
+                title={t('incompleteAssessmentTitle')}
+                message={incompleteMessage}
+                confirmText={t('gotIt')}
+                confirmVariant="primary"
+                onConfirm={() => {
+                    setShowIncompleteDialog(false);
+                    setIncompleteMessage('');
+                }}
             />
 
             <UnsavedChangesDialog
