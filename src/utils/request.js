@@ -6,9 +6,19 @@
 /**
  * 获取 API 基础 URL
  * 优先读取 VITE_API_BASE_URL 环境变量，否则使用空字符串（同域请求）
+ * 
+ * 注意：如果使用 ngrok 免费版，建议不设置 VITE_API_BASE_URL，
+ * 让请求走 Vite proxy（/api），proxy 会自动添加 ngrok header
  */
 const getBaseURL = () => {
     return import.meta.env.VITE_API_BASE_URL || '';
+};
+
+/**
+ * 检测是否为 ngrok URL
+ */
+const isNgrokURL = (url) => {
+    return url.includes('ngrok-free.dev') || url.includes('ngrok.io') || url.includes('ngrok.app');
 };
 
 /**
@@ -92,7 +102,11 @@ export const request = async (url, options = {}) => {
     // 构建请求头
     const requestHeaders = new Headers();
 
-    // 1. 自动添加 ngrok-skip-browser-warning header（所有请求都需要）
+    // 1. 自动添加 ngrok-skip-browser-warning header
+    // 注意：ngrok 免费版需要客户端发送此 header 才能跳过警告页面
+    // 如果直接访问 ngrok URL（浏览器地址栏），仍会显示拦截页面
+    // 建议：不设置 VITE_API_BASE_URL，让请求走 Vite proxy（/api）
+    // 对于 ngrok URL，必须添加此 header（值可以是任意值，如 'true', '1', '69420' 等）
     requestHeaders.set('ngrok-skip-browser-warning', 'true');
 
     // 2. 自动添加 Content-Type（如果 body 是对象且不是 FormData）
