@@ -255,11 +255,28 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
                 // 辅助函数：获取本地化字段
                 const getLocalizedField = (fieldName) => {
-                    if (!isEnglish) return data[fieldName];
-                    // AIReport 特殊字段命名：diagnosis_en / plan_en
-                    if (fieldName === 'fitness_diagnosis') return data.diagnosis_en || data.fitness_diagnosis;
-                    if (fieldName === 'training_plan') return data.plan_en || data.training_plan;
-                    return data[`${fieldName}_en`] || data[fieldName];
+                    const unwrapText = (v) => {
+                        if (typeof v === 'string') return v;
+                        if (v && typeof v === 'object') {
+                            if (typeof v.content === 'string') return v.content;
+                            if (typeof v.text === 'string') return v.text;
+                        }
+                        return '';
+                    };
+                    const pick = (...vals) => vals.find((v) => v !== undefined && v !== null);
+
+                    if (!isEnglish) {
+                        if (fieldName === 'fitness_diagnosis') return unwrapText(pick(data.fitness_diagnosis, data.diagnosis));
+                        if (fieldName === 'training_plan') return unwrapText(pick(data.training_plan, data.plan));
+                        if (fieldName === 'report_intro') return unwrapText(pick(data.report_intro, data.reportIntro));
+                        return unwrapText(data[fieldName]);
+                    }
+
+                    if (fieldName === 'fitness_diagnosis') return unwrapText(pick(data.diagnosis_en, data.fitness_diagnosis_en, data.fitness_diagnosis));
+                    if (fieldName === 'training_plan') return unwrapText(pick(data.plan_en, data.training_plan_en, data.training_plan));
+                    if (fieldName === 'report_intro') return unwrapText(pick(data.report_intro_en, data.report_intro));
+
+                    return unwrapText(pick(data[`${fieldName}_en`], data[fieldName]));
                 };
 
                 // 辅助函数：解析文本为结构化数组
@@ -353,6 +370,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 const report = {
                     id: id,
                     aiReportId: data.id || data.report_id || id,
+                    rawAIReport: data,
                     studentId: data.student_id,
                     title: passedTitle || t('skillsReportTitle'),
                     date: trackmanData.created_at ? new Date(trackmanData.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
@@ -629,7 +647,8 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
             const userJson = localStorage.getItem('user');
             const user = userJson ? JSON.parse(userJson) : null;
             const token = user?.token || '';
-            const backendLang = getBackendLang();
+            const uiLang = localStorage.getItem('language') || 'zh';
+            const isEnglishUI = uiLang === 'en';
 
             const headers = {
                 'Content-Type': 'application/json',
@@ -661,28 +680,45 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                 ? newReportData.trainingOutlook
                 : oldReportData.trainingOutlook;
 
-            // 构建目标数据
-            const goalData = {};
+            // 构建目标数据：按 UI 语言只生成对应侧，避免英文 UI 把英文写入中文字段
+            const goalZhData = {};
+            const goalEnData = {};
             finalTrainingGoals.forEach(goal => {
-                const title = goal.title || '';
-                const content = goal.content || '';
-                if (title.includes('长期') || title.includes('Long-term') || title.toLowerCase().includes('long')) {
-                    goalData['长期目标'] = content;
-                    goalData.long_term = content;
-                } else if (title.includes('短期') || title.includes('Short-term') || title.toLowerCase().includes('short')) {
-                    goalData['短期目标'] = content;
-                    goalData.short_term = content;
+                const title = (goal.title || '').toString();
+                const content = (goal.content || '').toString();
+                const isLong = title.includes('长期') || title.includes('Long-term') || title.toLowerCase().includes('long');
+                const isShort = title.includes('短期') || title.includes('Short-term') || title.toLowerCase().includes('short');
+
+                if (isLong) {
+                    if (isEnglishUI) {
+                        goalEnData.long_term = content;
+                    } else {
+                        goalZhData['长期目标'] = content;
+                        goalZhData.long_term = content;
+                    }
+                } else if (isShort) {
+                    if (isEnglishUI) {
+                        goalEnData.short_term = content;
+                    } else {
+                        goalZhData['短期目标'] = content;
+                        goalZhData.short_term = content;
+                    }
                 }
             });
 
-            if (Object.keys(goalData).length === 0 && finalTrainingGoals.length > 0) {
-                if (finalTrainingGoals.length >= 1) {
-                    goalData['长期目标'] = finalTrainingGoals[0].content || '';
-                    goalData.long_term = finalTrainingGoals[0].content || '';
-                }
-                if (finalTrainingGoals.length >= 2) {
-                    goalData['短期目标'] = finalTrainingGoals[1].content || '';
-                    goalData.short_term = finalTrainingGoals[1].content || '';
+            if (finalTrainingGoals.length > 0) {
+                if (isEnglishUI) {
+                    if (!goalEnData.long_term && finalTrainingGoals[0]?.content) goalEnData.long_term = finalTrainingGoals[0].content;
+                    if (!goalEnData.short_term && finalTrainingGoals[1]?.content) goalEnData.short_term = finalTrainingGoals[1].content;
+                } else {
+                    if (!goalZhData.long_term && finalTrainingGoals[0]?.content) {
+                        goalZhData['长期目标'] = finalTrainingGoals[0].content;
+                        goalZhData.long_term = finalTrainingGoals[0].content;
+                    }
+                    if (!goalZhData.short_term && finalTrainingGoals[1]?.content) {
+                        goalZhData['短期目标'] = finalTrainingGoals[1].content;
+                        goalZhData.short_term = finalTrainingGoals[1].content;
+                    }
                 }
             }
 
@@ -694,26 +730,62 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
             // 构建训练计划数据
             const trainingPlanText = finalTrainingOutlook || '';
 
-            const patchBody = {
-                report_id: reportId,
-                goal: goalData,
-                fitness_diagnosis: diagnosisText,
-                training_plan: trainingPlanText
+            const toContentMap = (v, fallbackText) => {
+                if (v && typeof v === 'object' && !Array.isArray(v)) {
+                    if (typeof v.content === 'string') return { content: v.content };
+                    if (typeof v.text === 'string') return { content: v.text };
+                }
+                if (typeof v === 'string') return { content: v };
+                if (typeof fallbackText === 'string' && fallbackText.trim()) return { content: fallbackText };
+                return null;
             };
 
-            if (backendLang === 'en') {
-                const goalEn = {};
-                finalTrainingGoals.forEach(goal => {
-                    if (goal.title.includes('长期') || goal.title.includes('Long-term')) {
-                        goalEn.long_term = goal.content;
-                    } else if (goal.title.includes('短期') || goal.title.includes('Short-term')) {
-                        goalEn.short_term = goal.content;
-                    }
-                });
-                patchBody.goal_en = goalEn;
-                patchBody.diagnosis_en = diagnosisText;
-                patchBody.plan_en = trainingPlanText;
-            }
+            const goalSourceRaw = (selectedVersions.trainingGoals === 'new' ? newReportData : oldReportData)?.rawAIReport;
+            const diagnosisSourceRaw = (selectedVersions.qualityAssessment === 'new' ? newReportData : oldReportData)?.rawAIReport;
+            const planSourceRaw = (selectedVersions.trainingOutlook === 'new' ? newReportData : oldReportData)?.rawAIReport;
+
+            const baseRaw = reportData?.rawAIReport || oldReportData?.rawAIReport || null;
+
+            const goalZh = (goalSourceRaw?.goal && typeof goalSourceRaw.goal === 'object')
+                ? goalSourceRaw.goal
+                : (baseRaw?.goal && typeof baseRaw.goal === 'object')
+                    ? baseRaw.goal
+                    : (!isEnglishUI ? goalZhData : null);
+
+            const goalEn = (goalSourceRaw?.goal_en && typeof goalSourceRaw.goal_en === 'object')
+                ? goalSourceRaw.goal_en
+                : (baseRaw?.goal_en && typeof baseRaw.goal_en === 'object')
+                    ? baseRaw.goal_en
+                    : (isEnglishUI ? goalEnData : null);
+
+            const diagnosisZhMap = toContentMap(
+                diagnosisSourceRaw?.fitness_diagnosis || diagnosisSourceRaw?.diagnosis || baseRaw?.fitness_diagnosis || baseRaw?.diagnosis,
+                isEnglishUI ? undefined : diagnosisText
+            );
+            const planZhMap = toContentMap(
+                planSourceRaw?.training_plan || planSourceRaw?.plan || baseRaw?.training_plan || baseRaw?.plan,
+                isEnglishUI ? undefined : trainingPlanText
+            );
+
+            const diagnosisEnMap = toContentMap(
+                diagnosisSourceRaw?.diagnosis_en || diagnosisSourceRaw?.fitness_diagnosis_en || baseRaw?.diagnosis_en || baseRaw?.fitness_diagnosis_en,
+                isEnglishUI ? diagnosisText : undefined
+            );
+            const planEnMap = toContentMap(
+                planSourceRaw?.plan_en || planSourceRaw?.training_plan_en || baseRaw?.plan_en || baseRaw?.training_plan_en,
+                isEnglishUI ? trainingPlanText : undefined
+            );
+
+            const patchBody = {
+                report_id: reportId,
+                goal: goalZh || {},
+                fitness_diagnosis: diagnosisZhMap,
+                training_plan: planZhMap
+            };
+
+            if (goalEn) patchBody.goal_en = goalEn;
+            if (diagnosisEnMap) patchBody.diagnosis_en = diagnosisEnMap;
+            if (planEnMap) patchBody.plan_en = planEnMap;
 
             const response = await fetch('/api/AIReport', {
                 method: 'PATCH',
@@ -868,11 +940,28 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
             const currentLanguage = localStorage.getItem('language') || 'zh';
             const isEnglish = currentLanguage === 'en';
             const getLocalizedField = (fieldName) => {
-                if (!isEnglish) return newReportRaw[fieldName];
-                // AIReport 特殊字段命名：diagnosis_en / plan_en
-                if (fieldName === 'fitness_diagnosis') return newReportRaw.diagnosis_en || newReportRaw.fitness_diagnosis;
-                if (fieldName === 'training_plan') return newReportRaw.plan_en || newReportRaw.training_plan;
-                return newReportRaw[`${fieldName}_en`] || newReportRaw[fieldName];
+                const unwrapText = (v) => {
+                    if (typeof v === 'string') return v;
+                    if (v && typeof v === 'object') {
+                        if (typeof v.content === 'string') return v.content;
+                        if (typeof v.text === 'string') return v.text;
+                    }
+                    return '';
+                };
+                const pick = (...vals) => vals.find((v) => v !== undefined && v !== null);
+
+                if (!isEnglish) {
+                    if (fieldName === 'fitness_diagnosis') return unwrapText(pick(newReportRaw.fitness_diagnosis, newReportRaw.diagnosis));
+                    if (fieldName === 'training_plan') return unwrapText(pick(newReportRaw.training_plan, newReportRaw.plan));
+                    if (fieldName === 'report_intro') return unwrapText(pick(newReportRaw.report_intro, newReportRaw.reportIntro));
+                    return unwrapText(newReportRaw[fieldName]);
+                }
+
+                if (fieldName === 'fitness_diagnosis') return unwrapText(pick(newReportRaw.diagnosis_en, newReportRaw.fitness_diagnosis_en, newReportRaw.fitness_diagnosis));
+                if (fieldName === 'training_plan') return unwrapText(pick(newReportRaw.plan_en, newReportRaw.training_plan_en, newReportRaw.training_plan));
+                if (fieldName === 'report_intro') return unwrapText(pick(newReportRaw.report_intro_en, newReportRaw.report_intro));
+
+                return unwrapText(pick(newReportRaw[`${fieldName}_en`], newReportRaw[fieldName]));
             };
             const parseTextToSections = (text) => {
                 if (!text) return [];
@@ -937,6 +1026,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
 
             // 组装新报告数据（只包含需要对比的3个部分）
             const processedNewReport = {
+                rawAIReport: newReportRaw,
                 trainingGoals: trainingGoals,
                 qualityAssessment: diagnosisSections.length > 0
                     ? diagnosisSections.map(section => ({
@@ -1006,7 +1096,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                 className="px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
                                 type="button"
                             >
-                                稍后再看
+                                {t('WatchLater')}
                             </button>
                         </div>
                     ) : null}
@@ -1019,7 +1109,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
         return (
             <div className="min-h-screen text-white p-6 flex items-center justify-center bg-transparent">
                 <div className="text-center animate-pulse">
-                    <p className="text-white/70 text-sm">正在加载报告...</p>
+                    <p className="text-white/70 text-sm">{t('loadingAIReport')}</p>
                 </div>
             </div>
         );
@@ -1047,15 +1137,15 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
             {showLeaveComparisonConfirm && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
                     <div className="surface-strong border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-                        <h3 className="text-white text-lg font-bold mb-3 text-center">确认返回</h3>
-                        <p className="text-white/60 text-sm mb-6 text-center">未选择将保留原报告内容，是否继续？</p>
+                        <h3 className="text-white text-lg font-bold mb-3 text-center">{t('confirmReturn')}</h3>
+                        <p className="text-white/60 text-sm mb-6 text-center">{t('comparisonReminder')}</p>
                         <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => setShowLeaveComparisonConfirm(false)}
                                 className="flex-1 px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
                             >
-                                取消
+                                {t('cancel')}
                             </button>
                             <button
                                 type="button"
@@ -1065,7 +1155,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                 }}
                                 className="flex-1 px-6 py-3 rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-sm shadow-[0_10px_20px_rgba(212,175,55,0.3)] active:scale-95 transition-all"
                             >
-                                确定
+                                {t('confirm')}
                             </button>
                         </div>
                     </div>
@@ -1172,7 +1262,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                                     aria-expanded={isTrackmanDataExpanded}
                                                     className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-[11px] sm:text-xs font-bold uppercase tracking-widest hover:border-[#d4af37]/30 hover:text-white transition-all active:scale-[0.99]"
                                                 >
-                                                    <span>{isTrackmanDataExpanded ? '收起' : '查看更多指标'}</span>
+                                                    <span>{isTrackmanDataExpanded ? t('collapse') : t('viewMoreMetrics')}</span>
                                                     <ChevronDown className={`w-4 h-4 transition-transform ${isTrackmanDataExpanded ? 'rotate-180 text-[#d4af37]' : ''}`} />
                                                 </button>
                                             </div>
@@ -1203,7 +1293,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                         : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
                                         }`}
                                 >
-                                    {selectedVersions.trainingGoals === 'old' ? '已选中' : '选择'}
+                                    {selectedVersions.trainingGoals === 'old' ? t('selected') : t('select')}
                                 </button>
                             )}
                             {reportData.trainingGoals.map((goal, idx) => (
@@ -1232,7 +1322,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                 <div className="mt-4 sm:mt-6 mb-2 sm:mb-3 px-2">
                                     <div className="h-px bg-gradient-to-r from-transparent via-[#d4af37]/30 to-transparent"></div>
                                     <div className="mt-2 text-xs sm:text-sm text-[#d4af37]/80 font-bold uppercase tracking-widest text-center">
-                                        新版本
+                                        {t('NewVersion')}
                                     </div>
                                 </div>
                                 <div className={`report-card border border-[#d4af37]/30 bg-[#d4af37]/10 relative ${selectedVersions.trainingGoals === 'new' ? 'ring-2 ring-[#d4af37]' : ''}`}>
@@ -1244,7 +1334,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                                 : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
                                                 }`}
                                         >
-                                            {selectedVersions.trainingGoals === 'new' ? '已选中' : '选择'}
+                                            {selectedVersions.trainingGoals === 'new' ? t('selected') : t('select')}
                                         </button>
                                     )}
                                     {newReportData.trainingGoals.map((goal, idx) => (
@@ -1291,7 +1381,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                         : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
                                         }`}
                                 >
-                                    {selectedVersions.qualityAssessment === 'old' ? '已选中' : '选择'}
+                                    {selectedVersions.qualityAssessment === 'old' ? t('selected') : t('select')}
                                 </button>
                             )}
                             {reportData.qualityAssessment.map((item, idx) => (
@@ -1322,7 +1412,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                 <div className="mt-4 sm:mt-6 mb-2 sm:mb-3 px-2">
                                     <div className="h-px bg-gradient-to-r from-transparent via-[#d4af37]/30 to-transparent"></div>
                                     <div className="mt-2 text-xs sm:text-sm text-[#d4af37]/80 font-bold uppercase tracking-widest text-center">
-                                        新版本
+                                        {t('NewVersion')}
                                     </div>
                                 </div>
                                 <div className={`report-card border border-[#d4af37]/30 bg-[#d4af37]/10 relative ${selectedVersions.qualityAssessment === 'new' ? 'ring-2 ring-[#d4af37]' : ''}`}>
@@ -1334,7 +1424,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                                 : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
                                                 }`}
                                         >
-                                            {selectedVersions.qualityAssessment === 'new' ? '已选中' : '选择'}
+                                            {selectedVersions.qualityAssessment === 'new' ? t('selected') : t('select')}
                                         </button>
                                     )}
                                     {newReportData.qualityAssessment.map((item, idx) => (
@@ -1384,7 +1474,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                             : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
                                             }`}
                                     >
-                                        {selectedVersions.trainingOutlook === 'old' ? '已选中' : '选择'}
+                                        {selectedVersions.trainingOutlook === 'old' ? t('selected') : t('select')}
                                     </button>
                                 )}
                                 <p className="report-outlook-text">{reportData.trainingOutlook}</p>
@@ -1407,7 +1497,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                                     : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
                                                     }`}
                                             >
-                                                {selectedVersions.trainingOutlook === 'new' ? '已选中' : '选择'}
+                                                {selectedVersions.trainingOutlook === 'new' ? t('selected') : t('select')}
                                             </button>
                                         )}
                                         <p className="report-outlook-text">{newReportData.trainingOutlook}</p>

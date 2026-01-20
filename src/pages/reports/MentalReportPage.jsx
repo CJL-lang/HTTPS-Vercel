@@ -8,10 +8,11 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Clock, CheckCircle, Brain } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '../../utils/LanguageContext';
-import { createAssessment } from '../assessment/utils/assessmentApi';
-import { loadAssessmentStep } from '../assessment/utils/assessmentProgress';
+import { createAssessment, deleteAssessment } from '../assessment/utils/assessmentApi';
+import { loadAssessmentStep, clearAssessmentStep } from '../assessment/utils/assessmentProgress';
 import { useToast } from '../../components/toast/ToastProvider';
 import { clearAIReportGenerating, hasAIReportReadyHint, isAIReportGenerating } from '../../services/aiReportWsClient';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const { id } = useParams();
@@ -20,10 +21,41 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
     // 用于防止重复加载的 Ref
     const lastFetchedRef = useRef(null);
 
     const backendLang = language === 'en' ? 'en' : 'cn';
+
+    const performDeleteRecord = async (record) => {
+        const assessmentId = record?.id;
+        if (!assessmentId) return;
+
+        if (deleting) return;
+        setDeleting(true);
+
+        const ok = await deleteAssessment(assessmentId, user);
+        if (ok) {
+            clearAssessmentStep({ userId: user?.id || 'guest', assessmentId });
+            clearAIReportGenerating(assessmentId, 'deleted');
+            setRecords(prev => (prev || []).filter(r => r?.id !== assessmentId));
+        } else {
+            addToast({
+                kind: 'error',
+                title: t('delete'),
+                description: t('deleteFailed'),
+                durationMs: 4000
+            });
+        }
+        setDeleting(false);
+    };
+
+    const requestDeleteRecord = (record) => {
+        setDeleteTarget(record);
+        setShowDeleteConfirm(true);
+    };
 
     // 加载草稿和已完成的记录 - 优先从后端获取已完成记录，草稿保留在本地
     useEffect(() => {
@@ -191,6 +223,28 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
 
     return (
         <div className="min-h-screen text-white p-4 sm:p-6 pb-32 relative overflow-hidden bg-transparent">
+            <ConfirmDialog
+                show={showDeleteConfirm}
+                title={t('deleteConfirmTitle')}
+                message={t('deleteConfirmMessage')}
+                confirmText={t('confirmDelete')}
+                cancelText={t('cancel')}
+                confirmVariant="danger"
+                onCancel={() => {
+                    if (deleting) return;
+                    setShowDeleteConfirm(false);
+                    setDeleteTarget(null);
+                }}
+                onConfirm={async () => {
+                    if (!deleteTarget) {
+                        setShowDeleteConfirm(false);
+                        return;
+                    }
+                    await performDeleteRecord(deleteTarget);
+                    setShowDeleteConfirm(false);
+                    setDeleteTarget(null);
+                }}
+            />
             {/* Header */}
             <div className="relative z-10 mb-8 sm:mb-10 flex items-center gap-3">
                 <button
@@ -236,7 +290,7 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                                 <>
                                                     <Clock className="w-4 h-4 text-yellow-400" />
                                                     <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-yellow-400">
-                                                        正在生成报告
+                                                        {t('generatingReport')}
                                                     </span>
                                                 </>
                                             ) : record.status === 'draft' ? (
@@ -261,13 +315,26 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                         <h3 className="text-base sm:text-lg font-bold text-white/90 max-w-[60%] leading-tight uppercase tracking-tight">
                                             {record.title || t('mentalAssessment')}
                                         </h3>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-2 sm:gap-3">
                                             {record.has_ai_report === 1 && (
                                                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/20 border border-purple-500/30">
                                                     <Brain className="w-3 h-3 text-purple-400" />
                                                     <span className="text-[11px] font-bold text-purple-400 uppercase">AI</span>
                                                 </div>
                                             )}
+                                            <button
+                                                type="button"
+                                                disabled={generating || deleting}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    requestDeleteRecord(record);
+                                                }}
+                                                className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-red-500/30 hover:bg-red-500/10 transition-all disabled:opacity-50"
+                                            >
+                                                <span className="text-xs sm:text-sm font-bold text-red-400">
+                                                    {t('delete')}
+                                                </span>
+                                            </button>
                                             <button className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full surface-weak border border-white/10 hover:bg-[#d4af37]/20 hover:border-[#d4af37]/40 transition-all group">
                                                 <span className="text-xs sm:text-sm font-bold text-white/60 group-hover:text-white transition-colors">
                                                     {record.status === 'draft' ? t('continue') : t('view')}

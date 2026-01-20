@@ -461,6 +461,44 @@ export const updateAssessment = async (assessmentId, updateData, user) => {
     }
 };
 
+export const deleteAssessment = async (assessmentId, user) => {
+    console.log('[API] deleteAssessment trigger:', { assessmentId });
+    if (!user?.token || !assessmentId) {
+        console.warn('[API] deleteAssessment aborted: missing token or id', { assessmentId, hasToken: !!user?.token });
+        return false;
+    }
+
+    try {
+        const payload = {
+            assessment_id: assessmentId.toString()
+        };
+
+        console.log('[API] DELETE /assessment payload:', payload);
+
+        const response = await fetch('/api/assessment', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.token}`
+            },
+            body: JSON.stringify(payload),
+        });
+
+        console.log('[API] DELETE /assessment response status:', response.status);
+
+        if (response.ok) {
+            return true;
+        } else {
+            const errData = await response.text();
+            console.error('Failed to delete assessment:', errData);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error deleting assessment:', error);
+        return false;
+    }
+};
+
 export const createAssessment = async (studentId, type, user, title = '', language = 'cn') => {
     if (!user?.token || !studentId) {
         console.error('[API] createAssessment: Missing token or studentId');
