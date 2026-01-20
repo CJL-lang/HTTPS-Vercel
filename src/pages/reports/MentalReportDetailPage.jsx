@@ -1397,7 +1397,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                                 disabled={!allSectionsSelected() || isCreatingAIReport}
                                 className="w-full h-[54px] rounded-full bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-base sm:text-lg shadow-[0_20px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3 group disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isCreatingAIReport ? '保存中...' : (allSectionsSelected() ? '保存' : '请选择所有部分')}
+                                {isCreatingAIReport ? t('saving') : (allSectionsSelected() ? t('saveChanges') : t('chooseVersion'))}
                             </motion.button>
                         ) : (
                             <motion.button

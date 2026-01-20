@@ -143,7 +143,7 @@ const translations = {
         mediumPriority: "中优先级",
         assessmentTypeLabel: "完整测评",
         assessmentTypeSingle: "单项测评",
-        generatingReport: "正在生成AI报告...",
+        generatingReport: "正在生成报告...",
         shareReport: "分享报告",
         downloadReport: "下载报告",
         comprehensiveSummary: "综合本次测评数据，学员在身体素质、心理素质和技能水平三个维度都表现出良好的基础。身体素质方面，柔韧性和爆发力较强，但核心力量需要加强；心理素质方面，专注力和自信心出色，抗压能力有待提升；技能水平方面，基础动作扎实，但击球稳定性和距离控制还需持续训练。建议采用循序渐进的训练方式，重点突破核心力量和击球稳定性，辅以心理韧性训练，预计3-6个月内可见显著进步。",
@@ -670,7 +670,7 @@ const translations = {
         achieveComprehensiveImprovement: "：实现全面提升",
 
         // AI Report UI
-        generatingAIReport: "正在生成AI智能报告",
+        generatingAIReport: "正在生成报告",
         analyzingData: "正在分析测评数据...",
         singleScore: "测评评分",
         overallScore: "综合评分",
@@ -681,7 +681,7 @@ const translations = {
         RegenerateReport: "重新生成",
         NewVersion: "新版本",
         WatchLater: "稍后查看",
-        comparisonReminder:"未选择内容，将自动保留原报告内容，是否继续？",
+        comparisonReminder: "未选择内容，将自动保留原报告内容，是否继续？",
         confirmReturn: "确认返回",
         selected: "已选中",
         select: "选择",
@@ -689,6 +689,8 @@ const translations = {
         viewMoreMetrics: "查看更多指标",
         collapse: "收起",
         generatingReport: "正在生成报告...",
+        chooseVersion: "请选择要保留的内容",
+        saving: "保存中...",
 
 
         // Report Detail Page
@@ -943,7 +945,7 @@ const translations = {
         mediumPriority: "Medium Priority",
         assessmentTypeLabel: "Complete Assessment",
         assessmentTypeSingle: "Single Assessment",
-        generatingReport: "Generating AI report...",
+        generatingReport: "Generating Report...",
         shareReport: "Share Report",
         downloadReport: "Download Report",
         comprehensiveSummary: "Based on this comprehensive assessment, the student shows good foundation across all three dimensions: physical, mental, and skills. Physical fitness shows good flexibility and explosive power, but core strength needs improvement. Mental state demonstrates excellent focus and confidence, with stress management requiring development. Skills level shows solid fundamentals, but shot consistency and distance control need continued training. Progressive training approach recommended, focusing on core strength and shot stability, supplemented with mental toughness training. Significant progress expected within 3-6 months.",
@@ -1078,17 +1080,17 @@ const translations = {
         mentalResilience: "Resilience",
         confidenceAndMotivation: "Confidence",
         // Physical Diagnosis Preset Titles
-        flexibilityLevel: "Flexibility Level",
-        upperBodyStrengthLevel: "Upper Body Strength Level",
-        lowerBodyStrengthLevel: "Lower Body Strength Level",
-        coordinationLevel: "Coordination Level",
-        coreStabilityLevel: "Core Stability Level",
-        rotationalExplosivenessLevel: "Rotational Explosiveness Level",
-        cardiorespiratoryEndurance: "Cardiorespiratory Endurance",
+        flexibilityLevel: "Flexibility ",
+        upperBodyStrengthLevel: "Upper Strength",
+        lowerBodyStrengthLevel: "Lower Strength",
+        coordinationLevel: "Coordination",
+        coreStabilityLevel: "Core Stability",
+        rotationalExplosivenessLevel: "Rotation Power",
+        cardiorespiratoryEndurance: "Cardio Endurance",
         // Physical Radar Chart Labels
         flexibility: "Flexibility",
-        upperBodyStrength: "Upper Body Strength",
-        lowerBodyStrength: "Lower Body Strength",
+        upperBodyStrength: "Upper Strength",
+        lowerBodyStrength: "Lower Strength",
         coordination: "Coordination",
         coreStability: "Core Stability",
         coreStabilityShort: "Core Stability",
@@ -1098,9 +1100,9 @@ const translations = {
         skillsLevelAssessment: "Skills Level Assessment",
         strength: "Strength",
         // Physical Plan Preset Titles
-        powerAndExplosivenessImprovement: "Power & Explosiveness Improvement",
+        powerAndExplosivenessImprovement: "Power & Explosiveness",
         coreImprovement: "Core Improvement",
-        flexibilityAndCoordinationImprovement: "Flexibility & Coordination Improvement",
+        flexibilityAndCoordinationImprovement: "Flex & Coordination",
         // Mental Plan Preset Titles
         focusAbilityImprovement: "Focus Boost",
         mentalResilienceImprovement: "Resilience Boost",
@@ -1450,7 +1452,7 @@ const translations = {
         achieveComprehensiveImprovement: ": Achieve comprehensive improvement",
 
         // AI Report UI
-        generatingAIReport: "Generating AI Report",
+        generatingAIReport: "Generating Report",
         analyzingData: "Analyzing assessment data...",
         singleScore: "Assessment Score",
         overallScore: "Overall Score",
@@ -1461,14 +1463,16 @@ const translations = {
         RegenerateReport: "Regenerate Report",
         NewVersion: "New Version",
         WatchLater: "Watch Later",
-        comparisonReminder:"No content selected. The original report content will be retained automatically. Do you want to continue?",
-        confirmReturn:"Confirm Return",
+        comparisonReminder: "No content selected. The original report content will be retained automatically. Do you want to continue?",
+        confirmReturn: "Confirm Return",
         selected: "Selected",
         select: "Select",
         loadingAIReport: "Loading AI Report...",
         viewMoreMetrics: "View More Metrics",
         collapse: "Collapse",
         generatingReport: "Generating Report...",
+        chooseVersion: "Please select the content to keep",
+        saving: "Saving...",
 
         // Report Detail Page
         assessmentDetailLabel: "REPORT DETAIL",
