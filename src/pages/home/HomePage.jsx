@@ -233,9 +233,9 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                             'physical-report': {
                                 subtitle: 'STYKU 3D DATA',
                                 indicators: [
-                                    { label: '爆发力', value: '85%' },
-                                    { label: '核心稳定', value: '70%' },
-                                    { label: '柔韧度', value: '90%' }
+                                    { label: t('explosiveness'), value: '85%' },
+                                    { label: t('coreStabilityShort'), value: '70%' },
+                                    { label: t('flexibility'), value: '90%' }
                                 ],
                                 waveData: { d1: "M0 30 Q40 10 80 30 T160 30 T240 30 T320 30", fill: 60 }
                             },
