@@ -524,11 +524,11 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                             </div>
                         )}
 
-                        <div className="relative mb-6 flex items-center justify-center">
-                            {/* 圆形裁剪容器 */}
+                        <div className="relative mb-6 flex items-center justify-center" style={{ minHeight: '320px' }}>
+                            {/* 图片容器 - 显示完整图片，不被裁剪 */}
                             <div 
                                 ref={cropContainerRef}
-                                className="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full overflow-hidden bg-black/20 border-4 border-[#d4af37] shadow-2xl"
+                                className="relative w-full max-w-md aspect-square rounded-2xl overflow-hidden bg-black/20"
                                 onMouseDown={handleStart}
                                 onMouseMove={handleMove}
                                 onMouseUp={handleEnd}
@@ -539,22 +539,38 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                                 onWheel={handleWheel}
                                 style={{ touchAction: 'none', cursor: isDragging ? 'grabbing' : 'grab' }}
                             >
-                                {/* 可拖动的图片 */}
+                                {/* 可拖动的完整图片 */}
                                 <img
                                     ref={cropImageRef}
                                     src={selectedImage}
                                     alt="Preview"
                                     className="absolute top-1/2 left-1/2 select-none"
                                     style={{
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                        transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px)) scale(${scale})`,
+                                        width: `${100 * scale}%`,
+                                        height: `${100 * scale}%`,
+                                        objectFit: 'contain',
+                                        transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
                                         transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                                         willChange: 'transform'
                                     }}
                                     draggable={false}
                                 />
+                                
+                                {/* 圆形裁剪遮罩层 */}
+                                <div className="absolute inset-0 pointer-events-none">
+                                    {/* 使用SVG创建圆形遮罩 */}
+                                    <svg className="w-full h-full">
+                                        <defs>
+                                            <mask id="cropCircleMask">
+                                                <rect width="100%" height="100%" fill="white" />
+                                                <circle cx="50%" cy="50%" r="40%" fill="black" />
+                                            </mask>
+                                        </defs>
+                                        <rect width="100%" height="100%" fill="rgba(0,0,0,0.6)" mask="url(#cropCircleMask)" />
+                                    </svg>
+                                    {/* 圆形边框指示器 */}
+                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4/5 h-4/5 rounded-full border-4 border-[#d4af37] shadow-lg"></div>
+                                </div>
                             </div>
                         </div>
 

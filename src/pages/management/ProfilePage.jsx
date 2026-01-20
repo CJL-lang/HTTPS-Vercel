@@ -3,14 +3,41 @@
  * 功能：显示用户个人信息、统计数据、功能入口（设置、学员管理、帮助、退出登录等）
  * 路由：/profile
  */
-import React from 'react';
-import { ChevronRight, User, Settings, Shield, Bell, CreditCard, Users, HelpCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronRight, User, Settings, Shield, Bell, CreditCard, Users, HelpCircle, Camera } from 'lucide-react';
 import PageWrapper from '../../components/PageWrapper';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
+import AvatarSelector from '../../components/AvatarSelector';
 
 const ProfilePage = ({ user, onLogout, navigate }) => {
     const { t } = useLanguage();
+    const [avatarUrl, setAvatarUrl] = useState(user?.avatar || null); // 头像URL或base64
+    const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
+
+    // 处理头像点击
+    const handleAvatarClick = () => {
+        setIsAvatarSelectorOpen(true);
+    };
+
+    // 处理头像确认
+    const handleAvatarConfirm = (croppedImage) => {
+        console.log('收到裁剪后的头像:', croppedImage ? '有数据' : '无数据');
+        if (croppedImage) {
+            setAvatarUrl(croppedImage);
+            console.log('头像已更新');
+        } else {
+            console.error('裁剪后的图片为空');
+        }
+        
+        // TODO: 后续接入后端接口时，在这里调用上传接口
+        // 示例：
+        // uploadAvatar(croppedImage).then(response => {
+        //     setAvatarUrl(response.avatarUrl);
+        // }).catch(error => {
+        //     console.error('上传头像失败:', error);
+        // });
+    };
 
     const menuGroups = [
         {
@@ -39,11 +66,28 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
                     <div className="absolute top-[-20%] right-[-10%] w-40 h-40 bg-[#d4af37]/10 rounded-full blur-3xl animate-pulse-slow" />
                     <div className="relative z-10 flex items-center gap-4 sm:gap-6 py-2 sm:py-4">
                         <div className="relative">
-                            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[28px] sm:rounded-[32px] bg-gradient-to-br from-[#d4af37] to-[#b8860b] p-[2px] shadow-2xl shadow-yellow-500/20 rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                                <div className="w-full h-full rounded-[28px] sm:rounded-[32px] bg-black flex items-center justify-center overflow-hidden">
-                                    <User size={40} className="text-[#d4af37] sm:w-[48px] sm:h-[48px]" />
+                            <button
+                                onClick={handleAvatarClick}
+                                className="relative group/avatar cursor-pointer"
+                            >
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-[#d4af37] to-[#b8860b] p-[2px] shadow-2xl shadow-yellow-500/20 rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                                    <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+                                        {avatarUrl ? (
+                                            <img 
+                                                src={avatarUrl} 
+                                                alt="Avatar" 
+                                                className="w-full h-full object-cover rounded-full"
+                                            />
+                                        ) : (
+                                            <User size={40} className="text-[#d4af37] sm:w-[48px] sm:h-[48px]" />
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                                {/* 更换头像提示图标 */}
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300">
+                                    <Camera size={20} className="text-[#d4af37] sm:w-[24px] sm:h-[24px]" />
+                                </div>
+                            </button>
                             <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 sm:w-8 sm:h-8 bg-green-500 border-[3px] sm:border-4 border-black rounded-full shadow-lg" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -123,6 +167,13 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
                     {t('logout')}
                 </button>
             </div>
+
+            {/* Avatar Selector Modal */}
+            <AvatarSelector
+                isOpen={isAvatarSelectorOpen}
+                onClose={() => setIsAvatarSelectorOpen(false)}
+                onConfirm={handleAvatarConfirm}
+            />
         </PageWrapper>
     );
 };

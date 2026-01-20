@@ -523,6 +523,16 @@ const translations = {
         plansGenerated: "方案生成",
         activeHours: "活跃时长",
         hoursUnit: "小时",
+        changeAvatar: "更换头像",
+        selectAvatar: "选择头像",
+        avatarUpdated: "头像已更新",
+        uploadAvatar: "上传头像",
+        takePhoto: "拍照",
+        chooseFromAlbum: "从相册选择",
+        cancel: "取消",
+        confirm: "确认",
+        cropAvatar: "裁剪头像",
+        pleaseSelectImage: "请选择图片",
 
         // Three-D Page
         threeDTitle: "3D 形象选择",
@@ -1269,6 +1279,16 @@ const translations = {
         plansGenerated: "Plans",
         activeHours: "Active Hours",
         hoursUnit: "Hours",
+        changeAvatar: "Change Avatar",
+        selectAvatar: "Select Avatar",
+        avatarUpdated: "Avatar Updated",
+        uploadAvatar: "Upload Avatar",
+        takePhoto: "Take Photo",
+        chooseFromAlbum: "Choose from Album",
+        cancel: "Cancel",
+        confirm: "Confirm",
+        cropAvatar: "Crop Avatar",
+        pleaseSelectImage: "Please select an image",
 
         // Three-D Page
         threeDTitle: "3D Avatar Selection",
