@@ -410,6 +410,9 @@ export const useAssessmentSave = ({
             }
         }
 
+        // NOTE: 后端文档尚未声明 PATCH /assessment 支持 status 字段；
+        // 之前尝试写入 status 会触发 400。这里先不写 status，避免“完成测评”失败。
+
         // 每次完成一个测评类别（无论是单项还是完整测评）都显示完成操作面板
         // 这样用户可以选择"生成报告"或"稍后生成"
         console.log('Category step 3 completed, showing complete actions');

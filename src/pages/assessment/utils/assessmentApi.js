@@ -1,7 +1,7 @@
 /**
  * 测评相关 API 调用
  */
-
+import api from '../../../utils/api';
 export const saveGoalToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
     if (!user?.token || !currentId) return null;
 
@@ -179,15 +179,14 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
     if (!user?.token || !assessmentId) return null;
 
     try {
-        const response = await fetch(`/api/diagnoses/${assessmentId}`, {
-            method: 'GET',
+        const response = await api.get(`/api/diagnoses/${assessmentId}`, {
             headers: {
                 'Authorization': `Bearer ${user.token}`
             }
         });
 
-        if (response.ok) {
-            const data = await response.json();
+        if (response.data) {
+            const data = response.data;
             console.log('[API] GET /diagnoses success:', data);
             // 后端返回的对象包含 content 数组
             return data.content || [];
@@ -533,15 +532,14 @@ export const getPlanFromBackend = async (assessmentId, user) => {
     if (!user?.token || !assessmentId) return null;
 
     try {
-        const response = await fetch(`/api/plans/${assessmentId}`, {
-            method: 'GET',
+        const response = await api.get(`/api/plans/${assessmentId}`, {
             headers: {
                 'Authorization': `Bearer ${user.token}`
             }
         });
 
-        if (response.ok) {
-            const data = await response.json();
+        if (response.data) {
+            const data = response.data;
             console.log('[API] GET /plans success:', data);
             return data.content || [];
         }
@@ -601,15 +599,14 @@ export const getGoalFromBackend = async (assessmentId, user) => {
     if (!user?.token || !assessmentId) return null;
 
     try {
-        const response = await fetch(`/api/goals/${assessmentId}`, {
-            method: 'GET',
+        const response = await api.get(`/api/goals/${assessmentId}`, {
             headers: {
                 'Authorization': `Bearer ${user.token}`
             }
         });
 
-        if (response.ok) {
-            const data = await response.json();
+        if (response.data) {
+            const data = response.data;
             console.log('[API] GET /goals success:', data);
             return data.content || [];
         }
@@ -824,15 +821,14 @@ export const getSingleAssessment = async (assessmentId, user) => {
 
     try {
         // 将 assessment_id 作为路径参数传递给后端
-        const response = await fetch(`/api/singleAssess/${assessmentId}`, {
-            method: 'GET',
+        const response = await api.get(`/api/singleAssess/${assessmentId}`, {
             headers: {
                 'Authorization': `Bearer ${user.token}`
             }
         });
 
-        if (response.ok) {
-            const data = await response.json();
+        if (response.data) {
+            const data = response.data;
             console.log('[API] GET /singleAssess success:', data);
             return data;
         }

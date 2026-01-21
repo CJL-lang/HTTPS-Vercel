@@ -13,9 +13,11 @@ import { useVoiceInput } from '../../hooks/useVoiceInput'; // 语音输入hook
 import { useLanguage } from '../../utils/LanguageContext'; // 多语言
 
 const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStudents }) => {
-    const { t } = useLanguage(); // 翻译函数
+    const { t, language } = useLanguage(); // 翻译函数
     const { isListening, startListening, stopListening } = useVoiceInput(); // 语音输入状态和启动/停止函数
     const [isSaving, setIsSaving] = useState(false);
+
+    const backendLang = language === 'en' ? 'en' : 'zh';
 
     // 初始化 manualCheck 对象，确保深度背景字段总是有效
     useEffect(() => {
@@ -89,10 +91,11 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                 body_fat: data.physical?.bodyFat || undefined,
                 medical_history: data.manualCheck?.medical || undefined,
                 purpose: data.manualCheck?.purpose || undefined,
-                introduction: data.introduction || undefined,
-                why_goal: data.whyGoal || undefined,
-                goal_benefits: data.goalBenefits || undefined,
-                training_risks: data.trainingRisks || undefined,
+                language: backendLang,
+                //introduction: data.introduction || undefined,
+                //why_goal: data.whyGoal || undefined,
+                //goal_benefits: data.goalBenefits || undefined,
+                //training_risks: data.trainingRisks || undefined,
             };
 
             // debug - log payload before sending
