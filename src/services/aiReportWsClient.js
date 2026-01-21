@@ -95,27 +95,59 @@ function emit(event) {
 }
 
 function buildWsUrl({ wsPath, params }) {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host;
-  // wsPath can be:
-  // - absolute: ws://... or wss://...
-  // - absolute http(s) url (rare, but accept)
-  // - relative path starting with '/'
-  const base =
-    typeof wsPath === 'string' && (wsPath.startsWith('ws://') || wsPath.startsWith('wss://'))
-      ? wsPath
-      : typeof wsPath === 'string' && (wsPath.startsWith('http://') || wsPath.startsWith('https://'))
-        ? wsPath.replace(/^http(s?):/i, protocol)
-        : `${protocol}//${host}${wsPath}`;
+  // const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  // const host = window.location.host;
+  // // wsPath can be:
+  // // - absolute: ws://... or wss://...
+  // // - absolute http(s) url (rare, but accept)
+  // // - relative path starting with '/'
+  // const base =
+  //   typeof wsPath === 'string' && (wsPath.startsWith('ws://') || wsPath.startsWith('wss://'))
+  //     ? wsPath
+  //     : typeof wsPath === 'string' && (wsPath.startsWith('http://') || wsPath.startsWith('https://'))
+  //       ? wsPath.replace(/^http(s?):/i, protocol)
+  //       : `${protocol}//${host}${wsPath}`;
+
+  // const search = new URLSearchParams();
+  // Object.entries(params || {}).forEach(([k, v]) => {
+  //   if (v === undefined || v === null || v === '') return;
+  //   search.set(k, String(v));
+  // });
+
+  // const qs = search.toString();
+  // return qs ? `${base}?${qs}` : base;
+    // 1. 强制使用 wss 和 ngrok 的公网域名
+  // 这样即便在 Vercel 运行，它也不会走 Vercel 的代理，而是直连 ngrok
+  const protocol = 'wss:';
+  const host = 'unwisely-unaudited-lovetta.ngrok-free.dev';
+
+  // 2. 路径清洗：确保路径是后端要求的 /ws/ai-report/:id
+  let cleanPath = wsPath;
+  if (typeof cleanPath === 'string' && cleanPath.startsWith('/api')) {
+    cleanPath = cleanPath.replace('/api', '');
+  }
+  // 适配你提到的正确路径格式
+  if (typeof cleanPath === 'string') {
+    cleanPath = cleanPath.replace('/AIReport', '/ai-report');
+  }
+
+  const base = `${protocol}//${host}${cleanPath}`;
 
   const search = new URLSearchParams();
+  
+  // 3. 注入 ngrok 跳过警告的参数
+  // 这是解决 Vercel 拦截的关键，因为它能让握手请求直接通过 ngrok 的验证
+  search.set('ngrok-skip-browser-warning', 'true');
+
+  // 4. 注入 token 和其他业务参数
   Object.entries(params || {}).forEach(([k, v]) => {
-    if (v === undefined || v === null || v === '') return;
-    search.set(k, String(v));
+    if (v !== undefined && v !== null && v !== '') {
+      search.set(k, String(v));
+    }
   });
 
   const qs = search.toString();
-  return qs ? `${base}?${qs}` : base;
+  return `${base}?${qs}`;
 }
 
 export function onAIReportWsEvent(listener) {
