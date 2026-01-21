@@ -40,7 +40,7 @@ export default function App() {
     const initialPathRef = useRef(location.pathname); // 存储初始路径
     const [initialPrimaryTab, setInitialPrimaryTab] = useState(0);
     const [currentAssessmentData, setCurrentAssessmentData] = useState(null);
-    const { language, setLanguage } = useLanguage();
+    const { language, setLanguage, t } = useLanguage();
 
     // 初始化时验证token有效性
     useEffect(() => {
@@ -158,8 +158,8 @@ export default function App() {
                 if (Array.isArray(studentsData)) {
                     const mappedStudents = studentsData.map(student => ({
                         ...student,
-                        gender: student.gender === 0 ? '女性' : student.gender === 1 ? '男性' : '未知',
-                        displayId: student.id ? student.id.slice(-6) : '未知',
+                        gender: student.gender === 0 ? t('female') : student.gender === 1 ? t('male') : t('unknown'),
+                        displayId: student.id ? student.id.slice(-6) : t('unknown'),
                         yearsOfGolf: student.golf_of_year ?? student.years_of_golf ?? student.yearsOfGolf,
                         history: student.bio || student.history
                     }));
@@ -427,7 +427,7 @@ export default function App() {
                 navigate(`/add-record/${routeType}/data`, {
                     state: { assessmentData: finalAssessmentData, student }
                 });
-                
+
                 // 滚动到页面顶部（延迟执行确保页面已渲染）
                 setTimeout(() => {
                     window.scrollTo({ top: 0, behavior: 'smooth' });

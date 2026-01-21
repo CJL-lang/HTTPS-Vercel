@@ -6,7 +6,7 @@
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Lottie from 'lottie-react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import DialogBubbles from '../../components/DialogBubbles';
 import { Mic } from 'lucide-react';
 import { cn } from '../../utils/cn';
@@ -17,13 +17,28 @@ import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 
 // Lottie 动画数据
 const animationsPaths = {
-    bunny: '/animations/Bunny.json',
-    robot: '/animations/Robot_Futuristic_Ai_animated.json',
-    tiger: '/animations/Cute_Tiger.json',
-    cat: '/animations/Lovely_Cat.json',
-    powerRobot: '/animations/Little_power_robot.json',
-    pigeon: '/animations/Just_a_pigeon..json',
-    chatbot: '/animations/chatbot.json',
+    bunny: '/animations_lottie/Bunny.lottie',
+    mage: '/animations_lottie/Interactive%20Mage%20animation.lottie',
+    tiger: '/animations_lottie/Cute%20Tiger.lottie',
+    pigeon: '/animations_lottie/Just%20a%20pigeon..lottie',
+    bloomingo: '/animations_lottie/Bloomingo.lottie',
+    giraffe: '/animations_lottie/Meditating%20Giraffe.lottie',
+    balloonRabbit: '/animations_lottie/Nice%20rabbit%20with%20balloon.lottie',
+    partyDance: '/animations_lottie/Party%20Dance.lottie',
+};
+
+const STUDENT_AVATAR_MAP_KEY = 'studentAvatarMap';
+
+const saveStudentAvatar = (studentId, animationKey) => {
+    if (!studentId || !animationKey) return;
+    try {
+        const raw = localStorage.getItem(STUDENT_AVATAR_MAP_KEY);
+        const map = raw ? JSON.parse(raw) : {};
+        map[String(studentId)] = animationKey;
+        localStorage.setItem(STUDENT_AVATAR_MAP_KEY, JSON.stringify(map));
+    } catch (err) {
+        console.warn('Failed to save student avatar mapping:', err);
+    }
 };
 
 // 字段关键词映射 - 用于检测 AI 提问与进度显示是否一致
@@ -55,28 +70,14 @@ const normalizeNumber = (value) => {
     return Number(match[0]);
 };
 
-// 加载动画数据的 hook
-const useLottieAnimation = (path) => {
-    const [animationData, setAnimationData] = useState(null);
-    useEffect(() => {
-        if (!path) return;
-        fetch(path)
-            .then(res => res.json())
-            .then(data => setAnimationData(data))
-            .catch(err => console.error('Failed to load animation:', err));
-    }, [path]);
-    return animationData;
-};
-
 // Lottie 动画组件
 const AnimationPlayer = ({ animationKey, size = 'w-16 h-16' }) => {
     const path = animationsPaths[animationKey];
-    const animationData = useLottieAnimation(path);
-    if (!animationData) {
-        return <div className={cn(size, "rounded-full bg-white/5")}></div>;
+    if (!path) {
+        return <div className={cn(size, "bg-white/5")}></div>;
     }
     return (
-        <Lottie animationData={animationData} loop={true} autoPlay={true} style={{ width: '100%', height: '100%' }} />
+        <DotLottieReact src={path} loop autoplay style={{ width: '100%', height: '100%' }} />
     );
 };
 
@@ -86,12 +87,13 @@ const ThreeDPage = () => {
     // 卡通人物数据（关联 Lottie 动画）
     const characters = useMemo(() => [
         { id: 1, name: t('smartBunny'), animationKey: 'bunny', description: t('smartBunnyDesc') },
-        { id: 2, name: t('futureRobot'), animationKey: 'robot', description: t('futureRobotDesc') },
+        { id: 2, name: t('interactiveMage'), animationKey: 'mage', description: t('interactiveMageDesc') },
         { id: 3, name: t('energeticTiger'), animationKey: 'tiger', description: t('energeticTigerDesc') },
-        { id: 4, name: t('gentleCat'), animationKey: 'cat', description: t('gentleCatDesc') },
-        { id: 5, name: t('littleMecha'), animationKey: 'powerRobot', description: t('littleMechaDesc') },
-        { id: 6, name: t('freePigeon'), animationKey: 'pigeon', description: t('freePigeonDesc') },
-        { id: 7, name: t('smartChatbot'), animationKey: 'chatbot', description: t('smartChatbotDesc') },
+        { id: 4, name: t('freePigeon'), animationKey: 'pigeon', description: t('freePigeonDesc') },
+        { id: 5, name: t('bloomingo'), animationKey: 'bloomingo', description: t('bloomingoDesc') },
+        { id: 6, name: t('meditatingGiraffe'), animationKey: 'giraffe', description: t('meditatingGiraffeDesc') },
+        { id: 7, name: t('balloonRabbit'), animationKey: 'balloonRabbit', description: t('balloonRabbitDesc') },
+        { id: 8, name: t('partyDance'), animationKey: 'partyDance', description: t('partyDanceDesc') },
     ], [t]);
 
     const confirmFields = useMemo(() => [
@@ -274,6 +276,7 @@ const ThreeDPage = () => {
     const [confirmError, setConfirmError] = useState('');
     const [errorFields, setErrorFields] = useState([]); // 存储出错的字段名
     const confirmOpenedRef = useRef(false);
+    const [showCongratulation, setShowCongratulation] = useState(false);
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
@@ -670,6 +673,11 @@ const ThreeDPage = () => {
                 return;
             }
 
+            const createdStudentId = result.student_user_id || result.id || result.student_id;
+            if (createdStudentId && selectedChar?.animationKey) {
+                saveStudentAvatar(createdStudentId, selectedChar.animationKey);
+            }
+
             // 成功：展示成功提示
             setMessages(prev => {
                 const lastId = prev.length ? prev[prev.length - 1].id : 0;
@@ -682,6 +690,13 @@ const ThreeDPage = () => {
 
             setIsComplete(true);
             setNextField(null);
+
+            // 显示祝贺动画
+            setShowCongratulation(true);
+            // 3秒后自动关闭动画
+            setTimeout(() => {
+                setShowCongratulation(false);
+            }, 3000);
 
         } catch (err) {
             console.error('createStudent error', err);
@@ -793,28 +808,21 @@ const ThreeDPage = () => {
                 )}
 
                 {/* 中间内容区 - 可滚动 */}
-                <main ref={mainRef} className="flex-1 overflow-y-auto px-4 z-10 pt-4 pb-56">
-                    {/* 顶部角色展示 */}
-                    <div className="flex flex-col items-center mb-8">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="relative"
-                        >
-                            <div className="w-40 h-40 rounded-full bg-white/5 flex items-center justify-center border-2 border-white/10 overflow-hidden shadow-2xl">
-                                <AnimationPlayer animationKey={selectedChar.animationKey} size="w-40 h-40" />
-                            </div>
-                            <motion.div
-                                className="absolute inset-0 border-2 border-[#d4af37]/20 rounded-full"
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                            />
-                        </motion.div>
-                    </div>
+                <main ref={mainRef} className="flex-1 flex flex-col overflow-y-auto px-4 z-20 pb-56" style={{ paddingTop: 'calc(50vh + 56px)' }}>
+                    {/* 顶部固定的角色展示（固定定位，始终可见） */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="fixed top-14 left-0 right-0 h-[50vh] max-h-[50vh] z-10 overflow-hidden"
+                    >
+                        <div className="w-full h-full">
+                            <AnimationPlayer animationKey={selectedChar?.animationKey} size="w-full h-full" />
+                        </div>
+                    </motion.div>
 
                     {/* 对话气泡 */}
-                    <div className="w-full max-w-2xl mx-auto h-80 bg-transparent">
-                        <DialogBubbles messages={messages} className="h-full" />
+                    <div className="w-full max-w-2xl mx-auto flex-1 bg-transparent">
+                        <DialogBubbles messages={messages} className="flex-1" />
                     </div>
                 </main>
 
@@ -1046,6 +1054,34 @@ const ThreeDPage = () => {
                                         {isSubmittingStudent ? t('submitting') : t('confirmAndSubmit')}
                                     </button>
                                 </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* 祝贺动画弹窗 */}
+                <AnimatePresence>
+                    {showCongratulation && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                            onClick={() => setShowCongratulation(false)}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                className="relative w-full max-w-md aspect-square"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <DotLottieReact 
+                                    src="/congratulation.lottie" 
+                                    loop={false} 
+                                    autoplay={true} 
+                                    style={{ width: '100%', height: '100%' }} 
+                                />
                             </motion.div>
                         </motion.div>
                     )}
