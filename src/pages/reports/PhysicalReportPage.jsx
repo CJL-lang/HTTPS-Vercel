@@ -13,6 +13,7 @@ import { loadAssessmentStep, clearAssessmentStep } from '../assessment/utils/ass
 import { useToast } from '../../components/toast/ToastProvider';
 import { clearAIReportGenerating, hasAIReportReadyHint, isAIReportGenerating } from '../../services/aiReportWsClient';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import api from '../../utils/api';
 
 const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const { id } = useParams();
@@ -92,11 +93,11 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
             let completed = [];
             try {
                 // 使用统一的测评获取接口 type=0 表示身体素质
-                const res = await fetch(`/api/assessments/${targetId}?type=0`, {
+                const res = await api.get(`/api/assessments/${targetId}?type=0`, {
                     headers: { 'Authorization': `Bearer ${user.token}` }
                 });
-                if (res.ok) {
-                    const data = await res.json();
+                if (res.data) {
+                    const data = res.data;
                     // 映射后端字段到前端格式
                     completed = (data || []).map(c => ({
                         has_ai_report: c.has_ai_report,
@@ -248,7 +249,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
     };
 
     return (
-        <div className="min-h-screen text-white p-4 sm:p-6 pb-32 relative overflow-hidden bg-transparent">
+        <div className="min-h-screen text-white p-4 sm:p-6 pb-56 relative overflow-hidden bg-transparent">
             <ConfirmDialog
                 show={showDeleteConfirm}
                 title={t('deleteConfirmTitle')}

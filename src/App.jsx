@@ -40,7 +40,7 @@ export default function App() {
     const initialPathRef = useRef(location.pathname); // 存储初始路径
     const [initialPrimaryTab, setInitialPrimaryTab] = useState(0);
     const [currentAssessmentData, setCurrentAssessmentData] = useState(null);
-    const { language, setLanguage, t } = useLanguage();
+    const { t, language, setLanguage } = useLanguage();
 
     // 初始化时验证token有效性
     useEffect(() => {
@@ -665,7 +665,7 @@ export default function App() {
                     {isCheckingAuth ? (
                         // 验证token时显示loading，避免闪现LoginPage
                         <div className="flex items-center justify-center min-h-screen">
-                            <div className="text-white text-lg">加载中...</div>
+                            <div className="text-white text-lg">{t('loading')}</div>
                         </div>
                     ) : (
                         <AnimatePresence mode="popLayout">

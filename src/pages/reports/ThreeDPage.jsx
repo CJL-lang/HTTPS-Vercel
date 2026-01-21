@@ -82,7 +82,7 @@ const AnimationPlayer = ({ animationKey, size = 'w-16 h-16' }) => {
 };
 
 const ThreeDPage = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
 
     // 卡通人物数据（关联 Lottie 动画）
     const characters = useMemo(() => [
@@ -596,6 +596,7 @@ const ThreeDPage = () => {
                 history: infoOverride.history || infoOverride.golf_history || undefined,
                 medical_history: infoOverride.medical_history || undefined,
                 purpose: infoOverride.purpose || undefined,
+                language: language === 'en' ? 'en' : 'zh',
             };
 
             const headers = { 'Content-Type': 'application/json' };

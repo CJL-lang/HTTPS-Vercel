@@ -11,6 +11,7 @@ import { pickLocalizedContent } from '../../utils/language';
 import { createAIReport, getBackendLang } from './utils/aiReportApi';
 import { clearAIReportGenerating, isAIReportGenerating, onAIReportWsEvent, startAIReportWsJob } from '../../services/aiReportWsClient';
 import AssessmentHeader from '../assessment/components/AssessmentHeader';
+import api from '../../utils/api';
 
 const MentalReportDetailPage = ({ onBack, student }) => {
     const { t } = useLanguage();
@@ -146,13 +147,10 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                 const headers = { 'Authorization': `Bearer ${token}` };
 
                 // 使用新的 AI Report 接口
-                const response = await fetch(`/api/AIReport/${id}`, { headers });
+                const response = await api.get(`/api/AIReport/${id}`, { headers });
 
                 // 处理后端返回 200 但提示“找不到记录”的情况，或者 404
-                let data = null;
-                if (response.ok) {
-                    data = await response.json();
-                }
+                const data = response.data ?? null;
 
                 if (response.status === 404 || (data && data.message === '找不到记录')) {
                     // 不再在详情页自动触发生成：避免多人/刷新时重复创建任务
@@ -161,7 +159,9 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                     return;
                 }
 
-                if (!response.ok) throw new Error('Failed to fetch AI report data');
+                if (response.status < 200 || response.status >= 300) {
+                    throw new Error(`Failed to fetch AI report data (${response.status})`);
+                }
 
                 // 后端已能返回报告，则清理本地“正在生成”标记
                 clearAIReportGenerating(id, 'backend-fetched');
@@ -169,9 +169,9 @@ const MentalReportDetailPage = ({ onBack, student }) => {
                 // Fetch diagnoses grades for radar chart
                 let diagnosesGradeData = null;
                 try {
-                    const diagnosesRes = await fetch(`/api/diagnoses/${id}`, { headers });
-                    if (diagnosesRes.ok) {
-                        const diagnosesJson = await diagnosesRes.json();
+                    const diagnosesRes = await api.get(`/api/diagnoses/${id}`, { headers });
+                    if (diagnosesRes.data) {
+                        const diagnosesJson = diagnosesRes.data;
                         diagnosesJson.content = pickLocalizedContent(diagnosesJson);
                         const mapped = diagnosesToRadarGradeData(diagnosesJson, 'mental');
                         if (mapped.totalCount > 0) {
@@ -382,20 +382,21 @@ const MentalReportDetailPage = ({ onBack, student }) => {
             const headers = { 'Authorization': `Bearer ${token}` };
 
             // 直接使用 singleAssess 接口
-            const response = await fetch(`/api/singleAssess/${id}`, { headers });
+            const response = await api.get(`/api/singleAssess/${id}`, { headers });
 
-            if (!response.ok) {
-                const errorText = await response.text().catch(() => '');
-                throw new Error(errorText || `Failed to fetch assessment data (${response.status})`);
+            const data = response.data;
+
+            if (!data) {
+                throw new Error('接口请求成功但返回数据为空');
             }
 
-            const data = await response.json();
             console.log('[MentalReportDetailPage] Single assessment data:', data);
 
             setReloadToken(token => token + 1);
         } catch (error) {
-            console.error('Failed to fetch single assessment:', error);
-            alert(error?.message || '生成AI报告失败');
+            const serverMsg = error.response?.data?.message || error.response?.data;
+            const finalMsg = typeof serverMsg === 'string' ? serverMsg : (error.message || '生成AI报告失败');
+            alert(finalMsg);
             setLoading(false);
         } finally {
             setIsCreatingAIReport(false);
@@ -802,9 +803,9 @@ const MentalReportDetailPage = ({ onBack, student }) => {
             // 先获取现有诊断内容，PATCH 时带上
             let diagnosisContent = [];
             try {
-                const diagGetRes = await fetch(`/api/diagnoses/${id}`, { headers });
-                if (diagGetRes.ok) {
-                    const diagData = await diagGetRes.json();
+                const diagGetRes = await api.get(`/api/diagnoses/${id}`, { headers });
+                if (diagGetRes.data) {
+                    const diagData = diagGetRes.data;
                     const selected = pickLocalizedContent(diagData, backendLang === 'en' ? 'en' : 'zh');
                     diagnosisContent = (selected || []).map(item => ({
                         title: item.title || '',

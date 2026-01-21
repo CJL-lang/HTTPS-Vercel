@@ -14,10 +14,16 @@ import { useLanguage } from '../../utils/LanguageContext';
 
 const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompleteAssessment, user }) => {
     const { id } = useParams();
-    const { t } = useLanguage(); // 翻译函数
+    const { t, language } = useLanguage(); // 翻译函数
     const [isNavigating, setIsNavigating] = useState(false); // 导航中状态
     const [student, setStudent] = useState(initialStudent);
     const [loading, setLoading] = useState(!initialStudent || String(initialStudent.id) !== String(id));
+
+    const pickLocalizedField = (obj, key) => {
+        if (!obj) return '';
+        if (language === 'en') return obj?.[`${key}_en`] ?? obj?.[key] ?? '';
+        return obj?.[key] ?? obj?.[`${key}_en`] ?? '';
+    };
 
     // 格式化 ID，如果长于 6 位取后 6 位
     const fmtId = (id) => {
@@ -121,8 +127,8 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
         age: student?.age || "--", // 年龄
         gender: getGenderDisplay(student?.gender), // 性别
         yearsOfGolf: student?.yearsOfGolf ? `${student.yearsOfGolf}${t('yearUnit')}` : `--${t('yearUnit')}`, // 高尔夫年限
-        history: student?.bio || student?.history || t('noHistory'), // 优先使用后端返回的 bio 作为训练历史
-        purpose: student?.purpose || student?.manualCheck?.purpose || student?.goal || t('coreGoalNotSet') // 核心训练目标
+        history: pickLocalizedField(student, 'history') || student?.bio || t('noHistory'),
+        purpose: pickLocalizedField(student, 'purpose') || student?.manualCheck?.purpose || student?.goal || t('coreGoalNotSet')
     };
 
     const handleNavigate = (path) => {
