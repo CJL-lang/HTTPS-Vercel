@@ -22,6 +22,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { getUiLanguage } from '../utils/language';
 
 // ==================== 配置常量 ====================
 
@@ -164,6 +165,8 @@ const calculateRMS = (samples) => {
     return Math.sqrt(sum / samples.length);
 };
 
+const getRealtimeDevPid = () => (getUiLanguage('zh') === 'en' ? 1737 : 1537);
+
 // ==================== 语音识别 API (WebSocket 实时识别) ====================
 
 const recognizeSpeech = async (pcmData) => {
@@ -200,7 +203,7 @@ const recognizeSpeech = async (pcmData) => {
                 data: {
                     appid: BAIDU_APP_ID,
                     appkey: BAIDU_API_KEY,
-                    dev_pid: 1537,
+                    dev_pid: getRealtimeDevPid(),
                     cuid: 'golf_vad_' + Math.random().toString(36).substr(2, 9),
                     format: 'pcm',
                     sample: 16000,  // 注意：这里是 sample 不是 rate
