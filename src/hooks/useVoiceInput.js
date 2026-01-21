@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { getUiLanguage } from '../utils/language';
 
 // 百度语音识别 API 配置
 const BAIDU_APP_ID = 121810527;
@@ -86,8 +87,10 @@ const arrayBufferToBase64 = (buffer) => {
     return btoa(binary);
 };
 
+const getRealtimeDevPid = () => (getUiLanguage('zh') === 'en' ? 1737 : 1537);
+
 // 调用百度语音识别 REST API（一次性提交）
-const recognizeSpeech = async (pcmData, accessToken) => {
+const recognizeSpeech = async (pcmData, accessToken, devPid) => {
     const base64Audio = arrayBufferToBase64(pcmData.buffer);
     const audioLen = pcmData.buffer.byteLength;
 
@@ -103,7 +106,7 @@ const recognizeSpeech = async (pcmData, accessToken) => {
         token: accessToken,
         speech: base64Audio,
         len: audioLen,
-        dev_pid: 1537  // 1537=普通话(支持简单的英文识别), 1737=英语, 1637=粤语
+        dev_pid: devPid  // 1537=普通话(支持简单的英文识别), 1737=英语, 1637=粤语
     };
 
     try {
@@ -215,7 +218,8 @@ export const useVoiceInput = () => {
 
             const pcmData = floatTo16BitPCM(resampled);
             const accessToken = await getBaiduAccessToken();
-            const result = await recognizeSpeech(pcmData, accessToken);
+            const devPid = getRealtimeDevPid();
+            const result = await recognizeSpeech(pcmData, accessToken, devPid);
 
             if (result && onResultCallbackRef.current) {
                 onResultCallbackRef.current(result);
@@ -305,6 +309,7 @@ export const useVoiceInput = () => {
             try {
                 const token = await getBaiduAccessToken();
                 const cuid = 'golf_frontend_' + Math.random().toString(36).slice(2, 10);
+                const devPid = getRealtimeDevPid();
                 console.log('🌐 尝试连接 WS:', BAIDU_WS_URL, 'appid:', BAIDU_APP_ID);
                 const ws = new WebSocket(`${BAIDU_WS_URL}?sn=${Date.now()}`);
                 ws.binaryType = 'arraybuffer';
@@ -321,7 +326,7 @@ export const useVoiceInput = () => {
                             format: 'pcm',
                             sample: 16000,
                             channel: 1,
-                            dev_pid: 1537
+                            dev_pid: devPid
                         }
                     };
                     console.log('📤 START payload:', JSON.stringify(startPayload, null, 2));
