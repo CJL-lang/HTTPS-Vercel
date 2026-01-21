@@ -1076,11 +1076,11 @@ const ThreeDPage = () => {
                                 className="relative w-full max-w-md aspect-square"
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <DotLottieReact 
-                                    src="/congratulation.lottie" 
-                                    loop={false} 
-                                    autoplay={true} 
-                                    style={{ width: '100%', height: '100%' }} 
+                                <DotLottieReact
+                                    src="/congratulation.lottie"
+                                    loop={false}
+                                    autoplay={true}
+                                    style={{ width: '100%', height: '100%' }}
                                 />
                             </motion.div>
                         </motion.div>
