@@ -4,9 +4,10 @@
  * 路由：/student/:id
  * 大白话：这是登录后的主工作台，显示当前学员的基本信息、评估进度、历史报告入口，还有开始新测评的按钮
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ChevronRight, Activity, Brain, Trophy, User, ChevronLeft } from 'lucide-react';
+import Lottie from 'lottie-react';
 import { useParams } from 'react-router-dom';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
@@ -24,6 +25,66 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
         const s = String(id);
         return s.length > 6 ? s.slice(-6) : s;
     };
+
+    const animationsPaths = {
+        bunny: '/animations/Bunny.json',
+        robot: '/animations/Robot_Futuristic_Ai_animated.json',
+        tiger: '/animations/Cute_Tiger.json',
+        cat: '/animations/Lovely_Cat.json',
+        powerRobot: '/animations/Little_power_robot.json',
+        pigeon: '/animations/Just_a_pigeon..json',
+        chatbot: '/animations/chatbot.json',
+        bloomingo: '/animations/Bloomingo.json',
+        giraffe: '/animations/Meditating%20Giraffe.json',
+        balloonRabbit: '/animations/Nice%20rabbit%20with%20balloon.json',
+        partyDance: '/animations/Party%20Dance.json',
+    };
+
+    const getStudentAvatarKey = (targetStudent) => {
+        const direct =
+            targetStudent?.avatarAnimationKey ||
+            targetStudent?.avatarKey ||
+            targetStudent?.avatar_animation_key ||
+            targetStudent?.avatarAnimation ||
+            targetStudent?.avatar;
+
+        if (direct) return direct;
+
+        try {
+            const raw = localStorage.getItem('studentAvatarMap');
+            const map = raw ? JSON.parse(raw) : {};
+            return map[String(targetStudent?.id)];
+        } catch {
+            return undefined;
+        }
+    };
+
+    const avatarAnimationKey = useMemo(() => getStudentAvatarKey(student), [student]);
+    const [avatarAnimationData, setAvatarAnimationData] = useState(null);
+
+    useEffect(() => {
+        if (!avatarAnimationKey) {
+            setAvatarAnimationData(null);
+            return;
+        }
+        const path = animationsPaths[avatarAnimationKey];
+        if (!path) {
+            setAvatarAnimationData(null);
+            return;
+        }
+        let aborted = false;
+        fetch(path)
+            .then((res) => res.json())
+            .then((data) => {
+                if (!aborted) setAvatarAnimationData(data);
+            })
+            .catch(() => {
+                if (!aborted) setAvatarAnimationData(null);
+            });
+        return () => {
+            aborted = true;
+        };
+    }, [avatarAnimationKey]);
 
     useEffect(() => {
         // 先使用从 App.jsx 传下来的学员基础数据（如果已存在且ID匹配）
@@ -178,8 +239,12 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                         <div className="absolute inset-[-24px] rounded-full bg-[#d4af37]/15 blur-[60px] animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
 
                         {/* 头像容器 */}
-                        <div className="student-avatar shadow-2xl shadow-[#d4af37]/50 border-4 border-black/20 relative z-10 w-[100px] h-[100px] sm:w-[120px] sm:h-[120px]">
-                            <User size={50} className="sm:w-[60px] sm:h-[60px]" />
+                        <div className="student-avatar shadow-2xl shadow-[#d4af37]/50 border-4 border-black/20 relative z-10 w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] overflow-hidden">
+                            {avatarAnimationData ? (
+                                <Lottie animationData={avatarAnimationData} loop={true} autoPlay={true} style={{ width: '100%', height: '100%' }} />
+                            ) : (
+                                <User size={50} className="sm:w-[60px] sm:h-[60px]" />
+                            )}
                         </div>
                     </motion.div>
                     <div className="text-center">
