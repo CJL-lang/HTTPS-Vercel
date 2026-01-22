@@ -3,9 +3,9 @@
  * 负责测评数据的状态管理和更新
  */
 import { useState, useEffect, useRef } from 'react';
-import { 
-    getDiagnosisFromBackend, 
-    getPlanFromBackend, 
+import {
+    getDiagnosisFromBackend,
+    getPlanFromBackend,
     getGoalFromBackend,
     getSingleAssessment
 } from '../utils/assessmentApi';
@@ -181,7 +181,8 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
                     id: crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 11),
                     title: item.title,
                     content: item.content,
-                    grade: item.grade || ''
+                    grade: item.grade || '',
+                    workoutroutine: item.workoutroutine || item.testResult || ''
                 }));
 
                 if (activePrimary === 0) newData.physicalDiagnosis = formattedDiagnosis;

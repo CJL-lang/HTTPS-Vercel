@@ -311,6 +311,7 @@ const translations = {
         // Add Item Buttons
         addDiagnosisItem: "添加诊断项",
         addTrainingPlan: "添加训练方案",
+        smartSuggestion: "智能建议",
 
         // Skills Diagnosis - Club Types
         clubWood: "木杆",
@@ -1128,6 +1129,7 @@ const translations = {
         // Add Item Buttons
         addDiagnosisItem: "Add Diagnosis Item",
         addTrainingPlan: "Add Training Plan",
+        smartSuggestion: "Smart Suggestion",
 
         // Skills Diagnosis - Club Types
         clubWood: "Wood",

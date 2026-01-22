@@ -3,7 +3,7 @@
  * 功能：显示用户个人信息、统计数据、功能入口（设置、学员管理、帮助、退出登录等）
  * 路由：/profile
  */
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight, User, Settings, Shield, Bell, CreditCard, Users, HelpCircle, Camera } from 'lucide-react';
 import PageWrapper from '../../components/PageWrapper';
 import { cn } from '../../utils/cn';
@@ -14,6 +14,82 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
     const { t } = useLanguage();
     const [avatarUrl, setAvatarUrl] = useState(user?.avatar || null); // 头像URL或base64
     const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
+    const avatarObjectUrlRef = useRef(null);
+
+    const getAuthToken = () => {
+        if (user?.token) return user.token;
+        try {
+            const saved = localStorage.getItem('user');
+            const parsed = saved ? JSON.parse(saved) : null;
+            return parsed?.token || null;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const normalizeAvatarSource = (url) => {
+        if (!url) return null;
+        if (url.startsWith('data:')) {
+            return { type: 'direct', url };
+        }
+        if (url.startsWith('http')) {
+            try {
+                const parsed = new URL(url);
+                if (parsed.pathname.startsWith('/uploads/') || parsed.pathname.startsWith('/avatars/')) {
+                    return { type: 'api', path: parsed.pathname };
+                }
+                return { type: 'direct', url };
+            } catch (e) {
+                return { type: 'direct', url };
+            }
+        }
+        if (url.startsWith('/uploads/') || url.startsWith('/avatars/')) {
+            return { type: 'api', path: url };
+        }
+        return { type: 'direct', url };
+    };
+
+    const setAvatarFromBlob = (blob) => {
+        if (avatarObjectUrlRef.current) {
+            URL.revokeObjectURL(avatarObjectUrlRef.current);
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        avatarObjectUrlRef.current = objectUrl;
+        setAvatarUrl(objectUrl);
+    };
+
+    const fetchAvatarBlob = async (path) => {
+        const headers = {
+            'ngrok-skip-browser-warning': 'true'
+        };
+        const token = getAuthToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        const response = await fetch(`/api${path}`, { headers });
+        if (!response.ok) {
+            throw new Error(`获取头像失败: ${response.status}`);
+        }
+        const blob = await response.blob();
+        setAvatarFromBlob(blob);
+    };
+
+    const applyAvatarSource = async (url) => {
+        const normalized = normalizeAvatarSource(url);
+        if (!normalized) return;
+        if (normalized.type === 'api') {
+            await fetchAvatarBlob(normalized.path);
+            return;
+        }
+        setAvatarUrl(normalized.url);
+    };
+
+    const dataUrlToFile = async (dataUrl, filename = 'avatar.jpg') => {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        const type = blob.type || 'image/jpeg';
+        return new File([blob], filename, { type });
+    };
 
     // 处理头像点击
     const handleAvatarClick = () => {
@@ -21,23 +97,82 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
     };
 
     // 处理头像确认
-    const handleAvatarConfirm = (croppedImage) => {
+    const handleAvatarConfirm = async (croppedImage) => {
         console.log('收到裁剪后的头像:', croppedImage ? '有数据' : '无数据');
-        if (croppedImage) {
-            setAvatarUrl(croppedImage);
-            console.log('头像已更新');
-        } else {
+        if (!croppedImage) {
             console.error('裁剪后的图片为空');
+            return;
         }
 
-        // TODO: 后续接入后端接口时，在这里调用上传接口
-        // 示例：
-        // uploadAvatar(croppedImage).then(response => {
-        //     setAvatarUrl(response.avatarUrl);
-        // }).catch(error => {
-        //     console.error('上传头像失败:', error);
-        // });
+        try {
+            const file = await dataUrlToFile(croppedImage);
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            const headers = {
+                'ngrok-skip-browser-warning': 'true'
+            };
+            const token = getAuthToken();
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch('/api/users/avatar', {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                throw new Error(`上传头像失败: ${response.status} ${errorText}`);
+            }
+
+            const result = await response.json().catch(() => ({}));
+            if (result.avatar_url) {
+                await applyAvatarSource(result.avatar_url);
+            } else {
+                setAvatarUrl(croppedImage);
+            }
+        } catch (error) {
+            console.error('上传头像失败:', error);
+            setAvatarUrl(croppedImage);
+        }
     };
+
+    useEffect(() => {
+        const fetchAvatar = async () => {
+            if (!user?.id) return;
+            try {
+                const headers = {
+                    'ngrok-skip-browser-warning': 'true'
+                };
+                const token = getAuthToken();
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                const response = await fetch(`/api/user-avatars/${user.id}`, { headers });
+                if (!response.ok) return;
+                const result = await response.json().catch(() => ({}));
+                if (result.avatar_url) {
+                    await applyAvatarSource(result.avatar_url);
+                }
+            } catch (error) {
+                console.error('获取头像失败:', error);
+            }
+        };
+
+        fetchAvatar();
+    }, [user?.id]);
+
+    useEffect(() => {
+        return () => {
+            if (avatarObjectUrlRef.current) {
+                URL.revokeObjectURL(avatarObjectUrlRef.current);
+                avatarObjectUrlRef.current = null;
+            }
+        };
+    }, []);
 
     const menuGroups = [
         {

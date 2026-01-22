@@ -519,12 +519,7 @@ const SkillsDiagnosis = ({ data, update }) => {
             const isDuplicateInDiagnosis = items.some(item =>
                 item.id !== id && (item.title || '').trim() === trimmedTitle
             );
-            const planItems = data.skillsPlan || [];
-            const isDuplicateInPlan = planItems.some(item =>
-                (item.title || '').trim() === trimmedTitle
-            );
-
-            if (isDuplicateInDiagnosis || isDuplicateInPlan) {
+            if (isDuplicateInDiagnosis) {
                 alert(t('duplicateTitle'));
                 return;
             }

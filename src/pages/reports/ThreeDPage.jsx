@@ -82,7 +82,7 @@ const AnimationPlayer = ({ animationKey, size = 'w-16 h-16' }) => {
 };
 
 const ThreeDPage = () => {
-    const { t, language } = useLanguage();
+    const { t } = useLanguage();
 
     // 卡通人物数据（关联 Lottie 动画）
     const characters = useMemo(() => [
@@ -276,7 +276,6 @@ const ThreeDPage = () => {
     const [confirmError, setConfirmError] = useState('');
     const [errorFields, setErrorFields] = useState([]); // 存储出错的字段名
     const confirmOpenedRef = useRef(false);
-    const [showCongratulation, setShowCongratulation] = useState(false);
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
@@ -578,9 +577,11 @@ const ThreeDPage = () => {
             const genderRaw = infoOverride.gender;
             const gender = (() => {
                 if (genderRaw === undefined || genderRaw === null) return undefined;
-                const gs = String(genderRaw).toLowerCase();
-                if (gs.includes('男') || gs.includes('male')) return 1;
-                if (gs.includes('女') || gs.includes('female')) return 0;
+                const gs = String(genderRaw).toLowerCase().trim();
+                if (gs.includes('女')) return 0;
+                if (gs.includes('男')) return 1;
+                if (gs === 'female') return 0;
+                if (gs === 'male') return 1;
                 return undefined;
             })();
 
@@ -596,7 +597,6 @@ const ThreeDPage = () => {
                 history: infoOverride.history || infoOverride.golf_history || undefined,
                 medical_history: infoOverride.medical_history || undefined,
                 purpose: infoOverride.purpose || undefined,
-                language: language === 'en' ? 'en' : 'zh',
             };
 
             const headers = { 'Content-Type': 'application/json' };
@@ -691,13 +691,6 @@ const ThreeDPage = () => {
 
             setIsComplete(true);
             setNextField(null);
-
-            // 显示祝贺动画
-            setShowCongratulation(true);
-            // 3秒后自动关闭动画
-            setTimeout(() => {
-                setShowCongratulation(false);
-            }, 3000);
 
         } catch (err) {
             console.error('createStudent error', err);
@@ -1055,34 +1048,6 @@ const ThreeDPage = () => {
                                         {isSubmittingStudent ? t('submitting') : t('confirmAndSubmit')}
                                     </button>
                                 </div>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* 祝贺动画弹窗 */}
-                <AnimatePresence>
-                    {showCongratulation && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                            onClick={() => setShowCongratulation(false)}
-                        >
-                            <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.8, opacity: 0 }}
-                                className="relative w-full max-w-md aspect-square"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <DotLottieReact
-                                    src="/congratulation.lottie"
-                                    loop={false}
-                                    autoplay={true}
-                                    style={{ width: '100%', height: '100%' }}
-                                />
                             </motion.div>
                         </motion.div>
                     )}

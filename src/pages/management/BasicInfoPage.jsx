@@ -77,10 +77,12 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                 gender: (() => {
                     const g = data.gender;
                     if (g === undefined || g === null) return undefined;
-                    const gs = String(g).toLowerCase();
+                    const gs = String(g).toLowerCase().trim();
                     // robust matching: Chinese characters or English words
-                    if (gs.includes('男') || gs.includes('male')) return 1;
-                    if (gs.includes('女') || gs.includes('female')) return 0;
+                    if (gs.includes('女')) return 0;
+                    if (gs.includes('男')) return 1;
+                    if (gs === 'female') return 0;
+                    if (gs === 'male') return 1;
                     return undefined;
                 })(),
                 age: data.age ? (Number.isFinite(Number(data.age)) ? Number(data.age) : undefined) : undefined,

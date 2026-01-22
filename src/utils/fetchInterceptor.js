@@ -59,7 +59,7 @@ export const setupFetchInterceptor = (onUnauthorized, getToken) => {
 
         // 2.2 注入 ngrok-skip-browser-warning header（用于 ngrok 后端）
         // 检查是否是 API 请求（转发到 ngrok 后端）
-        if (url.startsWith('/api/') || url.startsWith('/ws/')) {
+        if (url.startsWith('/api/') || url.startsWith('/ws/') || url.includes('/api/') || url.includes('/ws/')) {
             if (!headers.has('ngrok-skip-browser-warning')) {
                 headers.set('ngrok-skip-browser-warning', 'true');
             }

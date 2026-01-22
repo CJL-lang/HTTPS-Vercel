@@ -10,7 +10,7 @@
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Sparkles, Plus, X, ChevronDown } from 'lucide-react';
+import { Mic, Sparkles, Plus, X, ChevronDown, Lightbulb } from 'lucide-react';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useLanguage } from '../../utils/LanguageContext';
 import { cn } from '../../utils/cn';
@@ -31,7 +31,7 @@ const titleToTranslationKey = {
 const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, showTitleSelector, setShowTitleSelector, setListeningId, listeningId, startListening, mentalData }, ref) => {
     const { t } = useLanguage();
     const [displayTitle, setDisplayTitle] = useState(item.title);
-    const [displayGrade, setDisplayGrade] = useState(item.grade || 0);
+    const [displayGrade, setDisplayGrade] = useState(item.grade ?? '');
     const inputRef = useRef(null);
     const gradeInputRef = useRef(null);
 
@@ -116,12 +116,24 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                         type="number"
                                         value={displayGrade}
                                         onChange={(e) => {
-                                            const value = parseInt(e.target.value) || 0;
-                                            setDisplayGrade(value);
+                                            const raw = e.target.value;
+                                            if (raw === '') {
+                                                setDisplayGrade('');
+                                                return;
+                                            }
+                                            const value = parseInt(raw, 10);
+                                            if (!Number.isNaN(value)) {
+                                                setDisplayGrade(value);
+                                            }
                                         }}
                                         onBlur={(e) => {
-                                            const value = parseInt(e.target.value) || 0;
-                                            updateItem(item.id, { grade: value });
+                                            const raw = e.target.value.trim();
+                                            if (raw === '') {
+                                                updateItem(item.id, { grade: '' });
+                                                return;
+                                            }
+                                            const value = parseInt(raw, 10);
+                                            updateItem(item.id, { grade: Number.isNaN(value) ? '' : value });
                                         }}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
@@ -274,6 +286,21 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                     showTitleSelector === item.id ? "opacity-20 pointer-events-none" : "opacity-100"
                 )}
             />
+
+            {/* 智能建议按钮 - 右下角 */}
+            <button
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // 功能待实现
+                }}
+                className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-br from-[#d4af37]/20 to-[#b8860b]/20 border border-[#d4af37]/30 hover:from-[#d4af37]/30 hover:to-[#b8860b]/30 hover:border-[#d4af37]/50 transition-all active:scale-95 shadow-lg shadow-[#d4af37]/10 group/btn z-10 backdrop-blur-sm"
+                title={t('smartSuggestion')}
+            >
+                <Lightbulb size={14} className="text-[#d4af37] group-hover/btn:text-[#d4af37] transition-colors shrink-0" />
+                <span className="text-xs font-bold text-[#d4af37] uppercase tracking-wider">{t('smartSuggestion')}</span>
+            </button>
         </motion.div>
     );
 });
@@ -360,12 +387,7 @@ const MentalDiagnosis = ({ data, update }) => {
             const isDuplicateInDiagnosis = diagnosisItems.some(item =>
                 item.id !== id && (item.title || '').trim() === trimmedTitle
             );
-            const planItems = data.mentalPlan || [];
-            const isDuplicateInPlan = planItems.some(item =>
-                (item.title || '').trim() === trimmedTitle
-            );
-
-            if (isDuplicateInDiagnosis || isDuplicateInPlan) {
+            if (isDuplicateInDiagnosis) {
                 alert(t('duplicateTitle'));
                 return;
             }
