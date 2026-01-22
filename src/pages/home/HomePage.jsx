@@ -225,13 +225,20 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
 
                 {/* Student Info Card - Second Row */}
                 <motion.div
-                    className="flex flex-col items-center mb-6 sm:mb-8"
+                    className="relative flex flex-col items-center mb-6 sm:mb-8 p-6 sm:p-8 rounded-3xl backdrop-blur-xl bg-gradient-to-b from-white/10 via-white/5 to-transparent border border-white/20 shadow-2xl shadow-black/20"
                     style={{
                         scale: textScale,
                         opacity: opacity,
                         y: yOffset
                     }}
                 >
+                    {/* 雾状光晕效果 */}
+                    <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#d4af37]/10 via-transparent to-transparent opacity-50"></div>
+                    <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-r from-[#d4af37]/20 via-transparent to-transparent blur-xl opacity-30"></div>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-[#d4af37]/40 to-transparent"></div>
+                    
+                    {/* 内容容器 */}
+                    <div className="relative z-10 w-full flex flex-col items-center">
                     <motion.div
                         className="relative mb-4"
                         style={{
@@ -259,6 +266,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                             <span className="text-[10px] sm:text-xs font-black text-[#d4af37] uppercase tracking-[0.2em] mr-3">OFFICIAL ID</span>
                             <span className="student-info-value text-xs sm:text-sm font-mono tracking-widest text-white/90">{fmtId(student?.id)}</span>
                         </div>
+                    </div>
                     </div>
                 </motion.div>
 
