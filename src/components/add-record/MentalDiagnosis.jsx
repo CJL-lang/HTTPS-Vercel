@@ -31,7 +31,7 @@ const titleToTranslationKey = {
 const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, showTitleSelector, setShowTitleSelector, setListeningId, listeningId, startListening, mentalData }, ref) => {
     const { t } = useLanguage();
     const [displayTitle, setDisplayTitle] = useState(item.title);
-    const [displayGrade, setDisplayGrade] = useState(item.grade || 0);
+    const [displayGrade, setDisplayGrade] = useState(item.grade ?? '');
     const inputRef = useRef(null);
     const gradeInputRef = useRef(null);
 
@@ -116,12 +116,24 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                         type="number"
                                         value={displayGrade}
                                         onChange={(e) => {
-                                            const value = parseInt(e.target.value) || 0;
-                                            setDisplayGrade(value);
+                                            const raw = e.target.value;
+                                            if (raw === '') {
+                                                setDisplayGrade('');
+                                                return;
+                                            }
+                                            const value = parseInt(raw, 10);
+                                            if (!Number.isNaN(value)) {
+                                                setDisplayGrade(value);
+                                            }
                                         }}
                                         onBlur={(e) => {
-                                            const value = parseInt(e.target.value) || 0;
-                                            updateItem(item.id, { grade: value });
+                                            const raw = e.target.value.trim();
+                                            if (raw === '') {
+                                                updateItem(item.id, { grade: '' });
+                                                return;
+                                            }
+                                            const value = parseInt(raw, 10);
+                                            updateItem(item.id, { grade: Number.isNaN(value) ? '' : value });
                                         }}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
