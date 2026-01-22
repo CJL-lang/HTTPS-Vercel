@@ -28,11 +28,34 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
 
     const resolveAvatarUrl = (url) => {
         if (!url) return null;
-        if (url.startsWith('http')) return url;
-        // Proxy through /api to reach backend in dev
+
+        // 如果是完整的 HTTP/HTTPS URL，提取路径部分走代理
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            try {
+                const urlObj = new URL(url);
+                const path = urlObj.pathname;
+                // 如果路径包含 /uploads/ 或 /avatars/，转换为相对路径走代理
+                if (path.includes('/uploads/') || path.includes('/avatars/')) {
+                    // 如果路径已经以 /api 开头，直接返回
+                    if (path.startsWith('/api/')) {
+                        return path;
+                    }
+                    // 否则添加 /api 前缀
+                    return `/api${path}`;
+                }
+                // 其他情况保持原样（可能是外部 CDN 等）
+                return url;
+            } catch (e) {
+                // URL 解析失败，返回原 URL
+                return url;
+            }
+        }
+
+        // 相对路径：统一走 /api 代理
         if (url.startsWith('/uploads/') || url.startsWith('/avatars/')) {
             return `/api${url}`;
         }
+
         return url;
     };
 
