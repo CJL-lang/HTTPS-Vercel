@@ -852,7 +852,7 @@ const ThreeDPage = () => {
                 )}
 
                 {/* 中间内容区 - 可滚动 */}
-                <main ref={mainRef} className="flex-1 flex flex-col overflow-y-auto px-4 z-20 pb-56" style={{ paddingTop: 'calc(50vh + 56px)' }}>
+                <main ref={mainRef} className="flex-1 flex flex-col overflow-y-auto px-4 z-20 pb-56">
                     {/* 顶部固定的角色展示（固定定位，始终可见） */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.98 }}
@@ -864,9 +864,9 @@ const ThreeDPage = () => {
                         </div>
                     </motion.div>
 
-                    {/* 对话气泡 */}
-                    <div className="w-full max-w-2xl mx-auto flex-1 bg-transparent">
-                        <DialogBubbles messages={messages} className="flex-1" />
+                    {/* 对话气泡 - 从动漫角色底部开始 */}
+                    <div className="w-full max-w-2xl mx-auto bg-transparent" style={{ marginTop: 'calc(50vh + 56px)', height: 'calc(100vh - 50vh - 56px - 200px)' }}>
+                        <DialogBubbles messages={messages} className="h-full" />
                     </div>
                 </main>
 
