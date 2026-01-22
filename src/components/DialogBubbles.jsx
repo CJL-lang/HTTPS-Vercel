@@ -32,7 +32,7 @@ const ChatMessage = ({ message }) => {
 /**
  * DialogBubbles - 对话历史容器（可滚动）
  */
-const DialogBubbles = ({ messages = [], className, centerOffset = 400 }) => {
+const DialogBubbles = ({ messages = [], className, centerOffset = -80 }) => {
     const scrollRef = useRef(null);
     const rafRef = useRef(0);
 
