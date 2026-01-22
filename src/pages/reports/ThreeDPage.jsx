@@ -206,8 +206,8 @@ const ThreeDPage = () => {
         onError: (err) => {
             console.error('❌ 语音错误:', err);
         },
-        silenceThreshold: 900,
-        energyThreshold: 0.03,
+        silenceThreshold: 1200,
+        energyThreshold: 0.05,
     });
 
     // 统一的 TTS 播放函数（根据模式选择）
