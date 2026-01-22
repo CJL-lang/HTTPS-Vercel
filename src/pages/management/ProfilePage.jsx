@@ -3,7 +3,7 @@
  * 功能：显示用户个人信息、统计数据、功能入口（设置、学员管理、帮助、退出登录等）
  * 路由：/profile
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight, User, Settings, Shield, Bell, CreditCard, Users, HelpCircle, Camera } from 'lucide-react';
 import PageWrapper from '../../components/PageWrapper';
 import { cn } from '../../utils/cn';
@@ -14,6 +14,7 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
     const { t } = useLanguage();
     const [avatarUrl, setAvatarUrl] = useState(user?.avatar || null); // 头像URL或base64
     const [isAvatarSelectorOpen, setIsAvatarSelectorOpen] = useState(false);
+    const avatarObjectUrlRef = useRef(null);
 
     const getAuthToken = () => {
         if (user?.token) return user.token;
@@ -26,37 +27,59 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
         }
     };
 
-    const resolveAvatarUrl = (url) => {
+    const normalizeAvatarSource = (url) => {
         if (!url) return null;
-
-        // 如果是完整的 HTTP/HTTPS URL，提取路径部分走代理
-        if (url.startsWith('http://') || url.startsWith('https://')) {
+        if (url.startsWith('data:')) {
+            return { type: 'direct', url };
+        }
+        if (url.startsWith('http')) {
             try {
-                const urlObj = new URL(url);
-                const path = urlObj.pathname;
-                // 如果路径包含 /uploads/ 或 /avatars/，转换为相对路径走代理
-                if (path.includes('/uploads/') || path.includes('/avatars/')) {
-                    // 如果路径已经以 /api 开头，直接返回
-                    if (path.startsWith('/api/')) {
-                        return path;
-                    }
-                    // 否则添加 /api 前缀
-                    return `/api${path}`;
+                const parsed = new URL(url);
+                if (parsed.pathname.startsWith('/uploads/') || parsed.pathname.startsWith('/avatars/')) {
+                    return { type: 'api', path: parsed.pathname };
                 }
-                // 其他情况保持原样（可能是外部 CDN 等）
-                return url;
+                return { type: 'direct', url };
             } catch (e) {
-                // URL 解析失败，返回原 URL
-                return url;
+                return { type: 'direct', url };
             }
         }
-
-        // 相对路径：统一走 /api 代理
         if (url.startsWith('/uploads/') || url.startsWith('/avatars/')) {
-            return `/api${url}`;
+            return { type: 'api', path: url };
         }
+        return { type: 'direct', url };
+    };
 
-        return url;
+    const setAvatarFromBlob = (blob) => {
+        if (avatarObjectUrlRef.current) {
+            URL.revokeObjectURL(avatarObjectUrlRef.current);
+        }
+        const objectUrl = URL.createObjectURL(blob);
+        avatarObjectUrlRef.current = objectUrl;
+        setAvatarUrl(objectUrl);
+    };
+
+    const fetchAvatarBlob = async (path) => {
+        const headers = {};
+        const token = getAuthToken();
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        const response = await fetch(`/api${path}`, { headers });
+        if (!response.ok) {
+            throw new Error(`获取头像失败: ${response.status}`);
+        }
+        const blob = await response.blob();
+        setAvatarFromBlob(blob);
+    };
+
+    const applyAvatarSource = async (url) => {
+        const normalized = normalizeAvatarSource(url);
+        if (!normalized) return;
+        if (normalized.type === 'api') {
+            await fetchAvatarBlob(normalized.path);
+            return;
+        }
+        setAvatarUrl(normalized.url);
     };
 
     const dataUrlToFile = async (dataUrl, filename = 'avatar.jpg') => {
@@ -102,9 +125,8 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
             }
 
             const result = await response.json().catch(() => ({}));
-            const newAvatarUrl = resolveAvatarUrl(result.avatar_url);
-            if (newAvatarUrl) {
-                setAvatarUrl(newAvatarUrl);
+            if (result.avatar_url) {
+                await applyAvatarSource(result.avatar_url);
             } else {
                 setAvatarUrl(croppedImage);
             }
@@ -126,9 +148,8 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
                 const response = await fetch(`/api/user-avatars/${user.id}`, { headers });
                 if (!response.ok) return;
                 const result = await response.json().catch(() => ({}));
-                const url = resolveAvatarUrl(result.avatar_url);
-                if (url) {
-                    setAvatarUrl(url);
+                if (result.avatar_url) {
+                    await applyAvatarSource(result.avatar_url);
                 }
             } catch (error) {
                 console.error('获取头像失败:', error);
@@ -137,6 +158,15 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
 
         fetchAvatar();
     }, [user?.id]);
+
+    useEffect(() => {
+        return () => {
+            if (avatarObjectUrlRef.current) {
+                URL.revokeObjectURL(avatarObjectUrlRef.current);
+                avatarObjectUrlRef.current = null;
+            }
+        };
+    }, []);
 
     const menuGroups = [
         {
