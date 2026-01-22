@@ -220,6 +220,21 @@ const ThreeDPage = () => {
         stopTtsSpeaking();
     };
 
+    const audioUnlockedRef = useRef(false);
+    const unlockAudio = async () => {
+        if (audioUnlockedRef.current) return;
+        try {
+            const silentAudio = new Audio(
+                'data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAACcQCAeAAATGF2ZjU2LjI2LjEwMAAAAAAAAAAAAAAA//tQxAADB8AhSmxhIiEAAAJmAAACABAAZGF0YQAAAAA='
+            );
+            await silentAudio.play();
+            silentAudio.pause();
+            audioUnlockedRef.current = true;
+        } catch (err) {
+            console.warn('Audio unlock failed:', err);
+        }
+    };
+
     // 处理按键语音输入（保留原有逻辑：用户开始说话时停止AI朗读，结束录音后自动发送）
     const handleManualVoiceInput = async () => {
         if (isListening) {
@@ -235,6 +250,7 @@ const ThreeDPage = () => {
                 shouldAutoSendRef.current = false;
             }, 600); // 给足够时间让 stopListening 完成并触发回调
         } else {
+            await unlockAudio();
             // 开始录音前，先停止AI的语音播放（"动漫角色不抢话"功能）
             if (isTtsSpeaking) {
                 stopTtsSpeaking();
@@ -259,6 +275,15 @@ const ThreeDPage = () => {
                     }
                 }
             });
+        }
+    };
+
+    const handleToggleVoiceChat = async () => {
+        await unlockAudio();
+        if (isVoiceActive) {
+            stopVoiceChat();
+        } else {
+            startVoiceChat();
         }
     };
 
@@ -856,7 +881,7 @@ const ThreeDPage = () => {
 
                                 {/* VAD 开关按钮 */}
                                 <button
-                                    onClick={isVoiceActive ? stopVoiceChat : startVoiceChat}
+                                    onClick={handleToggleVoiceChat}
                                     className={cn(
                                         "w-full h-11 rounded-full font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95",
                                         isVoiceActive
