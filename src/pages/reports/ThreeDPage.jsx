@@ -221,9 +221,23 @@ const ThreeDPage = () => {
     };
 
     const audioUnlockedRef = useRef(false);
+    const audioContextRef = useRef(null);
     const unlockAudio = async () => {
         if (audioUnlockedRef.current) return;
         try {
+            if (!audioContextRef.current) {
+                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContextRef.current.state === 'suspended') {
+                await audioContextRef.current.resume();
+            }
+
+            const buffer = audioContextRef.current.createBuffer(1, 1, 22050);
+            const source = audioContextRef.current.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContextRef.current.destination);
+            source.start(0);
+
             const silentAudio = new Audio(
                 'data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAACcQCAeAAATGF2ZjU2LjI2LjEwMAAAAAAAAAAAAAAA//tQxAADB8AhSmxhIiEAAAJmAAACABAAZGF0YQAAAAA='
             );
@@ -234,6 +248,18 @@ const ThreeDPage = () => {
             console.warn('Audio unlock failed:', err);
         }
     };
+
+    useEffect(() => {
+        const handleUserGesture = () => {
+            unlockAudio();
+        };
+        window.addEventListener('touchstart', handleUserGesture, { passive: true });
+        window.addEventListener('click', handleUserGesture);
+        return () => {
+            window.removeEventListener('touchstart', handleUserGesture);
+            window.removeEventListener('click', handleUserGesture);
+        };
+    }, []);
 
     // 处理按键语音输入（保留原有逻辑：用户开始说话时停止AI朗读，结束录音后自动发送）
     const handleManualVoiceInput = async () => {
