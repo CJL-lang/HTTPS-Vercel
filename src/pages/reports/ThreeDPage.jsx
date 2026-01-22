@@ -202,8 +202,8 @@ const ThreeDPage = () => {
         onError: (err) => {
             console.error('❌ 语音错误:', err);
         },
-        silenceThreshold: 700,
-        energyThreshold: 0.015,
+        silenceThreshold: 900,
+        energyThreshold: 0.03,
     });
 
     // 传统按键语音输入
