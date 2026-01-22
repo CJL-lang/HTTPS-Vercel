@@ -59,7 +59,9 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
     };
 
     const fetchAvatarBlob = async (path) => {
-        const headers = {};
+        const headers = {
+            'ngrok-skip-browser-warning': 'true'
+        };
         const token = getAuthToken();
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
@@ -107,7 +109,9 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
             const formData = new FormData();
             formData.append('avatar', file);
 
-            const headers = {};
+            const headers = {
+                'ngrok-skip-browser-warning': 'true'
+            };
             const token = getAuthToken();
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
@@ -140,7 +144,9 @@ const ProfilePage = ({ user, onLogout, navigate }) => {
         const fetchAvatar = async () => {
             if (!user?.id) return;
             try {
-                const headers = {};
+                const headers = {
+                    'ngrok-skip-browser-warning': 'true'
+                };
                 const token = getAuthToken();
                 if (token) {
                     headers['Authorization'] = `Bearer ${token}`;
