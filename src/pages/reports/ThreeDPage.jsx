@@ -5,7 +5,6 @@
  * 路由：/three-d
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import DialogBubbles from '../../components/DialogBubbles';
@@ -83,8 +82,7 @@ const AnimationPlayer = ({ animationKey, size = 'w-16 h-16' }) => {
 };
 
 const ThreeDPage = () => {
-    const { t, language } = useLanguage();
-    const navigate = useNavigate();
+    const { t } = useLanguage();
 
     // 卡通人物数据（关联 Lottie 动画）
     const characters = useMemo(() => [
@@ -175,17 +173,16 @@ const ThreeDPage = () => {
     const submittedRef = useRef(false);
     const reqSeqRef = useRef(0); // 请求序列号，用于丢弃过期响应防止并发乱序
 
-    // 传统按键语音输入
-    const { isListening, startListening, stopListening } = useVoiceInput();
-    const { isSpeaking: isTtsSpeaking, speak: speakTts, stop: stopTtsSpeaking } = useTextToSpeech();
-
     // VAD 连续语音对话
     const {
         isActive: isVoiceActive,
         isSpeaking: isUserSpeaking,
         isProcessing,
+        isTtsPlaying,
         start: startVoiceChat,
         stop: stopVoiceChat,
+        speak,
+        stopTts,
     } = useVoiceChat({
         onResult: (text) => {
             if (text && text.trim()) {
@@ -194,9 +191,6 @@ const ThreeDPage = () => {
             }
         },
         onSpeechStart: () => {
-            if (isTtsSpeaking) {
-                stopTtsSpeaking();
-            }
             console.log('🎙️ 用户开始说话');
         },
         onSpeechEnd: () => {
@@ -208,32 +202,29 @@ const ThreeDPage = () => {
         onError: (err) => {
             console.error('❌ 语音错误:', err);
         },
-        silenceThreshold: 1200,
-        energyThreshold: 0.05,
+        silenceThreshold: 700,
+        energyThreshold: 0.015,
     });
+
+    // 传统按键语音输入
+    const { isListening, startListening, stopListening } = useVoiceInput();
+    const { isSpeaking: isTtsSpeaking, speak: speakTts, stop: stopTtsSpeaking } = useTextToSpeech();
 
     // 统一的 TTS 播放函数（根据模式选择）
     const speakMessage = (text, options = { per: '0', spd: '5', vol: '8' }) => {
-        speakTts(text, options);
+        if (voiceMode === 'vad') {
+            speak(text, options);
+        } else {
+            speakTts(text, options);
+        }
     };
 
     // 统一的停止 TTS 函数
     const stopSpeakingAll = () => {
-        stopTtsSpeaking();
-    };
-
-    const audioUnlockedRef = useRef(false);
-    const unlockAudio = async () => {
-        if (audioUnlockedRef.current) return;
-        try {
-            const silentAudio = new Audio(
-                'data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAACAAACcQCAeAAATGF2ZjU2LjI2LjEwMAAAAAAAAAAAAAAA//tQxAADB8AhSmxhIiEAAAJmAAACABAAZGF0YQAAAAA='
-            );
-            await silentAudio.play();
-            silentAudio.pause();
-            audioUnlockedRef.current = true;
-        } catch (err) {
-            console.warn('Audio unlock failed:', err);
+        if (voiceMode === 'vad') {
+            stopTts();
+        } else {
+            stopTtsSpeaking();
         }
     };
 
@@ -252,7 +243,6 @@ const ThreeDPage = () => {
                 shouldAutoSendRef.current = false;
             }, 600); // 给足够时间让 stopListening 完成并触发回调
         } else {
-            await unlockAudio();
             // 开始录音前，先停止AI的语音播放（"动漫角色不抢话"功能）
             if (isTtsSpeaking) {
                 stopTtsSpeaking();
@@ -280,22 +270,12 @@ const ThreeDPage = () => {
         }
     };
 
-    const handleToggleVoiceChat = async () => {
-        await unlockAudio();
-        if (isVoiceActive) {
-            stopVoiceChat();
-        } else {
-            startVoiceChat();
-        }
-    };
-
     const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmInfo, setConfirmInfo] = useState({});
     const [confirmError, setConfirmError] = useState('');
     const [errorFields, setErrorFields] = useState([]); // 存储出错的字段名
     const confirmOpenedRef = useRef(false);
-    const [showCongratulation, setShowCongratulation] = useState(false);
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
@@ -577,7 +557,7 @@ const ThreeDPage = () => {
                 behavior: 'smooth'
             });
         }
-    }, [messages, isTtsSpeaking]);
+    }, [messages, isTtsPlaying, isTtsSpeaking]);
 
     // 创建学员并在对话中反馈结果
     async function createStudent(infoOverride = currentInfo) {
@@ -597,9 +577,11 @@ const ThreeDPage = () => {
             const genderRaw = infoOverride.gender;
             const gender = (() => {
                 if (genderRaw === undefined || genderRaw === null) return undefined;
-                const gs = String(genderRaw).toLowerCase();
-                if (gs.includes('男') || gs.includes('male')) return 1;
-                if (gs.includes('女') || gs.includes('female')) return 0;
+                const gs = String(genderRaw).toLowerCase().trim();
+                if (gs.includes('女')) return 0;
+                if (gs.includes('男')) return 1;
+                if (gs === 'female') return 0;
+                if (gs === 'male') return 1;
                 return undefined;
             })();
 
@@ -615,7 +597,6 @@ const ThreeDPage = () => {
                 history: infoOverride.history || infoOverride.golf_history || undefined,
                 medical_history: infoOverride.medical_history || undefined,
                 purpose: infoOverride.purpose || undefined,
-                language: language === 'en' ? 'en' : 'zh',
             };
 
             const headers = { 'Content-Type': 'application/json' };
@@ -711,21 +692,6 @@ const ThreeDPage = () => {
             setIsComplete(true);
             setNextField(null);
 
-            // 显示祝贺动画
-            setShowCongratulation(true);
-            // 3秒后自动关闭动画
-            setTimeout(() => {
-                setShowCongratulation(false);
-                // 跳转到该学员的测评工作台
-                if (createdStudentId) {
-                    stopSpeakingAll();
-                    if (voiceMode === 'vad') {
-                        stopVoiceChat();
-                    }
-                    navigate(`/student/${createdStudentId}`);
-                }
-            }, 3000);
-
         } catch (err) {
             console.error('createStudent error', err);
             // Show error in modal - modal stays open for retry
@@ -799,13 +765,13 @@ const ThreeDPage = () => {
                                                 {t('recognizing')}
                                             </span>
                                         )}
-                                        {isTtsSpeaking && (
+                                        {isTtsPlaying && (
                                             <span className="text-blue-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
                                                 {t('playing')}
                                             </span>
                                         )}
-                                        {!isUserSpeaking && !isProcessing && !isTtsSpeaking && (
+                                        {!isUserSpeaking && !isProcessing && !isTtsPlaying && (
                                             <span className="text-green-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-green-400"></span>
                                                 {t('waiting')}
@@ -881,8 +847,8 @@ const ThreeDPage = () => {
                                         <>
                                             {isUserSpeaking && t('currentlySpeaking')}
                                             {isProcessing && t('currentlyRecognizing')}
-                                            {isTtsSpeaking && t('aiReplying')}
-                                            {!isUserSpeaking && !isProcessing && !isTtsSpeaking && t('waitingForYou')}
+                                            {isTtsPlaying && t('aiReplying')}
+                                            {!isUserSpeaking && !isProcessing && !isTtsPlaying && t('waitingForYou')}
                                         </>
                                     ) : (
                                         t('vadContinuousClosed')
@@ -891,7 +857,7 @@ const ThreeDPage = () => {
 
                                 {/* VAD 开关按钮 */}
                                 <button
-                                    onClick={handleToggleVoiceChat}
+                                    onClick={isVoiceActive ? stopVoiceChat : startVoiceChat}
                                     className={cn(
                                         "w-full h-11 rounded-full font-bold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95",
                                         isVoiceActive
@@ -1082,34 +1048,6 @@ const ThreeDPage = () => {
                                         {isSubmittingStudent ? t('submitting') : t('confirmAndSubmit')}
                                     </button>
                                 </div>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* 祝贺动画弹窗 */}
-                <AnimatePresence>
-                    {showCongratulation && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-                            onClick={() => setShowCongratulation(false)}
-                        >
-                            <motion.div
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.8, opacity: 0 }}
-                                className="relative w-full max-w-md aspect-square"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <DotLottieReact
-                                    src="/congratulation.lottie"
-                                    loop={false}
-                                    autoplay={true}
-                                    style={{ width: '100%', height: '100%' }}
-                                />
                             </motion.div>
                         </motion.div>
                     )}
