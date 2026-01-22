@@ -236,37 +236,37 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                     <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[#d4af37]/10 via-transparent to-transparent opacity-50"></div>
                     <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-r from-[#d4af37]/20 via-transparent to-transparent blur-xl opacity-30"></div>
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-[#d4af37]/40 to-transparent"></div>
-                    
+
                     {/* 内容容器 */}
                     <div className="relative z-10 w-full flex flex-col items-center">
-                    <motion.div
-                        className="relative mb-4"
-                        style={{
-                            scale: avatarScale
-                        }}
-                    >
-                        {/* 多层金色光晕效果 */}
-                        <div className="absolute inset-0 rounded-full bg-[#d4af37]/40 blur-xl animate-pulse-slow"></div>
-                        <div className="absolute inset-[-8px] rounded-full bg-[#d4af37]/30 blur-2xl animate-pulse-slow" style={{ animationDelay: '0.5s' }}></div>
-                        <div className="absolute inset-[-16px] rounded-full bg-[#d4af37]/20 blur-[40px] animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
-                        <div className="absolute inset-[-24px] rounded-full bg-[#d4af37]/15 blur-[60px] animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
+                        <motion.div
+                            className="relative mb-4"
+                            style={{
+                                scale: avatarScale
+                            }}
+                        >
+                            {/* 多层金色光晕效果 */}
+                            <div className="absolute inset-0 rounded-full bg-[#d4af37]/40 blur-xl animate-pulse-slow"></div>
+                            <div className="absolute inset-[-8px] rounded-full bg-[#d4af37]/30 blur-2xl animate-pulse-slow" style={{ animationDelay: '0.5s' }}></div>
+                            <div className="absolute inset-[-16px] rounded-full bg-[#d4af37]/20 blur-[40px] animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+                            <div className="absolute inset-[-24px] rounded-full bg-[#d4af37]/15 blur-[60px] animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
 
-                        {/* 头像容器 */}
-                        <div className="student-avatar shadow-2xl shadow-[#d4af37]/50 border-4 border-black/20 relative z-10 w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] overflow-hidden">
-                            {avatarAnimationData ? (
-                                <Lottie animationData={avatarAnimationData} loop={true} autoPlay={true} style={{ width: '100%', height: '100%' }} />
-                            ) : (
-                                <User size={50} className="sm:w-[60px] sm:h-[60px]" />
-                            )}
+                            {/* 头像容器 */}
+                            <div className="student-avatar shadow-2xl shadow-[#d4af37]/50 border-4 border-black/20 relative z-10 w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] overflow-hidden">
+                                {avatarAnimationData ? (
+                                    <Lottie animationData={avatarAnimationData} loop={true} autoPlay={true} style={{ width: '100%', height: '100%' }} />
+                                ) : (
+                                    <User size={50} className="sm:w-[60px] sm:h-[60px]" />
+                                )}
+                            </div>
+                        </motion.div>
+                        <div className="text-center">
+                            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black mb-3 tracking-tighter text-white uppercase">{displayStudent.name}</p>
+                            <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-black/40 border border-white/10 shadow-inner">
+                                <span className="text-[10px] sm:text-xs font-black text-[#d4af37] uppercase tracking-[0.2em] mr-3">OFFICIAL ID</span>
+                                <span className="student-info-value text-xs sm:text-sm font-mono tracking-widest text-white/90">{fmtId(student?.id)}</span>
+                            </div>
                         </div>
-                    </motion.div>
-                    <div className="text-center">
-                        <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black mb-3 tracking-tighter text-white uppercase">{displayStudent.name}</p>
-                        <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-black/40 border border-white/10 shadow-inner">
-                            <span className="text-[10px] sm:text-xs font-black text-[#d4af37] uppercase tracking-[0.2em] mr-3">OFFICIAL ID</span>
-                            <span className="student-info-value text-xs sm:text-sm font-mono tracking-widest text-white/90">{fmtId(student?.id)}</span>
-                        </div>
-                    </div>
                     </div>
                 </motion.div>
 

@@ -135,11 +135,12 @@ export const saveDiagnosisToBackend = async (type, content, currentId, user, stu
         if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
 
         // Ensure content is formatted correctly for backend
-        // Backend expects: [{"title": "...", "grade": "...", "content": "..."}]
+        // Backend expects: [{"title": "...", "grade": "...", "content": "...", "workoutroutine": "..."}]
         const formattedContent = (Array.isArray(content) ? content : []).map(item => ({
             title: item.title || item.name || '',
             grade: item.grade || item.level || 'L1',
-            content: item.content || item.description || ''
+            content: item.content || item.description || '',
+            workoutroutine: item.workoutroutine || item.testResult || ''
         }));
 
         const requestBody = {
@@ -217,7 +218,8 @@ export const updateDiagnosisToBackend = async (assessmentId, content, user, lang
             .map(item => ({
                 title: item.title || item.name || '',
                 grade: item.grade || item.level || 'L1',
-                content: item.content || item.description || ''
+                content: item.content || item.description || '',
+                workoutroutine: item.workoutroutine || item.testResult || ''
             }))
             .filter(item => item.title.trim() !== ''); // 过滤掉 title 为空的项
 

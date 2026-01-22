@@ -134,6 +134,93 @@ const titleToTranslationKey = {
     "心肺耐力": "cardiorespiratoryEndurance"
 };
 
+// 标题 -> 测试项目与结果映射（用于显示固定格式）
+const titleToTestItem = {
+    "协调性等级": {
+        testName: "30秒跳绳",
+        unit: "次"
+    },
+    "上肢力量等级": {
+        testName: "1分钟俯卧撑",
+        unit: "个"
+    },
+    "下肢力量等级": {
+        testName: "立定跳远",
+        unit: "米"
+    },
+    "旋转爆发力等级": {
+        testName: "药球侧向投掷",
+        unit: "米"
+    },
+    "核心稳定性等级": {
+        testName: "平板支撑",
+        unit: "秒"
+    },
+    "心肺耐力": {
+        testName: "20m往返跑 VO2max",
+        unit: "ml/kg/min"
+    }
+};
+
+// 获取测试项目显示格式
+const getTestItemDisplay = (title) => {
+    const testItem = titleToTestItem[title];
+    if (testItem) {
+        return {
+            testName: testItem.testName,
+            unit: testItem.unit
+        };
+    }
+    return null;
+};
+
+// 从 workoutroutine 字符串中解析出输入值
+const parseWorkoutRoutineValue = (workoutroutine, testItem) => {
+    if (!workoutroutine || !testItem) return '';
+    
+    // 转义特殊字符用于正则表达式
+    const escapedTestName = testItem.testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedUnit = testItem.unit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // 如果已经是完整格式: "30秒跳绳：30 次" 或 "30秒跳绳：请输入 次"
+    const pattern = new RegExp(`${escapedTestName}：(.+?)\\s*${escapedUnit}`);
+    const match = workoutroutine.match(pattern);
+    if (match) {
+        const value = match[1].trim();
+        // 如果是占位符文本，返回空字符串
+        if (value === '请输入' || value === '') {
+            return '';
+        }
+        return value;
+    }
+    
+    // 如果 workoutroutine 不包含测试名称，可能是旧格式或纯数值
+    // 如果包含单位，尝试提取数值部分
+    if (workoutroutine.includes(testItem.unit)) {
+        const unitPattern = new RegExp(`(.+?)\\s*${escapedUnit}`);
+        const unitMatch = workoutroutine.match(unitPattern);
+        if (unitMatch) {
+            const value = unitMatch[1].trim();
+            if (value === '请输入' || value === '') {
+                return '';
+            }
+            return value;
+        }
+    }
+    
+    // 如果都不匹配，可能是旧格式的纯数值，直接返回（但排除占位符）
+    const trimmed = workoutroutine.trim();
+    return (trimmed === '请输入' || trimmed === '') ? '' : trimmed;
+};
+
+// 格式化完整的 workoutroutine 字符串
+const formatWorkoutRoutine = (inputValue, testItem) => {
+    if (!testItem) return '';
+    const value = inputValue.trim();
+    if (!value) return `${testItem.testName}：请输入 ${testItem.unit}`;
+    return `${testItem.testName}：${value} ${testItem.unit}`;
+};
+
 const PhysicalDiagnosisItem = forwardRef(({
     item,
     updateItem,
@@ -287,7 +374,14 @@ const PhysicalDiagnosisItem = forwardRef(({
                                     onBlur={(e) => {
                                         const finalValue = e.target.value.trim();
                                         if (finalValue) {
-                                            updateItem(item.id, { title: finalValue, isCustom: false });
+                                            const isPreset = presetTitles.includes(finalValue);
+                                            const testItem = isPreset ? getTestItemDisplay(finalValue) : null;
+                                            updateItem(item.id, {
+                                                title: finalValue,
+                                                category: isPreset ? titleToCategory[finalValue] : '',
+                                                isCustom: !isPreset,
+                                                workoutroutine: isPreset && testItem ? formatWorkoutRoutine('', testItem) : item.workoutroutine
+                                            });
                                         } else {
                                             // 如果没填内容，保持原有标题/状态，避免触发重复标题提示
                                             updateItem(item.id, { title: item.title, isCustom: item.isCustom });
@@ -333,10 +427,12 @@ const PhysicalDiagnosisItem = forwardRef(({
                                             type="button"
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                const testItem = getTestItemDisplay(title);
                                                 updateItem(item.id, {
                                                     title,
                                                     category: titleToCategory[title],
-                                                    isCustom: false
+                                                    isCustom: false,
+                                                    workoutroutine: testItem ? formatWorkoutRoutine('', testItem) : ''
                                                 });
                                                 setShowTitleSelector(null);
                                             }}
@@ -356,9 +452,13 @@ const PhysicalDiagnosisItem = forwardRef(({
                                                     e.preventDefault();
                                                     const finalValue = displayTitle.trim();
                                                     if (finalValue) {
+                                                        const isPreset = presetTitles.includes(finalValue);
+                                                        const testItem = isPreset ? getTestItemDisplay(finalValue) : null;
                                                         updateItem(item.id, {
                                                             title: finalValue,
-                                                            isCustom: !presetTitles.includes(finalValue)
+                                                            category: isPreset ? titleToCategory[finalValue] : '',
+                                                            isCustom: !isPreset,
+                                                            workoutroutine: isPreset && testItem ? formatWorkoutRoutine('', testItem) : item.workoutroutine
                                                         });
                                                         setDisplayTitle('');
                                                         setShowTitleSelector(null);
@@ -373,9 +473,13 @@ const PhysicalDiagnosisItem = forwardRef(({
                                                 setTimeout(() => {
                                                     const finalValue = e.target.value.trim();
                                                     if (finalValue) {
+                                                        const isPreset = presetTitles.includes(finalValue);
+                                                        const testItem = isPreset ? getTestItemDisplay(finalValue) : null;
                                                         updateItem(item.id, {
                                                             title: finalValue,
-                                                            isCustom: !presetTitles.includes(finalValue)
+                                                            category: isPreset ? titleToCategory[finalValue] : '',
+                                                            isCustom: !isPreset,
+                                                            workoutroutine: isPreset && testItem ? formatWorkoutRoutine('', testItem) : item.workoutroutine
                                                         });
                                                     }
                                                     setDisplayTitle('');
@@ -421,6 +525,37 @@ const PhysicalDiagnosisItem = forwardRef(({
                 </div>
             </div>
 
+            {/* 固定的测试项目格式显示 */}
+            {(() => {
+                const testItem = getTestItemDisplay(item.title);
+                if (!testItem) return null;
+                
+                // 从 workoutroutine 中解析出输入值
+                const inputValue = parseWorkoutRoutineValue(item.workoutroutine, testItem);
+                
+                return (
+                    <div className="mb-3 p-3 bg-gradient-to-br from-white/5 to-white/[0.02] rounded-lg border border-[#d4af37]/30 shadow-md backdrop-blur-sm transition-all duration-300 hover:border-[#d4af37]/40">
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="font-semibold text-white/90 shrink-0">{testItem.testName}：</span>
+                            <div className="relative w-24">
+                                <input
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={(e) => {
+                                        const newValue = e.target.value;
+                                        const formattedRoutine = formatWorkoutRoutine(newValue, testItem);
+                                        updateItem(item.id, { workoutroutine: formattedRoutine });
+                                    }}
+                                    placeholder="请输入"
+                                    className="w-full bg-transparent border-b-2 border-[#d4af37]/40 text-[#d4af37] font-semibold text-sm focus:outline-none focus:border-[#d4af37] px-1 py-1 transition-all duration-200 placeholder:text-[#d4af37]/40 placeholder:font-normal"
+                                />
+                            </div>
+                            <span className="text-[#d4af37] font-semibold shrink-0 text-sm">{testItem.unit}</span>
+                        </div>
+                    </div>
+                );
+            })()}
+
             <textarea
                 value={item.content}
                 onChange={(e) => updateItem(item.id, { content: e.target.value })}
@@ -450,34 +585,62 @@ const PhysicalDiagnosis = ({ data, update }) => {
     }, [showTitleSelector]);
 
     useEffect(() => {
-        // 如果数据是 null 或 undefined，初始化为包含一个默认项的数组
+        // 如果数据是 null 或 undefined，初始化为包含6个默认项的数组
         if (data.physicalDiagnosis === null || data.physicalDiagnosis === undefined) {
-            const defaultTitle = presetTitles[0];
-            const newItem = {
-                id: crypto?.randomUUID?.() || Date.now().toString(),
-                title: defaultTitle,
-                category: titleToCategory[defaultTitle],
-                content: '',
-                isCustom: false,
-                grade: '' // 初始化 grade 字段
-            };
+            // 定义6个初始项目（参考图片布局）
+            const initialTitles = [
+                "协调性等级",
+                "上肢力量等级",
+                "下肢力量等级",
+                "旋转爆发力等级",
+                "核心稳定性等级",
+                "心肺耐力"
+            ];
+
+            const newItems = initialTitles.map((title) => {
+                const testItem = getTestItemDisplay(title);
+                return {
+                    id: crypto?.randomUUID?.() || Date.now().toString() + Math.random(),
+                    title: title,
+                    category: titleToCategory[title],
+                    content: '',
+                    workoutroutine: testItem ? formatWorkoutRoutine('', testItem) : '',
+                    isCustom: false,
+                    grade: 'L1' // 默认等级
+                };
+            });
+
             // 使用静默更新，避免触发"有未保存修改"的提示
-            update('physicalDiagnosis', [newItem], true);
+            update('physicalDiagnosis', newItems, true);
             return;
         }
 
-        // 如果是空数组，也添加一个默认项
+        // 如果是空数组，也添加6个默认项
         if (Array.isArray(data.physicalDiagnosis) && data.physicalDiagnosis.length === 0) {
-            const defaultTitle = presetTitles[0];
-            const newItem = {
-                id: crypto?.randomUUID?.() || Date.now().toString(),
-                title: defaultTitle,
-                category: titleToCategory[defaultTitle],
-                content: '',
-                isCustom: false,
-                grade: ''
-            };
-            update('physicalDiagnosis', [newItem], true);
+            // 定义6个初始项目（参考图片布局）
+            const initialTitles = [
+                "协调性等级",
+                "上肢力量等级",
+                "下肢力量等级",
+                "旋转爆发力等级",
+                "核心稳定性等级",
+                "心肺耐力"
+            ];
+
+            const newItems = initialTitles.map((title) => {
+                const testItem = getTestItemDisplay(title);
+                return {
+                    id: crypto?.randomUUID?.() || Date.now().toString() + Math.random(),
+                    title: title,
+                    category: titleToCategory[title],
+                    content: '',
+                    workoutroutine: testItem ? formatWorkoutRoutine('', testItem) : '',
+                    isCustom: false,
+                    grade: 'L1' // 默认等级
+                };
+            });
+
+            update('physicalDiagnosis', newItems, true);
         }
     }, [data.physicalDiagnosis, update]);
 
@@ -491,11 +654,13 @@ const PhysicalDiagnosis = ({ data, update }) => {
 
         // 如果所有预设标题都已使用，创建自定义框
         const isCustom = !nextTitle;
+        const testItem = !isCustom ? getTestItemDisplay(nextTitle) : null;
         const newItem = {
             id: crypto?.randomUUID?.() || Date.now().toString(),
             title: isCustom ? '' : nextTitle,
             category: isCustom ? '' : titleToCategory[nextTitle],
             content: '',
+            workoutroutine: testItem ? formatWorkoutRoutine('', testItem) : '',
             isCustom: isCustom,
             grade: ''
         };

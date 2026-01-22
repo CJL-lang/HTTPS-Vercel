@@ -11,7 +11,7 @@ import { useLanguage } from '../../utils/LanguageContext';
 import { createAssessment, deleteAssessment } from '../assessment/utils/assessmentApi';
 import { loadAssessmentStep, clearAssessmentStep } from '../assessment/utils/assessmentProgress';
 import { useToast } from '../../components/toast/ToastProvider';
-import { clearAIReportGenerating, hasAIReportReadyHint, isAIReportGenerating } from '../../services/aiReportWsClient';
+import { clearAIReportGenerating, hasAIReportReadyHint, isAIReportGenerating, onAIReportWsEvent } from '../../services/aiReportWsClient';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import api from '../../utils/api';
 
@@ -32,6 +32,21 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
     const rawRecordsRef = useRef([]);
 
     const backendLang = language === 'en' ? 'en' : 'cn';
+
+    const applyReportCompletion = (assessmentId, reason = 'ws-complete') => {
+        if (!assessmentId) return;
+        clearAIReportGenerating(assessmentId, reason);
+        const updater = (list) => (list || []).map((record) => {
+            if (!record || String(record.id) !== String(assessmentId)) return record;
+            return {
+                ...record,
+                status: 'completed',
+                has_ai_report: 1
+            };
+        });
+        rawRecordsRef.current = updater(rawRecordsRef.current);
+        setRecords((prev) => updater(prev));
+    };
 
     const performDeleteRecord = async (record) => {
         const assessmentId = record?.id;
@@ -147,6 +162,32 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
 
         fetchRecords();
     }, [user?.token, student?.id, sortOrder]);
+
+    useEffect(() => {
+        const unsubscribe = onAIReportWsEvent((event) => {
+            if (!event?.assessmentId) return;
+            if (event.terminal && event.status === 'success') {
+                applyReportCompletion(event.assessmentId, 'ws-success');
+            }
+        });
+        return () => {
+            if (typeof unsubscribe === 'function') unsubscribe();
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!records || records.length === 0) return;
+        const pending = records.filter((record) => {
+            if (!record?.id) return false;
+            const backendCompleted =
+                record?.status === 'completed' ||
+                record?.has_ai_report === 1 ||
+                record?.has_ai_report === true;
+            return !backendCompleted && hasAIReportReadyHint(record.id);
+        });
+        if (pending.length === 0) return;
+        pending.forEach((record) => applyReportCompletion(record.id, 'ready-hint'));
+    }, [records]);
 
     const handleRecordClick = (record) => {
         const backendCompleted =

@@ -5,6 +5,7 @@
  * 路由：/three-d
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import DialogBubbles from '../../components/DialogBubbles';
@@ -83,6 +84,7 @@ const AnimationPlayer = ({ animationKey, size = 'w-16 h-16' }) => {
 
 const ThreeDPage = () => {
     const { t, language } = useLanguage();
+    const navigate = useNavigate();
 
     // 卡通人物数据（关联 Lottie 动画）
     const characters = useMemo(() => [
@@ -714,6 +716,14 @@ const ThreeDPage = () => {
             // 3秒后自动关闭动画
             setTimeout(() => {
                 setShowCongratulation(false);
+                // 跳转到该学员的测评工作台
+                if (createdStudentId) {
+                    stopSpeakingAll();
+                    if (voiceMode === 'vad') {
+                        stopVoiceChat();
+                    }
+                    navigate(`/student/${createdStudentId}`);
+                }
             }, 3000);
 
         } catch (err) {
