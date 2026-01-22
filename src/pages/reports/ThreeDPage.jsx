@@ -173,16 +173,17 @@ const ThreeDPage = () => {
     const submittedRef = useRef(false);
     const reqSeqRef = useRef(0); // 请求序列号，用于丢弃过期响应防止并发乱序
 
+    // 传统按键语音输入
+    const { isListening, startListening, stopListening } = useVoiceInput();
+    const { isSpeaking: isTtsSpeaking, speak: speakTts, stop: stopTtsSpeaking } = useTextToSpeech();
+
     // VAD 连续语音对话
     const {
         isActive: isVoiceActive,
         isSpeaking: isUserSpeaking,
         isProcessing,
-        isTtsPlaying,
         start: startVoiceChat,
         stop: stopVoiceChat,
-        speak,
-        stopTts,
     } = useVoiceChat({
         onResult: (text) => {
             if (text && text.trim()) {
@@ -191,6 +192,9 @@ const ThreeDPage = () => {
             }
         },
         onSpeechStart: () => {
+            if (isTtsSpeaking) {
+                stopTtsSpeaking();
+            }
             console.log('🎙️ 用户开始说话');
         },
         onSpeechEnd: () => {
@@ -206,26 +210,14 @@ const ThreeDPage = () => {
         energyThreshold: 0.03,
     });
 
-    // 传统按键语音输入
-    const { isListening, startListening, stopListening } = useVoiceInput();
-    const { isSpeaking: isTtsSpeaking, speak: speakTts, stop: stopTtsSpeaking } = useTextToSpeech();
-
     // 统一的 TTS 播放函数（根据模式选择）
     const speakMessage = (text, options = { per: '0', spd: '5', vol: '8' }) => {
-        if (voiceMode === 'vad') {
-            speak(text, options);
-        } else {
-            speakTts(text, options);
-        }
+        speakTts(text, options);
     };
 
     // 统一的停止 TTS 函数
     const stopSpeakingAll = () => {
-        if (voiceMode === 'vad') {
-            stopTts();
-        } else {
-            stopTtsSpeaking();
-        }
+        stopTtsSpeaking();
     };
 
     // 处理按键语音输入（保留原有逻辑：用户开始说话时停止AI朗读，结束录音后自动发送）
@@ -558,7 +550,7 @@ const ThreeDPage = () => {
                 behavior: 'smooth'
             });
         }
-    }, [messages, isTtsPlaying, isTtsSpeaking]);
+    }, [messages, isTtsSpeaking]);
 
     // 创建学员并在对话中反馈结果
     async function createStudent(infoOverride = currentInfo) {
@@ -772,13 +764,13 @@ const ThreeDPage = () => {
                                                 {t('recognizing')}
                                             </span>
                                         )}
-                                        {isTtsPlaying && (
+                                        {isTtsSpeaking && (
                                             <span className="text-blue-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
                                                 {t('playing')}
                                             </span>
                                         )}
-                                        {!isUserSpeaking && !isProcessing && !isTtsPlaying && (
+                                        {!isUserSpeaking && !isProcessing && !isTtsSpeaking && (
                                             <span className="text-green-400 flex items-center gap-1">
                                                 <span className="w-2 h-2 rounded-full bg-green-400"></span>
                                                 {t('waiting')}
@@ -854,8 +846,8 @@ const ThreeDPage = () => {
                                         <>
                                             {isUserSpeaking && t('currentlySpeaking')}
                                             {isProcessing && t('currentlyRecognizing')}
-                                            {isTtsPlaying && t('aiReplying')}
-                                            {!isUserSpeaking && !isProcessing && !isTtsPlaying && t('waitingForYou')}
+                                            {isTtsSpeaking && t('aiReplying')}
+                                            {!isUserSpeaking && !isProcessing && !isTtsSpeaking && t('waitingForYou')}
                                         </>
                                     ) : (
                                         t('vadContinuousClosed')
