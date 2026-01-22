@@ -286,7 +286,7 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                     showTitleSelector === item.id ? "opacity-20 pointer-events-none" : "opacity-100"
                 )}
             />
-            
+
             {/* 智能建议按钮 - 右下角 */}
             <button
                 type="button"
@@ -387,12 +387,7 @@ const MentalDiagnosis = ({ data, update }) => {
             const isDuplicateInDiagnosis = diagnosisItems.some(item =>
                 item.id !== id && (item.title || '').trim() === trimmedTitle
             );
-            const planItems = data.mentalPlan || [];
-            const isDuplicateInPlan = planItems.some(item =>
-                (item.title || '').trim() === trimmedTitle
-            );
-
-            if (isDuplicateInDiagnosis || isDuplicateInPlan) {
+            if (isDuplicateInDiagnosis) {
                 alert(t('duplicateTitle'));
                 return;
             }

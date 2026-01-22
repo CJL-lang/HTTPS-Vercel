@@ -690,12 +690,7 @@ const PhysicalDiagnosis = ({ data, update }) => {
             const isDuplicateInDiagnosis = diagnosisItems.some(item =>
                 item.id !== id && (item.title || '').trim() === trimmedTitle
             );
-            const planItems = data.physicalPlan || [];
-            const isDuplicateInPlan = planItems.some(item =>
-                (item.title || '').trim() === trimmedTitle
-            );
-
-            if (isDuplicateInDiagnosis || isDuplicateInPlan) {
+            if (isDuplicateInDiagnosis) {
                 alert(t('duplicateTitle'));
                 return;
             }

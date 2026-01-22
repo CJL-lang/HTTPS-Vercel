@@ -293,12 +293,7 @@ const PhysicalPlan = ({ data, update }) => {
             const isDuplicateInPlan = planItems.some(item =>
                 item.id !== id && (item.title || '').trim() === trimmedTitle
             );
-            const diagnosisItems = data.physicalDiagnosis || [];
-            const isDuplicateInDiagnosis = diagnosisItems.some(item =>
-                (item.title || '').trim() === trimmedTitle
-            );
-
-            if (isDuplicateInPlan || isDuplicateInDiagnosis) {
+            if (isDuplicateInPlan) {
                 alert(t('duplicateTitle'));
                 return;
             }
