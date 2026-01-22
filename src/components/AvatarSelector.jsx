@@ -3,7 +3,7 @@
  * 功能：提供拍照、相册选择，以及圆形裁剪功能
  */
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Image, X, Check, RotateCcw } from 'lucide-react';
+import { Camera, Image, X, Check, RotateCcw, FlipHorizontal } from 'lucide-react';
 import { useLanguage } from '../utils/LanguageContext';
 
 const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
@@ -13,6 +13,7 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
     const [stream, setStream] = useState(null);
     const [error, setError] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [facingMode, setFacingMode] = useState('environment'); // 'environment' (后置) | 'user' (前置)
     
     // 图片变换状态
     const [scale, setScale] = useState(1);
@@ -82,13 +83,13 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
     };
 
     // 启动摄像头
-    const handleTakePhoto = async () => {
+    const handleTakePhoto = async (targetFacingMode = facingMode) => {
         try {
             setError(null);
             // 请求摄像头权限
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: 'environment', // 优先使用后置摄像头
+                    facingMode: targetFacingMode, // 'environment' (后置) | 'user' (前置)
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 }
@@ -109,6 +110,21 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
             }
             setError(errorMessage);
         }
+    };
+
+    // 切换摄像头（前置/后置）
+    const handleSwitchCamera = async () => {
+        const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
+        setFacingMode(newFacingMode);
+        
+        // 停止当前摄像头
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+        
+        // 启动新摄像头
+        await handleTakePhoto(newFacingMode);
     };
 
     // 捕获照片
@@ -615,6 +631,16 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                                 className="w-full h-full object-contain"
                                 style={{ display: stream ? 'block' : 'none' }}
                             />
+                            {/* 切换摄像头按钮 - 放在右上角 */}
+                            {stream && (
+                                <button
+                                    onClick={handleSwitchCamera}
+                                    className="absolute top-3 right-3 p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all active:scale-95 z-10"
+                                    title={facingMode === 'environment' ? '切换到前置摄像头' : '切换到后置摄像头'}
+                                >
+                                    <FlipHorizontal size={20} className="text-white" />
+                                </button>
+                            )}
                         </div>
 
                         <div className="flex gap-3">
