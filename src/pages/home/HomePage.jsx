@@ -90,6 +90,60 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
         setLoading(false);
     }, [id, initialStudent, t]);
 
+    useEffect(() => {
+        if (!id) return;
+        if (initialStudent && String(initialStudent.id) === String(id)) return;
+
+        let aborted = false;
+        const fetchRelatedStudents = async () => {
+            setLoading(true);
+            try {
+                const token = user?.token || (() => {
+                    try {
+                        const saved = localStorage.getItem('user');
+                        if (!saved) return null;
+                        const parsed = JSON.parse(saved);
+                        return parsed?.token || null;
+                    } catch (e) {
+                        return null;
+                    }
+                })();
+
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                const response = await fetch('/api/relatedStudents', {
+                    method: 'GET',
+                    headers,
+                });
+
+                if (!response.ok) return;
+                const studentsData = await response.json();
+                if (!Array.isArray(studentsData)) return;
+
+                const found = studentsData.find(s => String(s.id) === String(id));
+                if (!found || aborted) return;
+
+                setStudent({
+                    ...found,
+                    gender: found.gender === 0 ? t('female') : found.gender === 1 ? t('male') : t('unknown'),
+                    displayId: found.id ? found.id.slice(-6) : t('unknown'),
+                    yearsOfGolf: found.golf_of_year ?? found.years_of_golf ?? found.yearsOfGolf,
+                    history: found.bio || found.history
+                });
+            } catch (e) {
+                // ignore fetch failures
+            } finally {
+                if (!aborted) setLoading(false);
+            }
+        };
+
+        fetchRelatedStudents();
+        return () => {
+            aborted = true;
+        };
+    }, [id, initialStudent, t, user?.token]);
+
     // 使用处理后的学员数据
     const getGenderDisplay = (gender) => {
         if (!gender || gender === '--') return '--';
