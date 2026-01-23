@@ -5,7 +5,7 @@
  */
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Mail, Lock, Eye, EyeOff, User, Phone, ShieldCheck, ChevronLeft, FileText } from 'lucide-react';
+import { Activity, Mail, Lock, Eye, EyeOff, User, Phone, ShieldCheck, ChevronLeft, FileText } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
 
@@ -219,7 +219,9 @@ const RegisterPage = ({ onRegister, navigate }) => {
                         <div className="space-y-4">
                             {/* Username */}
                             <div className="relative">
-                                <label className="label-gold ml-1">{t('username') || '用户名'}</label>
+                                <label className="label-gold label-required ml-1">
+                                    {t('username') || '用户名'}
+                                </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <User size={18} className="text-[#d4af37]/60" />
@@ -241,7 +243,9 @@ const RegisterPage = ({ onRegister, navigate }) => {
 
                             {/* Phone */}
                             <div className="relative">
-                                <label className="label-gold ml-1">{t('phoneLabel') || '手机号码'}</label>
+                                <label className="label-gold label-required ml-1">
+                                    {t('phoneLabel') || '手机号码'}
+                                </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <Phone size={18} className="text-[#d4af37]/60" />
@@ -263,7 +267,9 @@ const RegisterPage = ({ onRegister, navigate }) => {
 
                             {/* Email */}
                             <div className="relative">
-                                <label className="label-gold ml-1">{t('emailLabel') || '电子邮箱'}</label>
+                                <label className="label-gold label-required ml-1">
+                                    {t('emailLabel') || '电子邮箱'}
+                                </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <Mail size={18} className="text-[#d4af37]/60" />
@@ -285,7 +291,9 @@ const RegisterPage = ({ onRegister, navigate }) => {
 
                             {/* Password */}
                             <div className="relative">
-                                <label className="label-gold ml-1">{t('passwordLabel') || '设置密码'}</label>
+                                <label className="label-gold label-required ml-1">
+                                    {t('passwordLabel') || '设置密码'}
+                                </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <Lock size={18} className="text-[#d4af37]/60" />
@@ -316,7 +324,9 @@ const RegisterPage = ({ onRegister, navigate }) => {
 
                             {/* Confirm Password */}
                             <div className="relative">
-                                <label className="label-gold ml-1">{t('confirmPasswordLabel') || '确认密码'}</label>
+                                <label className="label-gold label-required ml-1">
+                                    {t('confirmPasswordLabel') || '确认密码'}
+                                </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <ShieldCheck size={18} className="text-[#d4af37]/60" />
@@ -357,12 +367,7 @@ const RegisterPage = ({ onRegister, navigate }) => {
                                     loading && "opacity-70 cursor-not-allowed"
                                 )}
                             >
-                                {loading ? t('registering') : (
-                                    <>
-                                        {t('signUp')}
-                                        <ArrowRight size={18} />
-                                    </>
-                                )}
+                                {loading ? t('registering') : t('signUp')}
                             </motion.button>
                         </div>
                     </form>

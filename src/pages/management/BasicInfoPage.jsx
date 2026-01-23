@@ -192,7 +192,9 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                 <div className="absolute top-[-20%] left-[-10%] w-32 h-32 sm:w-40 sm:h-40 bg-[#d4af37]/5 rounded-full blur-3xl" />
 
                 <div className="relative z-10">
-                    <label className="label-gold">{t('nameLabel')}</label>
+                    <label className="label-gold label-required">
+                        {t('nameLabel')}
+                    </label>
                     <div className="relative">
                         <input
                             className="input-dark text-sm font-normal tracking-tight pr-12 sm:pr-14 h-[48px] sm:h-[52px]"
@@ -217,7 +219,9 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
 
                 {/* Email field - required by /register_zl endpoint */}
                 <div className="relative z-10">
-                    <label className="label-gold">邮箱</label>
+                    <label className="label-gold label-required">
+                        邮箱
+                    </label>
                     <div className="relative">
                         <input
                             className="input-dark text-sm font-normal tracking-tight pr-14 h-[52px]"
