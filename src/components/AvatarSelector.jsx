@@ -13,7 +13,6 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
     const [stream, setStream] = useState(null);
     const [error, setError] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [isSwitchingCamera, setIsSwitchingCamera] = useState(false);
     const [facingMode, setFacingMode] = useState('environment'); // 'environment' (后置) | 'user' (前置)
 
     // 图片变换状态
@@ -115,44 +114,17 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
 
     // 切换摄像头（前置/后置）
     const handleSwitchCamera = async () => {
-        // 防止重复点击
-        if (isSwitchingCamera) {
-            console.log('正在切换摄像头，请稍候...');
-            return;
-        }
+        const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
+        setFacingMode(newFacingMode);
 
-        setIsSwitchingCamera(true);
-        setError(null);
-
-        try {
-            const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
-            
-            // 停止当前摄像头并清理video元素
-            if (stream) {
-                stream.getTracks().forEach(track => {
-                    track.stop();
-                });
-            }
-            
-            // 立即清空video元素的srcObject
-            if (videoRef.current) {
-                videoRef.current.srcObject = null;
-            }
-            
+        // 停止当前摄像头
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
             setStream(null);
-
-            // 等待确保摄像头完全释放和资源清理
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            // 更新状态并启动新摄像头
-            setFacingMode(newFacingMode);
-            await handleTakePhoto(newFacingMode);
-        } catch (err) {
-            console.error('切换摄像头失败:', err);
-            setError('切换摄像头失败，请重试');
-        } finally {
-            setIsSwitchingCamera(false);
         }
+
+        // 启动新摄像头
+        await handleTakePhoto(newFacingMode);
     };
 
     // 捕获照片
@@ -663,14 +635,10 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                             {stream && (
                                 <button
                                     onClick={handleSwitchCamera}
-                                    disabled={isSwitchingCamera}
-                                    className="absolute top-3 right-3 p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all active:scale-95 z-10 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title={isSwitchingCamera ? '正在切换...' : (facingMode === 'environment' ? '切换到前置摄像头' : '切换到后置摄像头')}
+                                    className="absolute top-3 right-3 p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all active:scale-95 z-10"
+                                    title={facingMode === 'environment' ? '切换到前置摄像头' : '切换到后置摄像头'}
                                 >
-                                    <FlipHorizontal 
-                                        size={20} 
-                                        className={`text-white ${isSwitchingCamera ? 'animate-spin' : ''}`} 
-                                    />
+                                    <FlipHorizontal size={20} className="text-white" />
                                 </button>
                             )}
                         </div>
