@@ -280,6 +280,7 @@ const ThreeDPage = () => {
     const confirmOpenedRef = useRef(false);
     const [showCelebration, setShowCelebration] = useState(false);
     const [celebrationStudentId, setCelebrationStudentId] = useState(null);
+    const [celebrationStudentData, setCelebrationStudentData] = useState(null);
     const celebrationNavRef = useRef(false);
 
     const handleConfirm = () => {
@@ -546,6 +547,7 @@ const ThreeDPage = () => {
         setIsLoading(false);
         setShowCelebration(false);
         setCelebrationStudentId(null);
+        setCelebrationStudentData(null);
         celebrationNavRef.current = false;
     };
 
@@ -562,15 +564,19 @@ const ThreeDPage = () => {
         const timer = setTimeout(() => {
             if (celebrationNavRef.current) return;
             celebrationNavRef.current = true;
-            navigate(`/student/${celebrationStudentId}`);
+            navigate(`/student/${celebrationStudentId}`, {
+                state: { student: celebrationStudentData },
+            });
         }, 3000);
         return () => clearTimeout(timer);
-    }, [showCelebration, celebrationStudentId, navigate]);
+    }, [showCelebration, celebrationStudentId, celebrationStudentData, navigate]);
 
     const handleCelebrationComplete = () => {
         if (celebrationNavRef.current || !celebrationStudentId) return;
         celebrationNavRef.current = true;
-        navigate(`/student/${celebrationStudentId}`);
+        navigate(`/student/${celebrationStudentId}`, {
+            state: { student: celebrationStudentData },
+        });
     };
 
     // 自动滚动到底部：当消息更新或开始语音播放时
@@ -720,6 +726,16 @@ const ThreeDPage = () => {
 
             if (createdStudentId) {
                 setCelebrationStudentId(createdStudentId);
+                setCelebrationStudentData({
+                    id: createdStudentId,
+                    name: payload.name,
+                    email: payload.email,
+                    gender: payload.gender,
+                    age: payload.age,
+                    years_of_golf: payload.years_of_golf,
+                    history: payload.history,
+                    purpose: payload.purpose,
+                });
                 setShowCelebration(true);
             }
 

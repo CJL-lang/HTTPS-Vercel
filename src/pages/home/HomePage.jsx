@@ -8,12 +8,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ChevronRight, Activity, Brain, Trophy, User, ChevronLeft } from 'lucide-react';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
 
 const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompleteAssessment, user }) => {
     const { id } = useParams();
+    const location = useLocation();
     const { t, language } = useLanguage(); // 翻译函数
     const [isNavigating, setIsNavigating] = useState(false); // 导航中状态
     const [student, setStudent] = useState(initialStudent);
@@ -70,6 +71,19 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
     const avatarAnimationSrc = avatarAnimationKey ? animationsPaths[avatarAnimationKey] : null;
 
     useEffect(() => {
+        const routeStudent = location.state?.student;
+        if (routeStudent && String(routeStudent.id) === String(id)) {
+            setStudent({
+                ...routeStudent,
+                gender: typeof routeStudent.gender === 'number'
+                    ? (routeStudent.gender === 0 ? t('female') : t('male'))
+                    : routeStudent.gender,
+                yearsOfGolf: routeStudent.golf_of_year ?? routeStudent.years_of_golf ?? routeStudent.yearsOfGolf,
+                history: routeStudent.bio || routeStudent.history
+            });
+            setLoading(false);
+            return;
+        }
         // 先使用从 App.jsx 传下来的学员基础数据（如果已存在且ID匹配）
         if (id && initialStudent && String(initialStudent.id) === String(id)) {
             setStudent({
@@ -88,61 +102,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
         // 如果上游没有传入 initialStudent 或 ID 不匹配，则结束 loading 并显示占位信息。
         setStudent(initialStudent);
         setLoading(false);
-    }, [id, initialStudent, t]);
-
-    useEffect(() => {
-        if (!id) return;
-        if (initialStudent && String(initialStudent.id) === String(id)) return;
-
-        let aborted = false;
-        const fetchRelatedStudents = async () => {
-            setLoading(true);
-            try {
-                const token = user?.token || (() => {
-                    try {
-                        const saved = localStorage.getItem('user');
-                        if (!saved) return null;
-                        const parsed = JSON.parse(saved);
-                        return parsed?.token || null;
-                    } catch (e) {
-                        return null;
-                    }
-                })();
-
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['Authorization'] = `Bearer ${token}`;
-
-                const response = await fetch('/api/relatedStudents', {
-                    method: 'GET',
-                    headers,
-                });
-
-                if (!response.ok) return;
-                const studentsData = await response.json();
-                if (!Array.isArray(studentsData)) return;
-
-                const found = studentsData.find(s => String(s.id) === String(id));
-                if (!found || aborted) return;
-
-                setStudent({
-                    ...found,
-                    gender: found.gender === 0 ? t('female') : found.gender === 1 ? t('male') : t('unknown'),
-                    displayId: found.id ? found.id.slice(-6) : t('unknown'),
-                    yearsOfGolf: found.golf_of_year ?? found.years_of_golf ?? found.yearsOfGolf,
-                    history: found.bio || found.history
-                });
-            } catch (e) {
-                // ignore fetch failures
-            } finally {
-                if (!aborted) setLoading(false);
-            }
-        };
-
-        fetchRelatedStudents();
-        return () => {
-            aborted = true;
-        };
-    }, [id, initialStudent, t, user?.token]);
+    }, [id, initialStudent, t, location.state]);
 
     // 使用处理后的学员数据
     const getGenderDisplay = (gender) => {
