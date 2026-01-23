@@ -28,6 +28,7 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
     const imageRef = useRef(null);
     const cropContainerRef = useRef(null);
     const cropImageRef = useRef(null);
+    const switchCameraRef = useRef(false);
 
     // 清理摄像头流
     useEffect(() => {
@@ -115,19 +116,30 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
     // 切换摄像头（前置/后置）
     const handleSwitchCamera = async () => {
         const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
-        
+        setFacingMode(newFacingMode);
+
         // 停止当前摄像头
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
             setStream(null);
         }
 
-        // 等待一小段时间确保旧流完全停止
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // 更新状态并启动新摄像头
-        setFacingMode(newFacingMode);
+        // 启动新摄像头
         await handleTakePhoto(newFacingMode);
+    };
+
+    const handleSwitchCameraPress = async (event) => {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        if (switchCameraRef.current) return;
+        switchCameraRef.current = true;
+        try {
+            await handleSwitchCamera();
+        } finally {
+            switchCameraRef.current = false;
+        }
     };
 
     // 捕获照片
@@ -637,7 +649,8 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                             {/* 切换摄像头按钮 - 放在右上角 */}
                             {stream && (
                                 <button
-                                    onClick={handleSwitchCamera}
+                                    type="button"
+                                    onPointerDown={handleSwitchCameraPress}
                                     className="absolute top-3 right-3 p-3 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-all active:scale-95 z-10"
                                     title={facingMode === 'environment' ? '切换到前置摄像头' : '切换到后置摄像头'}
                                 >
