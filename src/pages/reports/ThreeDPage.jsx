@@ -706,7 +706,7 @@ const ThreeDPage = () => {
         return (
             <div className="h-[100dvh] bg-transparent flex flex-col relative overflow-hidden text-white">
                 {/* 顶部导航 */}
-                <header className="h-14 px-4 flex items-center justify-between shrink-0 z-20 border-b border-white/5">
+                <header className="h-14 px-4 flex items-center justify-between shrink-0 z-30 border-b border-white/5 bg-black/20 backdrop-blur-md">
                     <button
                         onClick={() => {
                             // 回退时停止所有语音
@@ -730,6 +730,29 @@ const ThreeDPage = () => {
                     </div>
                     <div className="w-6 h-3 rounded-full bg-gradient-to-r from-green-400/60 to-emerald-500/60"></div>
                 </header>
+
+                {/* 固定渐变模糊层 - 用于在上半部分产生模糊效果 */}
+                <div 
+                    className="fixed top-14 left-0 right-0 z-[25] pointer-events-none"
+                    style={{ 
+                        height: '50vh',
+                        backdropFilter: 'blur(12px)',
+                        WebkitBackdropFilter: 'blur(12px)',
+                        maskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 100%)',
+                        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 100%)'
+                    }}
+                ></div>
+
+                {/* 顶部固定的角色展示（固定定位，始终可见，位于模糊层之上） */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="fixed top-14 left-0 right-0 h-[50vh] max-h-[50vh] z-[26] overflow-hidden pointer-events-none"
+                >
+                    <div className="w-full h-full">
+                        <AnimationPlayer animationKey={selectedChar?.animationKey} size="w-full h-full" />
+                    </div>
+                </motion.div>
 
                 {/* 信息收集进度与语音状态 */}
                 {!isComplete && (
@@ -803,17 +826,6 @@ const ThreeDPage = () => {
 
                 {/* 中间内容区 - 可滚动 */}
                 <main ref={mainRef} className="flex-1 flex flex-col overflow-y-auto px-4 z-20 pb-56" style={{ paddingTop: 'calc(50vh + 56px)' }}>
-                    {/* 顶部固定的角色展示（固定定位，始终可见） */}
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="fixed top-14 left-0 right-0 h-[50vh] max-h-[50vh] z-10 overflow-hidden"
-                    >
-                        <div className="w-full h-full">
-                            <AnimationPlayer animationKey={selectedChar?.animationKey} size="w-full h-full" />
-                        </div>
-                    </motion.div>
-
                     {/* 对话气泡 */}
                     <div className="w-full max-w-2xl mx-auto flex-1 bg-transparent">
                         <DialogBubbles messages={messages} className="flex-1" />
