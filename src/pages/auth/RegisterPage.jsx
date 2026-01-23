@@ -5,7 +5,7 @@
  */
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, Mail, Lock, Eye, EyeOff, User, Phone, ShieldCheck, ChevronLeft, FileText } from 'lucide-react';
+import { Activity, Mail, Lock, Eye, EyeOff, User, Phone, ShieldCheck, ChevronLeft, FileText } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
 
@@ -367,12 +367,7 @@ const RegisterPage = ({ onRegister, navigate }) => {
                                     loading && "opacity-70 cursor-not-allowed"
                                 )}
                             >
-                                {loading ? t('registering') : (
-                                    <>
-                                        {t('signUp')}
-                                        <ArrowRight size={18} />
-                                    </>
-                                )}
+                                {loading ? t('registering') : t('signUp')}
                             </motion.button>
                         </div>
                     </form>
