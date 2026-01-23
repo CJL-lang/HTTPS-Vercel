@@ -36,15 +36,15 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
     const animationsPaths = {
         bunny: '/animations_lottie/Bunny.lottie',
         robot: '/animations_lottie/Robot_Futuristic_Ai_animated.lottie',
-        tiger: '/animations_lottie/Cute%20Tiger.lottie',
+        tiger: '/animations_lottie/Cute Tiger.lottie',
         cat: '/animations_lottie/Lovely_Cat.lottie',
         powerRobot: '/animations_lottie/Little_power_robot.lottie',
-        pigeon: '/animations_lottie/Just%20a%20pigeon..lottie',
+        pigeon: '/animations_lottie/Just a pigeon..lottie',
         chatbot: '/animations_lottie/chatbot.lottie',
         bloomingo: '/animations_lottie/Bloomingo.lottie',
-        giraffe: '/animations_lottie/Meditating%20Giraffe.lottie',
-        balloonRabbit: '/animations_lottie/Nice%20rabbit%20with%20balloon.lottie',
-        partyDance: '/animations_lottie/Party%20Dance.lottie',
+        giraffe: '/animations_lottie/Meditating Giraffe.lottie',
+        balloonRabbit: '/animations_lottie/Nice rabbit with balloon.lottie',
+        partyDance: '/animations_lottie/Party Dance.lottie',
     };
 
     const getStudentAvatarKey = (targetStudent) => {
@@ -68,7 +68,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
     };
 
     const avatarAnimationKey = useMemo(() => getStudentAvatarKey(student), [student]);
-    const avatarAnimationSrc = avatarAnimationKey ? animationsPaths[avatarAnimationKey] : null;
+    const avatarAnimationSrc = avatarAnimationKey ? encodeURI(animationsPaths[avatarAnimationKey]) : null;
 
     useEffect(() => {
         const routeStudent = location.state?.student;

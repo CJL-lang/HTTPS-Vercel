@@ -19,13 +19,13 @@ import { useTextToSpeech } from '../../hooks/useTextToSpeech';
 // Lottie 动画数据
 const animationsPaths = {
     bunny: '/animations_lottie/Bunny.lottie',
-    mage: '/animations_lottie/Interactive%20Mage%20animation.lottie',
-    tiger: '/animations_lottie/Cute%20Tiger.lottie',
-    pigeon: '/animations_lottie/Just%20a%20pigeon..lottie',
+    mage: '/animations_lottie/Interactive Mage animation.lottie',
+    tiger: '/animations_lottie/Cute Tiger.lottie',
+    pigeon: '/animations_lottie/Just a pigeon..lottie',
     bloomingo: '/animations_lottie/Bloomingo.lottie',
-    giraffe: '/animations_lottie/Meditating%20Giraffe.lottie',
-    balloonRabbit: '/animations_lottie/Nice%20rabbit%20with%20balloon.lottie',
-    partyDance: '/animations_lottie/Party%20Dance.lottie',
+    giraffe: '/animations_lottie/Meditating Giraffe.lottie',
+    balloonRabbit: '/animations_lottie/Nice rabbit with balloon.lottie',
+    partyDance: '/animations_lottie/Party Dance.lottie',
 };
 
 const STUDENT_AVATAR_MAP_KEY = 'studentAvatarMap';
@@ -78,7 +78,7 @@ const AnimationPlayer = ({ animationKey, size = 'w-16 h-16' }) => {
         return <div className={cn(size, "bg-white/5")}></div>;
     }
     return (
-        <DotLottieReact src={path} loop autoplay style={{ width: '100%', height: '100%' }} />
+        <DotLottieReact src={encodeURI(path)} loop autoplay style={{ width: '100%', height: '100%' }} />
     );
 };
 
