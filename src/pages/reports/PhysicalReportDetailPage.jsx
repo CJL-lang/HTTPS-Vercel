@@ -583,7 +583,10 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
         if (!id || loading || isCreatingAIReport) return;
 
         setIsCreatingAIReport(true);
+        setIsWaitingForAiReport(true);
+        setSkipLogoLoading(false);
         setLoading(true);
+        const startTime = Date.now();
         try {
             const userJson = localStorage.getItem('user');
             const user = userJson ? JSON.parse(userJson) : null;
@@ -781,10 +784,25 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                 }) : prev));
             }
 
-            setLoading(false);
+            // 确保logo动画至少运行10秒后再显示完成动画（与首次生成逻辑一致）
+            const elapsedTime = Date.now() - startTime;
+            const minAnimationTime = 10000; // 10秒
+            const remainingTime = Math.max(0, minAnimationTime - elapsedTime);
+            
+            setTimeout(() => {
+                setIsCompletingProgress(true);
+                setTimeout(() => {
+                    setIsWaitingForAiReport(false);
+                    setIsCompletingProgress(false);
+                    setSkipLogoLoading(true);
+                    setLoading(false);
+                }, 600);
+            }, remainingTime);
         } catch (error) {
             console.error('Failed to regenerate report:', error);
             alert(error?.message || '重新生成失败');
+            setIsWaitingForAiReport(false);
+            setSkipLogoLoading(true);
             setLoading(false);
         } finally {
             setIsCreatingAIReport(false);
@@ -1065,27 +1083,38 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                         <img
                             src="/logo.png"
                             alt="Logo"
-                            className={`logo-progress-fill${isCompletingProgress ? ' logo-progress-fill--complete' : ''}`}
+                            className={`logo-progress-fill${isCompletingProgress ? ' logo-progress-fill--complete' : !isWaitingForAiReport ? ' logo-progress-fill--fast' : ''}`}
                         />
+                        {/* 95%时的向上加载光条效果 */}
+                        {isWaitingForAiReport && !isCompletingProgress && (
+                            <div className="logo-loading-energy">
+                                <div className="logo-loading-stripe"></div>
+                                <div className="logo-loading-stripe"></div>
+                                <div className="logo-loading-stripe"></div>
+                                <div className="logo-loading-stripe"></div>
+                                <div className="logo-loading-stripe"></div>
+                            </div>
+                        )}
                     </div>
-                    <h2 className="text-2xl font-black text-white mb-2">
-                        {t('generatingAIReport')}
-                    </h2>
-                    <p className="text-white/60 text-sm">
-                        {t('waitAIReport')}
-                    </p>
-
-                    {isWaitingForAiReport ? (
-                        <div className="mt-6 flex items-center justify-center">
-                            <button
-                                onClick={handleBack}
-                                className="px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
-                                type="button"
-                            >
-                                {t('WatchLater')}
-                            </button>
-                        </div>
-                    ) : null}
+                    {isWaitingForAiReport && (
+                        <>
+                            <h2 className="text-2xl font-black text-white mb-2">
+                                {t('generatingAIReport')}
+                            </h2>
+                            <p className="text-white/60 text-sm">
+                                {t('waitAIReport')}
+                            </p>
+                            <div className="mt-6 flex items-center justify-center">
+                                <button
+                                    onClick={handleBack}
+                                    className="px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
+                                    type="button"
+                                >
+                                    {t('WatchLater')}
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         );

@@ -115,18 +115,15 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
     // 切换摄像头（前置/后置）
     const handleSwitchCamera = async () => {
         const newFacingMode = facingMode === 'environment' ? 'user' : 'environment';
-        
+        setFacingMode(newFacingMode);
+
         // 停止当前摄像头
         if (stream) {
             stream.getTracks().forEach(track => track.stop());
             setStream(null);
         }
 
-        // 等待一小段时间确保旧流完全停止
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // 更新状态并启动新摄像头
-        setFacingMode(newFacingMode);
+        // 启动新摄像头
         await handleTakePhoto(newFacingMode);
     };
 

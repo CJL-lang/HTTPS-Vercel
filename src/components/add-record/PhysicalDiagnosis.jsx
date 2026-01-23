@@ -10,7 +10,7 @@
  */
 import React, { useState, useEffect, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Sparkles, Plus, X, ChevronDown } from 'lucide-react';
+import { Mic, Sparkles, Plus, X, ChevronDown, Lightbulb } from 'lucide-react';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useLanguage } from '../../utils/LanguageContext';
 import { cn } from '../../utils/cn';
@@ -594,6 +594,21 @@ const PhysicalDiagnosisItem = forwardRef(({
                     showTitleSelector === item.id ? "opacity-20 pointer-events-none" : "opacity-100"
                 )}
             />
+
+            {/* 智能建议按钮 - 右下角 */}
+            <button
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // 功能待实现
+                }}
+                className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-br from-[#d4af37]/20 to-[#b8860b]/20 border border-[#d4af37]/30 hover:from-[#d4af37]/30 hover:to-[#b8860b]/30 hover:border-[#d4af37]/50 transition-all active:scale-95 shadow-lg shadow-[#d4af37]/10 group/btn z-10 backdrop-blur-sm"
+                title={t('smartSuggestion')}
+            >
+                <Lightbulb size={14} className="text-[#d4af37] group-hover/btn:text-[#d4af37] transition-colors shrink-0" />
+                <span className="text-xs font-bold text-[#d4af37] uppercase tracking-wider">{t('smartSuggestion')}</span>
+            </button>
         </motion.div>
     );
 });

@@ -613,7 +613,8 @@ const AddRecordPage = ({
             <UnsavedChangesDialog
                 show={unsavedChanges.showUnsavedDialog}
                 onSaveAndContinue={async () => {
-                    await save.handleSave(navigation.navigateToSecondary);
+                    // 传入空函数避免自动导航到下一步，保存完成后直接执行返回导航
+                    await save.handleSave(() => {});
                     executePendingNavigation();
                 }}
                 onLeaveWithoutSaving={() => {

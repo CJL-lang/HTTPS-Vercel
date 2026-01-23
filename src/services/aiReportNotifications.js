@@ -74,11 +74,22 @@ function sanitizeToastDescription(input) {
 
 export function buildAIReportToast({ status, assessmentId, assessmentType, title, message, payload }) {
   if (status === 'success') {
+    // 构建报告详情页路由
+    const reportRoutes = {
+      'physical': '/physical-report',
+      'mental': '/mental-report',
+      'skills': '/skills-report',
+      'technique': '/skills-report'
+    };
+    const baseRoute = reportRoutes[String(assessmentType || '').toLowerCase()] || '/physical-report';
+    const navigation = assessmentId ? `${baseRoute}/${assessmentId}` : null;
+
     return {
       kind: 'success',
       title: buildSuccessTitle({ assessmentType, title, payload }),
       description: '',
-      durationMs: 5000
+      durationMs: 5000,
+      navigation
     };
   }
 
