@@ -82,6 +82,22 @@
     @apply text-sm font-bold text-[#d4af37] mb-1 uppercase tracking-widest flex items-center gap-2;
   }
 
+  .required-asterisk {
+    color: #f87171;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: 4px;
+    display: inline-block;
+  }
+
+  .label-required::after {
+    content: '*';
+    color: #f87171;
+    font-weight: 700;
+    line-height: 1;
+    margin-left: 4px;
+  }
+
   /* Typography tokens: keep same hierarchy consistent across pages */
   .t-title-page {
     @apply text-3xl font-bold tracking-tight text-white;

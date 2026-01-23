@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ChevronRight, Activity, Brain, Trophy, User, ChevronLeft } from 'lucide-react';
-import Lottie from 'lottie-react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { useParams } from 'react-router-dom';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
@@ -33,17 +33,17 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
     };
 
     const animationsPaths = {
-        bunny: '/animations/Bunny.json',
-        robot: '/animations/Robot_Futuristic_Ai_animated.json',
-        tiger: '/animations/Cute_Tiger.json',
-        cat: '/animations/Lovely_Cat.json',
-        powerRobot: '/animations/Little_power_robot.json',
-        pigeon: '/animations/Just_a_pigeon..json',
-        chatbot: '/animations/chatbot.json',
-        bloomingo: '/animations/Bloomingo.json',
-        giraffe: '/animations/Meditating%20Giraffe.json',
-        balloonRabbit: '/animations/Nice%20rabbit%20with%20balloon.json',
-        partyDance: '/animations/Party%20Dance.json',
+        bunny: '/animations_lottie/Bunny.lottie',
+        robot: '/animations_lottie/Robot_Futuristic_Ai_animated.lottie',
+        tiger: '/animations_lottie/Cute%20Tiger.lottie',
+        cat: '/animations_lottie/Lovely_Cat.lottie',
+        powerRobot: '/animations_lottie/Little_power_robot.lottie',
+        pigeon: '/animations_lottie/Just%20a%20pigeon..lottie',
+        chatbot: '/animations_lottie/chatbot.lottie',
+        bloomingo: '/animations_lottie/Bloomingo.lottie',
+        giraffe: '/animations_lottie/Meditating%20Giraffe.lottie',
+        balloonRabbit: '/animations_lottie/Nice%20rabbit%20with%20balloon.lottie',
+        partyDance: '/animations_lottie/Party%20Dance.lottie',
     };
 
     const getStudentAvatarKey = (targetStudent) => {
@@ -59,38 +59,15 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
         try {
             const raw = localStorage.getItem('studentAvatarMap');
             const map = raw ? JSON.parse(raw) : {};
-            return map[String(targetStudent?.id)];
+            const lookupId = targetStudent?.id ?? id;
+            return lookupId ? map[String(lookupId)] : undefined;
         } catch {
             return undefined;
         }
     };
 
     const avatarAnimationKey = useMemo(() => getStudentAvatarKey(student), [student]);
-    const [avatarAnimationData, setAvatarAnimationData] = useState(null);
-
-    useEffect(() => {
-        if (!avatarAnimationKey) {
-            setAvatarAnimationData(null);
-            return;
-        }
-        const path = animationsPaths[avatarAnimationKey];
-        if (!path) {
-            setAvatarAnimationData(null);
-            return;
-        }
-        let aborted = false;
-        fetch(path)
-            .then((res) => res.json())
-            .then((data) => {
-                if (!aborted) setAvatarAnimationData(data);
-            })
-            .catch(() => {
-                if (!aborted) setAvatarAnimationData(null);
-            });
-        return () => {
-            aborted = true;
-        };
-    }, [avatarAnimationKey]);
+    const avatarAnimationSrc = avatarAnimationKey ? animationsPaths[avatarAnimationKey] : null;
 
     useEffect(() => {
         // 先使用从 App.jsx 传下来的学员基础数据（如果已存在且ID匹配）
@@ -253,8 +230,8 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
 
                             {/* 头像容器 */}
                             <div className="student-avatar shadow-2xl shadow-[#d4af37]/50 border-4 border-black/20 relative z-10 w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] overflow-hidden">
-                                {avatarAnimationData ? (
-                                    <Lottie animationData={avatarAnimationData} loop={true} autoPlay={true} style={{ width: '100%', height: '100%' }} />
+                                {avatarAnimationSrc ? (
+                                    <DotLottieReact src={avatarAnimationSrc} loop autoplay style={{ width: '100%', height: '100%' }} />
                                 ) : (
                                     <User size={50} className="sm:w-[60px] sm:h-[60px]" />
                                 )}

@@ -6,6 +6,7 @@
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import DialogBubbles from '../../components/DialogBubbles';
 import { Mic } from 'lucide-react';
@@ -82,7 +83,8 @@ const AnimationPlayer = ({ animationKey, size = 'w-16 h-16' }) => {
 };
 
 const ThreeDPage = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
+    const navigate = useNavigate();
 
     // 卡通人物数据（关联 Lottie 动画）
     const characters = useMemo(() => [
@@ -276,6 +278,9 @@ const ThreeDPage = () => {
     const [confirmError, setConfirmError] = useState('');
     const [errorFields, setErrorFields] = useState([]); // 存储出错的字段名
     const confirmOpenedRef = useRef(false);
+    const [showCelebration, setShowCelebration] = useState(false);
+    const [celebrationStudentId, setCelebrationStudentId] = useState(null);
+    const celebrationNavRef = useRef(false);
 
     const handleConfirm = () => {
         setSelectedChar(tempChar);
@@ -539,6 +544,9 @@ const ThreeDPage = () => {
         setErrorFields([]);
         setInputValue('');
         setIsLoading(false);
+        setShowCelebration(false);
+        setCelebrationStudentId(null);
+        celebrationNavRef.current = false;
     };
 
     // 监听完成状态：当 AI 指示 next_field="done" 时，弹出确认框
@@ -548,6 +556,22 @@ const ThreeDPage = () => {
             openConfirmModal(currentInfo);
         }
     }, [nextField]);
+
+    useEffect(() => {
+        if (!showCelebration || !celebrationStudentId) return;
+        const timer = setTimeout(() => {
+            if (celebrationNavRef.current) return;
+            celebrationNavRef.current = true;
+            navigate(`/student/${celebrationStudentId}`);
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [showCelebration, celebrationStudentId, navigate]);
+
+    const handleCelebrationComplete = () => {
+        if (celebrationNavRef.current || !celebrationStudentId) return;
+        celebrationNavRef.current = true;
+        navigate(`/student/${celebrationStudentId}`);
+    };
 
     // 自动滚动到底部：当消息更新或开始语音播放时
     useEffect(() => {
@@ -585,6 +609,7 @@ const ThreeDPage = () => {
                 return undefined;
             })();
 
+            const backendLang = language === 'en' ? 'en' : 'cn';
             const payload = {
                 coach_id: coachId,
                 name: infoOverride.name,
@@ -597,6 +622,7 @@ const ThreeDPage = () => {
                 history: infoOverride.history || infoOverride.golf_history || undefined,
                 medical_history: infoOverride.medical_history || undefined,
                 purpose: infoOverride.purpose || undefined,
+                language: backendLang,
             };
 
             const headers = { 'Content-Type': 'application/json' };
@@ -692,6 +718,11 @@ const ThreeDPage = () => {
             setIsComplete(true);
             setNextField(null);
 
+            if (createdStudentId) {
+                setCelebrationStudentId(createdStudentId);
+                setShowCelebration(true);
+            }
+
         } catch (err) {
             console.error('createStudent error', err);
             // Show error in modal - modal stays open for retry
@@ -705,6 +736,17 @@ const ThreeDPage = () => {
     if (selectedChar) {
         return (
             <div className="h-[100dvh] bg-transparent flex flex-col relative overflow-hidden text-white">
+                {showCelebration && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
+                        <DotLottieReact
+                            src="/congratulation.lottie"
+                            autoplay
+                            loop={false}
+                            style={{ width: '100%', height: '100%' }}
+                            onComplete={handleCelebrationComplete}
+                        />
+                    </div>
+                )}
                 {/* 顶部导航 */}
                 <header className="h-14 px-4 flex items-center justify-between shrink-0 z-30 border-b border-white/5 bg-black/20 backdrop-blur-md">
                     <button
@@ -732,9 +774,9 @@ const ThreeDPage = () => {
                 </header>
 
                 {/* 固定渐变模糊层 - 用于在上半部分产生模糊效果 */}
-                <div 
+                <div
                     className="fixed top-14 left-0 right-0 z-[25] pointer-events-none"
-                    style={{ 
+                    style={{
                         height: '50vh',
                         backdropFilter: 'blur(12px)',
                         WebkitBackdropFilter: 'blur(12px)',
