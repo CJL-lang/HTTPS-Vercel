@@ -447,30 +447,36 @@ const AddRecordPage = ({
         const pending = unsavedChanges.pendingNavigation;
         if (!pending) return;
 
-        if (pending.type === 'secondary') {
-            const type = ROUTE_MAP[navigation.activePrimary];
-            const step = navigation.secondaryTabs[pending.target].path;
-            if (navigate) {
-                // 必须带上最新的 state（含最新 title），否则切页会回滚
-                navigate(`/add-record/${type}/${step}`, { state: getNavigationState() });
-            }
-        } else if (pending.type === 'back') {
-            await ensureCurrentTitlePatchedForCompleteExit();
-            // 根据当前测评类型返回到对应的历史测评记录页面
-            const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
-            const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
-
-            if (navigate && student?.id) {
-                navigate(`/student/${student.id}/${reportPage}`);
-            } else if (onBack) {
-                onBack();
-            } else if (navigate) {
-                navigate(`/${reportPage}`);
-            }
-        }
-
-        unsavedChanges.setPendingNavigation(null);
+        // 先关闭对话框，避免导航时闪烁
         unsavedChanges.setShowUnsavedDialog(false);
+        unsavedChanges.setPendingNavigation(null);
+
+        // 使用 requestAnimationFrame 确保对话框关闭动画完成后再导航
+        requestAnimationFrame(() => {
+            requestAnimationFrame(async () => {
+                if (pending.type === 'secondary') {
+                    const type = ROUTE_MAP[navigation.activePrimary];
+                    const step = navigation.secondaryTabs[pending.target].path;
+                    if (navigate) {
+                        // 必须带上最新的 state（含最新 title），否则切页会回滚
+                        navigate(`/add-record/${type}/${step}`, { state: getNavigationState() });
+                    }
+                } else if (pending.type === 'back') {
+                    await ensureCurrentTitlePatchedForCompleteExit();
+                    // 根据当前测评类型返回到对应的历史测评记录页面
+                    const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
+                    const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
+
+                    if (navigate && student?.id) {
+                        navigate(`/student/${student.id}/${reportPage}`);
+                    } else if (onBack) {
+                        onBack();
+                    } else if (navigate) {
+                        navigate(`/${reportPage}`);
+                    }
+                }
+            });
+        });
     };
 
     const handleGenerateLater = async () => {

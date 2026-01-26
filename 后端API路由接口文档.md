@@ -245,6 +245,7 @@
 **Content-Type**: `multipart/form-data`
 
 **Form Data**:
+
 - `avatar`: 头像文件 (必填)
 
 ### Response
@@ -257,6 +258,7 @@
 ```
 
 **错误响应**:
+
 - `400 Bad Request`: 文件格式不支持或文件过大
 - `401 Unauthorized`: 用户未登录
 - `500 Internal Server Error`: 服务器错误
@@ -271,6 +273,7 @@
 ### Request
 
 **URL参数**:
+
 - `user_id`: 用户ID (必填)
 
 ### Response
@@ -282,6 +285,7 @@
 ```
 
 **错误响应**:
+
 - `400 Bad Request`: user_id参数缺失
 - `404 Not Found`: 用户不存在或未设置头像
 
@@ -295,6 +299,7 @@
 ### Request
 
 **URL参数**:
+
 - `filename`: 文件名 (必填)
 
 ### Response
@@ -302,6 +307,7 @@
 返回头像文件的二进制内容，Content-Type根据文件类型自动设置
 
 **错误响应**:
+
 - `400 Bad Request`: 文件名无效
 - `404 Not Found`: 文件不存在
 
@@ -854,6 +860,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
 例如：http://localhost:8080/AIReport/770e8400-e29b-41d4-a716-446655440003
 
 ### Response
+
 ```json
 {
   "report_intro": "青少年正处于身体发育的黄金期，科学的高尔夫体能训练不仅能优化专项技术动作模式、提升挥杆效率与击球稳定性，更能有效预防因肌肉失衡或核心控制不足引发的腰部、肩部及膝关节劳损。本报告基于多维数据评估，为学员量身定制兼具安全性、功能性和进阶性的训练路径。",
@@ -897,6 +904,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
 
 }
 ```
+
 # PATCH
 
 ## /diagnoses
@@ -940,6 +948,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
 - `language: "en"`：输入内容为英文，系统自动翻译为中文并存储到 `content`
 
 ### Request
+
 ```json
 {
   "assessment_id": "770e8400-e29b-41d4-a716-446655440002",
@@ -947,6 +956,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
   "language": "cn"
 }
 ```
+
 ### Response
 
 ```json
@@ -968,6 +978,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
 - `language: "en"`：输入内容为英文，系统自动翻译为中文并存储到 `content`
 
 ### Request
+
 ```json
 {
   "assessment_id": "770e8400-e29b-41d4-a716-446655440002",
@@ -975,6 +986,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
   "language": "cn"
 }
 ```
+
 ### Response
 
 ```json
@@ -990,6 +1002,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
 对应的路由：r.PATCH("/trackman", app.AuthMiddleware(db), api.HandleTrackmanDataUpdate)
 
 ## Request
+
 ```json
 {
 "assessment_id": ”770e8400-e29b-41d4-a716-446655440002“,
@@ -1014,6 +1027,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
     "indexing": "Smash: 102 / Spin: 98"
 }
 ```
+
 ### Response
 
 ```json
@@ -1060,6 +1074,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
 对应的路由：r.PATCH("/mentalData", app.AuthMiddleware(db), api.HandleMentalDataUpdate)
 
 ### Request
+
 ```json
 {
   "assessment_id": "770e8400-e29b-41d4-a716-446655440002",
@@ -1068,6 +1083,7 @@ r.GET("/mentalData/latest/:stu_id", app.AuthMiddleware(db), api.HandleLatestMent
   "stability": 6
 }
 ```
+
 ### Response
 
 ```json
