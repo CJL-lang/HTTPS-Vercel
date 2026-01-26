@@ -1196,36 +1196,53 @@
 /* 向上加载的光条 */
 .logo-loading-stripe {
   position: absolute;
-  top: 100%; /* 从最底部开始 */
+  top: 100%;
+  /* 从最底部开始 */
   left: 0;
   right: 0;
   height: 20px;
-  background: linear-gradient(to top, 
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0.6),
-    rgba(255, 255, 255, 0)
-  );
+  background: linear-gradient(to top,
+      rgba(255, 255, 255, 0),
+      rgba(255, 255, 255, 0.3),
+      rgba(255, 255, 255, 0));
   opacity: 0;
   animation: stripeLoadUp 2s linear infinite;
 }
 
-.logo-loading-stripe:nth-child(1) { animation-delay: 0s; }
-.logo-loading-stripe:nth-child(2) { animation-delay: 0.4s; }
-.logo-loading-stripe:nth-child(3) { animation-delay: 0.8s; }
-.logo-loading-stripe:nth-child(4) { animation-delay: 1.2s; }
-.logo-loading-stripe:nth-child(5) { animation-delay: 1.6s; }
+.logo-loading-stripe:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.logo-loading-stripe:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.logo-loading-stripe:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+.logo-loading-stripe:nth-child(4) {
+  animation-delay: 1.2s;
+}
+
+.logo-loading-stripe:nth-child(5) {
+  animation-delay: 1.6s;
+}
 
 @keyframes stripeLoadUp {
   0% {
     top: 100%;
     opacity: 0;
   }
+
   20% {
     opacity: 1;
   }
+
   80% {
     opacity: 1;
   }
+
   100% {
     top: -20px;
     opacity: 0;
