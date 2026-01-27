@@ -14,6 +14,7 @@ import { Mic, Sparkles, Plus, X, ChevronDown, Lightbulb } from 'lucide-react';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useLanguage } from '../../utils/LanguageContext';
 import { cn } from '../../utils/cn';
+import { requestAIAdvice } from '../../pages/assessment/utils/aiAdviceApi';
 
 const presetTitles = [
     "专注能力",
@@ -32,6 +33,7 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
     const { t } = useLanguage();
     const [displayTitle, setDisplayTitle] = useState(item.title);
     const [displayGrade, setDisplayGrade] = useState(item.grade ?? '');
+    const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
     const inputRef = useRef(null);
     const gradeInputRef = useRef(null);
 
@@ -287,20 +289,53 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                 )}
             />
 
-            {/* 智能建议按钮 - 右下角 */}
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // 功能待实现
-                }}
-                className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-br from-[#d4af37]/20 to-[#b8860b]/20 border border-[#d4af37]/30 hover:from-[#d4af37]/30 hover:to-[#b8860b]/30 hover:border-[#d4af37]/50 transition-all active:scale-95 shadow-lg shadow-[#d4af37]/10 group/btn z-10 backdrop-blur-sm"
-                title={t('smartSuggestion')}
-            >
-                <Lightbulb size={14} className="text-[#d4af37] group-hover/btn:text-[#d4af37] transition-colors shrink-0" />
-                <span className="text-xs font-bold text-[#d4af37] uppercase tracking-wider">{t('smartSuggestion')}</span>
-            </button>
+            {/* 智能建议按钮 - 文本框下方（避免遮挡内容） */}
+            <div className="mt-3 flex justify-end">
+                <button
+                    type="button"
+                    disabled={isGeneratingAdvice}
+                    onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isGeneratingAdvice) return;
+
+                        try {
+                            setIsGeneratingAdvice(true);
+                            const dimension = item.title || '';
+                            const category = 'mental';
+                            const level = '';
+
+                            const score = presetTitles.includes(item.title)
+                                ? getScoreByTitle(item.title)
+                                : (item.grade ?? '');
+
+                            const scores = {
+                                [dimension]: score === '' || score === null || score === undefined ? '' : `${score}分`
+                            };
+
+                            const { diag, advice } = await requestAIAdvice({
+                                dimension,
+                                category,
+                                level,
+                                scores
+                            });
+
+                            const nextContent = [diag, advice].filter(Boolean).join('\n\n');
+                            updateItem(item.id, { content: nextContent });
+                        } catch (err) {
+                            console.error('[AIAdvice] failed:', err);
+                            alert('生成智能建议失败，请稍后重试');
+                        } finally {
+                            setIsGeneratingAdvice(false);
+                        }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-br from-[#d4af37]/20 to-[#b8860b]/20 border border-[#d4af37]/30 hover:from-[#d4af37]/30 hover:to-[#b8860b]/30 hover:border-[#d4af37]/50 transition-all active:scale-95 shadow-lg shadow-[#d4af37]/10 group/btn backdrop-blur-sm"
+                    title={t('smartSuggestion')}
+                >
+                    <Lightbulb size={14} className="text-[#d4af37] group-hover/btn:text-[#d4af37] transition-colors shrink-0" />
+                    <span className="text-xs font-bold text-[#d4af37] uppercase tracking-wider">{t('smartSuggestion')}</span>
+                </button>
+            </div>
         </motion.div>
     );
 });
