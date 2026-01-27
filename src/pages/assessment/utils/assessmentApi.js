@@ -2,6 +2,7 @@
  * 测评相关 API 调用
  */
 import api from '../../../utils/api';
+import { pickLocalizedContent } from '../../../utils/language';
 export const saveGoalToBackend = async (type, content, currentId, user, studentId, language = 'cn') => {
     if (!user?.token || !currentId) return null;
 
@@ -83,6 +84,33 @@ export const deleteAssessment = async (assessmentId, user) => {
         return response.ok;
     } catch (error) {
         console.error('Error deleting assessment:', error);
+        return false;
+    }
+};
+
+/**
+ * 删除 AI 报告
+ * 后端路由：DELETE /AIReport/:assessment_id
+ * @param {string|number} assessmentId
+ * @param {object} user
+ */
+export const deleteAIReport = async (assessmentId, user) => {
+    if (!user?.token || !assessmentId) {
+        console.warn('[API] deleteAIReport aborted: missing token or id', { assessmentId, hasToken: !!user?.token });
+        return false;
+    }
+
+    try {
+        const response = await api.delete(`/api/AIReport/${assessmentId}`, {
+            headers: {
+                'Authorization': `Bearer ${user.token}`
+            }
+        });
+        return response?.status >= 200 && response?.status < 300;
+    } catch (error) {
+        // 404 视为已不存在（幂等）
+        if (error?.response?.status === 404) return true;
+        console.error('[API] DELETE /AIReport failed:', error);
         return false;
     }
 };
@@ -189,8 +217,8 @@ export const getDiagnosisFromBackend = async (assessmentId, user) => {
         if (response.data) {
             const data = response.data;
             console.log('[API] GET /diagnoses success:', data);
-            // 后端返回的对象包含 content 数组
-            return data.content || [];
+            // 后端返回对象可能同时包含 content / content_en，根据当前 UI 语言选择
+            return pickLocalizedContent(data);
         }
 
         // 404 是正常的（新 assessment 还没有诊断数据）
@@ -543,7 +571,7 @@ export const getPlanFromBackend = async (assessmentId, user) => {
         if (response.data) {
             const data = response.data;
             console.log('[API] GET /plans success:', data);
-            return data.content || [];
+            return pickLocalizedContent(data);
         }
 
         // 404 是正常的（新 assessment 还没有训练计划数据）
@@ -610,7 +638,7 @@ export const getGoalFromBackend = async (assessmentId, user) => {
         if (response.data) {
             const data = response.data;
             console.log('[API] GET /goals success:', data);
-            return data.content || [];
+            return pickLocalizedContent(data);
         }
 
         // 404 是正常的（新 assessment 还没有目标数据）

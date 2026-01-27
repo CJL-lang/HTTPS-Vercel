@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Clock, CheckCircle, Brain, ArrowUpDown } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '../../utils/LanguageContext';
-import { createAssessment, deleteAssessment } from '../assessment/utils/assessmentApi';
+import { createAssessment, deleteAIReport, deleteAssessment } from '../assessment/utils/assessmentApi';
 import { loadAssessmentStep, clearAssessmentStep } from '../assessment/utils/assessmentProgress';
 import { useToast } from '../../components/toast/ToastProvider';
 import { clearAIReportGenerating, hasAIReportReadyHint, isAIReportGenerating, onAIReportWsEvent } from '../../services/aiReportWsClient';
@@ -54,6 +54,16 @@ const SkillsReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
 
         if (deleting) return;
         setDeleting(true);
+
+        const hasAIReport =
+            record?.has_ai_report === 1 ||
+            record?.has_ai_report === true ||
+            record?.ai_report_id ||
+            record?.aiReportId;
+
+        if (hasAIReport) {
+            await deleteAIReport(assessmentId, user);
+        }
 
         const ok = await deleteAssessment(assessmentId, user);
         if (ok) {

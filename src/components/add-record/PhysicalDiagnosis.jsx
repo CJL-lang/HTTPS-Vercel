@@ -13,7 +13,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, Sparkles, Plus, X, ChevronDown, Lightbulb } from 'lucide-react';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useLanguage } from '../../utils/LanguageContext';
+import translations from '../../utils/i18n';
 import { cn } from '../../utils/cn';
+import { requestAIAdvice } from '../../pages/assessment/utils/aiAdviceApi';
 
 // 等级下拉框组件 - 自动检测位置，避免超出容器，支持滚动
 const GradeDropdown = ({ grades, onSelect, onClose, buttonRef }) => {
@@ -135,50 +137,113 @@ const titleToTranslationKey = {
 };
 
 // 标题 -> 测试项目与结果映射（用于显示固定格式）
+// 使用 i18n key，在渲染时通过 t(key) 转换为当前语言。
+// 同时保留 key 用于解析时做多语言兼容，避免切换语言后解析失败导致“标题被塞进输入框”。
 const titleToTestItem = {
     "柔软度等级": {
         items: [
-            { testName: "胸椎旋转", unit: "分" },
-            { testName: "髋关节旋转", unit: "分" },
-            { testName: "肩部活动度", unit: "分" },
-            { testName: "脊柱灵活性", unit: "分" },
-            { testName: "下肢柔韧性", unit: "分" }
+            { testNameKey: 'thoracicRotation', unitKey: 'Point' },
+            { testNameKey: 'hipRotation', unitKey: 'Point' },
+            { testNameKey: 'shoulderMobility', unitKey: 'Point' },
+            { testNameKey: 'spinalFlexibility', unitKey: 'Point' },
+            { testNameKey: 'lowerLimbFlexibility', unitKey: 'Point' }
         ]
     },
     "协调性等级": {
-        testName: "30秒跳绳",
-        unit: "次"
+        testNameKey: 'jumpRope30Seconds',
+        unitKey: 'count'
     },
     "上肢力量等级": {
-        testName: "1分钟俯卧撑",
-        unit: "个"
+        testNameKey: 'oneMinutePushUps',
+        unitKey: 'quantity'
     },
     "下肢力量等级": {
-        testName: "立定跳远",
-        unit: "米"
+        testNameKey: 'standingLongJump',
+        unitKey: 'meter'
     },
     "旋转爆发力等级": {
-        testName: "药球侧向投掷",
-        unit: "米"
+        testNameKey: 'medicineBallSideThrow',
+        unitKey: 'meter'
     },
     "核心稳定性等级": {
-        testName: "平板支撑",
-        unit: "秒"
+        testNameKey: 'PlankHold',
+        unitKey: 'second'
     },
     "心肺耐力": {
-        testName: "20m往返跑 VO2max",
-        unit: "ml/kg/min"
+        testNameKey: 'shuttleRun20mVO2max',
+        unitKey: 'mlPerKgPerMin'
     }
 };
 
+const getTranslationValue = (lang, key) => {
+    return translations?.[lang]?.[key] || key;
+};
+
+const uniqNonEmpty = (arr) => {
+    const seen = new Set();
+    return (arr || []).filter(Boolean).filter((v) => {
+        const s = v.toString();
+        if (seen.has(s)) return false;
+        seen.add(s);
+        return true;
+    });
+};
+
+const PLEASE_ENTER_CANDIDATES = uniqNonEmpty([
+    getTranslationValue('zh', 'pleaseEnter'),
+    getTranslationValue('en', 'pleaseEnter'),
+    '请输入',
+    'Please enter'
+]);
+
+const isPleaseEnterText = (value) => {
+    const v = (value ?? '').toString().trim();
+    if (!v) return true;
+    return PLEASE_ENTER_CANDIDATES.some((c) => c && v === c.toString().trim());
+};
+
 // 获取测试项目显示格式
-const getTestItemDisplay = (title) => {
+const getTestItemDisplay = (title, t) => {
     const testItem = titleToTestItem[title];
     if (!testItem) return null;
+
+    const translate = (key) => (typeof t === 'function' ? t(key) : key);
+
+    const toDisplayItem = ({ testNameKey, unitKey }) => {
+        const testNameDisplay = translate(testNameKey);
+        const unitDisplay = translate(unitKey);
+
+        const testNameCandidates = uniqNonEmpty([
+            testNameDisplay,
+            getTranslationValue('zh', testNameKey),
+            getTranslationValue('en', testNameKey),
+            testNameKey
+        ]);
+
+        const unitCandidates = uniqNonEmpty([
+            unitDisplay,
+            getTranslationValue('zh', unitKey),
+            getTranslationValue('en', unitKey),
+            unitKey
+        ]);
+
+        return {
+            testName: testNameDisplay,
+            unit: unitDisplay,
+            testNameKey,
+            unitKey,
+            testNameCandidates,
+            unitCandidates
+        };
+    };
+
     if (Array.isArray(testItem.items) && testItem.items.length > 0) {
-        return { items: testItem.items };
+        return { items: testItem.items.map(toDisplayItem) };
     }
-    return { items: [{ testName: testItem.testName, unit: testItem.unit }] };
+
+    return {
+        items: [toDisplayItem({ testNameKey: testItem.testNameKey, unitKey: testItem.unitKey })]
+    };
 };
 
 // 从 workoutroutine 字符串中解析出输入值
@@ -189,54 +254,142 @@ const parseWorkoutRoutineValue = (workoutroutine, testItem, itemIndex = 0) => {
         : (itemIndex === 0 ? workoutroutine : '');
     if (!target) return '';
 
-    // 转义特殊字符用于正则表达式
-    const escapedTestName = testItem.testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const escapedUnit = testItem.unit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    // 如果已经是完整格式: "30秒跳绳：30 次" 或 "30秒跳绳：请输入 次"
-    const pattern = new RegExp(`${escapedTestName}：(.+?)\\s*${escapedUnit}`);
-    const match = target.match(pattern);
-    if (match) {
-        const value = match[1].trim();
-        // 如果是占位符文本，返回空字符串
-        if (value === '请输入' || value === '') {
-            return '';
+    const extractNumeric = (raw) => {
+        const s = (raw ?? '').toString().trim();
+        if (isPleaseEnterText(s)) return '';
+        const m = s.match(/-?\d+(?:\.\d+)?/);
+        return m ? m[0] : '';
+    };
+
+    const testNameCandidates = Array.isArray(testItem.testNameCandidates) && testItem.testNameCandidates.length
+        ? testItem.testNameCandidates
+        : [testItem.testName];
+    const unitCandidates = Array.isArray(testItem.unitCandidates) && testItem.unitCandidates.length
+        ? testItem.unitCandidates
+        : [testItem.unit];
+
+    // 1) 尝试严格匹配：<name>：<value> <unit>
+    for (const name of testNameCandidates) {
+        const escapedName = escapeRegExp(name);
+        for (const unit of unitCandidates) {
+            const escapedUnit = escapeRegExp(unit);
+            const pattern = new RegExp(`^\\s*${escapedName}[：:]\\s*(.+?)\\s*${escapedUnit}\\s*$`);
+            const match = target.match(pattern);
+            if (!match) continue;
+            const value = (match[1] ?? '').trim();
+            const numeric = extractNumeric(value);
+            return numeric;
         }
-        return value;
+    }
+
+    // 2) 宽松提取：如果有分隔符，取分隔符后内容，并去掉末尾 unit。
+    const delimiterIndex = target.indexOf('：') >= 0 ? target.indexOf('：') : target.indexOf(':');
+    if (delimiterIndex >= 0) {
+        let rest = target.slice(delimiterIndex + 1).trim();
+        for (const unit of unitCandidates) {
+            if (!unit) continue;
+            const u = unit.toString().trim();
+            if (!u) continue;
+            // 支持 "30 次" / "30次"
+            const unitPattern = new RegExp(`\\s*${escapeRegExp(u)}\\s*$`);
+            rest = rest.replace(unitPattern, '').trim();
+        }
+        return extractNumeric(rest);
     }
 
     // 如果 workoutroutine 不包含测试名称，可能是旧格式或纯数值
     // 如果包含单位，尝试提取数值部分
-    if (target.includes(testItem.unit)) {
+    // 3) 兼容旧格式：仅包含单位时，剥离单位
+    for (const unit of unitCandidates) {
+        if (!unit) continue;
+        if (!target.includes(unit)) continue;
+        const escapedUnit = escapeRegExp(unit);
         const unitPattern = new RegExp(`(.+?)\\s*${escapedUnit}`);
         const unitMatch = target.match(unitPattern);
-        if (unitMatch) {
-            const value = unitMatch[1].trim();
-            if (value === '请输入' || value === '') {
-                return '';
-            }
-            return value;
-        }
+        if (!unitMatch) continue;
+        const value = (unitMatch[1] ?? '').trim();
+        return extractNumeric(value);
     }
 
     // 如果都不匹配，可能是旧格式的纯数值，直接返回（但排除占位符）
     const trimmed = target.trim();
-    return (trimmed === '请输入' || trimmed === '') ? '' : trimmed;
+    return extractNumeric(trimmed);
 };
 
 // 格式化完整的 workoutroutine 字符串
-const formatWorkoutRoutine = (inputValue, testItem) => {
+const formatWorkoutRoutine = (inputValue, testItem, pleaseEnterText = getTranslationValue('zh', 'pleaseEnter')) => {
     if (!testItem) return '';
     const value = inputValue.trim();
-    if (!value) return `${testItem.testName}：请输入 ${testItem.unit}`;
+    if (!value) return `${testItem.testName}：${pleaseEnterText} ${testItem.unit}`;
     return `${testItem.testName}：${value} ${testItem.unit}`;
 };
 
-const buildDefaultWorkoutRoutine = (title) => {
-    const testItem = getTestItemDisplay(title);
+const buildDefaultWorkoutRoutine = (title, t) => {
+    const testItem = getTestItemDisplay(title, t);
     if (!testItem) return '';
-    const defaults = testItem.items.map((item) => formatWorkoutRoutine('', item));
+    const pleaseEnterText = typeof t === 'function' ? t('pleaseEnter') : getTranslationValue('zh', 'pleaseEnter');
+    const defaults = testItem.items.map((item) => formatWorkoutRoutine('', item, pleaseEnterText));
     return testItem.items.length > 1 ? defaults : defaults[0];
+};
+
+const parseWorkoutLineDynamic = (line) => {
+    const raw = (line ?? '').toString().trim();
+    if (!raw) return null;
+
+    // Support both Chinese and English delimiters.
+    const delimiterIndex = raw.indexOf('：') >= 0 ? raw.indexOf('：') : raw.indexOf(':');
+    if (delimiterIndex < 0) return null;
+
+    const testName = raw.slice(0, delimiterIndex).trim();
+    const rest = raw.slice(delimiterIndex + 1).trim();
+    if (!testName) return null;
+
+    // Extract leading number as value, remaining as unit.
+    const m = rest.match(/^(-?\d+(?:\.\d+)?)(?:\s*(.*))?$/);
+    if (m) {
+        const value = (m[1] ?? '').trim();
+        const unit = (m[2] ?? '').trim();
+        return { testName, value, unit };
+    }
+
+    // Fallback: treat the whole rest as value.
+    return { testName, value: rest, unit: '' };
+};
+
+const formatWorkoutLineDynamic = (testName, value, unit, pleaseEnterText = getTranslationValue('zh', 'pleaseEnter')) => {
+    const v = (value ?? '').toString().trim();
+    const u = (unit ?? '').toString().trim();
+    if (!v) return `${testName}: ${pleaseEnterText}${u ? ` ${u}` : ''}`;
+    return `${testName}: ${v}${u ? ` ${u}` : ''}`;
+};
+
+const buildScoresFromWorkoutRoutine = (title, workoutroutine, t) => {
+    const testItem = getTestItemDisplay(title, t);
+    if (testItem?.items?.length) {
+        const scores = {};
+        testItem.items.forEach((itemDef, idx) => {
+            const value = parseWorkoutRoutineValue(workoutroutine, itemDef, idx);
+            scores[itemDef.testName] = value ? `${value}${itemDef.unit}` : '';
+        });
+        return scores;
+    }
+
+    // Fallback: parse dynamic (e.g. English) workoutroutine lines.
+    const list = Array.isArray(workoutroutine)
+        ? workoutroutine
+        : (workoutroutine ? [workoutroutine] : []);
+
+    const scores = {};
+    list.forEach((line) => {
+        const parsed = parseWorkoutLineDynamic(line);
+        if (!parsed) return;
+        scores[parsed.testName] = parsed.value && !isPleaseEnterText(parsed.value)
+            ? `${parsed.value}${parsed.unit ? ` ${parsed.unit}` : ''}`
+            : '';
+    });
+    return scores;
 };
 
 const PhysicalDiagnosisItem = forwardRef(({
@@ -253,6 +406,7 @@ const PhysicalDiagnosisItem = forwardRef(({
     const [displayTitle, setDisplayTitle] = useState(item.title);
     const [showGradeSelector, setShowGradeSelector] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
     const inputRef = useRef(null);
     const dropdownInputRef = useRef(null);
     const cardRef = useRef(null);
@@ -393,12 +547,12 @@ const PhysicalDiagnosisItem = forwardRef(({
                                         const finalValue = e.target.value.trim();
                                         if (finalValue) {
                                             const isPreset = presetTitles.includes(finalValue);
-                                            const testItem = isPreset ? getTestItemDisplay(finalValue) : null;
+                                            const testItem = isPreset ? getTestItemDisplay(finalValue, t) : null;
                                             updateItem(item.id, {
                                                 title: finalValue,
                                                 category: isPreset ? titleToCategory[finalValue] : '',
                                                 isCustom: !isPreset,
-                                                workoutroutine: isPreset ? buildDefaultWorkoutRoutine(finalValue) : item.workoutroutine
+                                                workoutroutine: isPreset ? buildDefaultWorkoutRoutine(finalValue, t) : item.workoutroutine
                                             });
                                         } else {
                                             // 如果没填内容，保持原有标题/状态，避免触发重复标题提示
@@ -449,7 +603,7 @@ const PhysicalDiagnosisItem = forwardRef(({
                                                     title,
                                                     category: titleToCategory[title],
                                                     isCustom: false,
-                                                    workoutroutine: buildDefaultWorkoutRoutine(title)
+                                                    workoutroutine: buildDefaultWorkoutRoutine(title, t)
                                                 });
                                                 setShowTitleSelector(null);
                                             }}
@@ -470,12 +624,12 @@ const PhysicalDiagnosisItem = forwardRef(({
                                                     const finalValue = displayTitle.trim();
                                                     if (finalValue) {
                                                         const isPreset = presetTitles.includes(finalValue);
-                                                        const testItem = isPreset ? getTestItemDisplay(finalValue) : null;
+                                                        const testItem = isPreset ? getTestItemDisplay(finalValue, t) : null;
                                                         updateItem(item.id, {
                                                             title: finalValue,
                                                             category: isPreset ? titleToCategory[finalValue] : '',
                                                             isCustom: !isPreset,
-                                                            workoutroutine: isPreset ? buildDefaultWorkoutRoutine(finalValue) : item.workoutroutine
+                                                            workoutroutine: isPreset ? buildDefaultWorkoutRoutine(finalValue, t) : item.workoutroutine
                                                         });
                                                         setDisplayTitle('');
                                                         setShowTitleSelector(null);
@@ -491,12 +645,12 @@ const PhysicalDiagnosisItem = forwardRef(({
                                                     const finalValue = e.target.value.trim();
                                                     if (finalValue) {
                                                         const isPreset = presetTitles.includes(finalValue);
-                                                        const testItem = isPreset ? getTestItemDisplay(finalValue) : null;
+                                                        const testItem = isPreset ? getTestItemDisplay(finalValue, t) : null;
                                                         updateItem(item.id, {
                                                             title: finalValue,
                                                             category: isPreset ? titleToCategory[finalValue] : '',
                                                             isCustom: !isPreset,
-                                                            workoutroutine: isPreset ? buildDefaultWorkoutRoutine(finalValue) : item.workoutroutine
+                                                            workoutroutine: isPreset ? buildDefaultWorkoutRoutine(finalValue, t) : item.workoutroutine
                                                         });
                                                     }
                                                     setDisplayTitle('');
@@ -544,39 +698,66 @@ const PhysicalDiagnosisItem = forwardRef(({
 
             {/* 固定的测试项目格式显示 */}
             {(() => {
-                const testItem = getTestItemDisplay(item.title);
-                if (!testItem) return null;
+                const testItem = getTestItemDisplay(item.title, t);
+                const dynamicLines = !testItem && item.workoutroutine
+                    ? (Array.isArray(item.workoutroutine) ? item.workoutroutine : [item.workoutroutine])
+                    : [];
+                const dynamicItems = dynamicLines
+                    .map(parseWorkoutLineDynamic)
+                    .filter(Boolean);
+
+                if (!testItem && dynamicItems.length === 0) return null;
 
                 return (
                     <div className="mb-3 p-3 bg-gradient-to-br from-white/5 to-white/[0.02] rounded-lg border border-[#d4af37]/30 shadow-md backdrop-blur-sm transition-all duration-300 hover:border-[#d4af37]/40">
                         <div className="space-y-2 text-sm">
-                            {testItem.items.map((itemDef, idx) => {
-                                const inputValue = parseWorkoutRoutineValue(item.workoutroutine, itemDef, idx);
+                            {(testItem ? testItem.items : dynamicItems).map((itemDef, idx) => {
+                                const isPreset = !!testItem;
+                                const inputValue = isPreset
+                                    ? parseWorkoutRoutineValue(item.workoutroutine, itemDef, idx)
+                                    : (itemDef.value ?? '');
+
+                                const testName = itemDef.testName;
+                                const unit = itemDef.unit || '';
+
                                 return (
-                                    <div key={`${itemDef.testName}-${idx}`} className="flex items-center gap-2">
-                                        <span className="font-semibold text-white/90 shrink-0">{itemDef.testName}：</span>
+                                    <div key={`${testName}-${idx}`} className="flex items-center gap-2">
+                                        <span className="font-semibold text-white/90 shrink-0">{testName}：</span>
                                         <div className="relative w-24">
                                             <input
                                                 type="text"
                                                 value={inputValue}
                                                 onChange={(e) => {
                                                     const newValue = e.target.value;
-                                                    const formattedRoutine = formatWorkoutRoutine(newValue, itemDef);
-                                                    if (testItem.items.length > 1) {
-                                                        const next = Array.isArray(item.workoutroutine)
-                                                            ? [...item.workoutroutine]
-                                                            : Array(testItem.items.length).fill('');
-                                                        next[idx] = formattedRoutine;
-                                                        updateItem(item.id, { workoutroutine: next });
-                                                    } else {
-                                                        updateItem(item.id, { workoutroutine: formattedRoutine });
+
+                                                    if (isPreset) {
+                                                        const formattedRoutine = formatWorkoutRoutine(newValue, itemDef, t('pleaseEnter'));
+                                                        if (testItem.items.length > 1) {
+                                                            const next = Array.isArray(item.workoutroutine)
+                                                                ? [...item.workoutroutine]
+                                                                : Array(testItem.items.length).fill('');
+                                                            next[idx] = formattedRoutine;
+                                                            updateItem(item.id, { workoutroutine: next });
+                                                        } else {
+                                                            updateItem(item.id, { workoutroutine: formattedRoutine });
+                                                        }
+                                                        return;
                                                     }
+
+                                                    const formatted = formatWorkoutLineDynamic(testName, newValue, unit, t('pleaseEnter'));
+                                                    const next = Array.isArray(item.workoutroutine)
+                                                        ? [...item.workoutroutine]
+                                                        : Array(Math.max(dynamicItems.length, 1)).fill('');
+                                                    next[idx] = formatted;
+                                                    updateItem(item.id, { workoutroutine: next.length === 1 ? next[0] : next });
                                                 }}
-                                                placeholder="请输入"
+                                                placeholder={t('pleaseEnter')}
                                                 className="w-full bg-transparent border-b-2 border-[#d4af37]/40 text-[#d4af37] font-semibold text-sm focus:outline-none focus:border-[#d4af37] px-1 py-1 transition-all duration-200 placeholder:text-[#d4af37]/40 placeholder:font-normal"
                                             />
                                         </div>
-                                        <span className="text-[#d4af37] font-semibold shrink-0 text-sm">{itemDef.unit}</span>
+                                        {!!unit && (
+                                            <span className="text-[#d4af37] font-semibold shrink-0 text-sm">{unit}</span>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -595,20 +776,46 @@ const PhysicalDiagnosisItem = forwardRef(({
                 )}
             />
 
-            {/* 智能建议按钮 - 右下角 */}
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // 功能待实现
-                }}
-                className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-br from-[#d4af37]/20 to-[#b8860b]/20 border border-[#d4af37]/30 hover:from-[#d4af37]/30 hover:to-[#b8860b]/30 hover:border-[#d4af37]/50 transition-all active:scale-95 shadow-lg shadow-[#d4af37]/10 group/btn z-10 backdrop-blur-sm"
-                title={t('smartSuggestion')}
-            >
-                <Lightbulb size={14} className="text-[#d4af37] group-hover/btn:text-[#d4af37] transition-colors shrink-0" />
-                <span className="text-xs font-bold text-[#d4af37] uppercase tracking-wider">{t('smartSuggestion')}</span>
-            </button>
+            {/* 智能建议按钮 - 文本框下方（避免遮挡内容） */}
+            <div className="mt-3 flex justify-end">
+                <button
+                    type="button"
+                    disabled={isGeneratingAdvice}
+                    onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isGeneratingAdvice) return;
+
+                        try {
+                            setIsGeneratingAdvice(true);
+                            const dimension = item.title || '';
+                            const category = 'body';
+                            const level = item.grade || '';
+                            const scores = buildScoresFromWorkoutRoutine(item.title, item.workoutroutine, t);
+
+                            const { diag, advice } = await requestAIAdvice({
+                                dimension,
+                                category,
+                                level,
+                                scores
+                            });
+
+                            const nextContent = [diag, advice].filter(Boolean).join('\n\n');
+                            updateItem(item.id, { content: nextContent });
+                        } catch (err) {
+                            console.error('[AIAdvice] failed:', err);
+                            alert('生成智能建议失败，请稍后重试');
+                        } finally {
+                            setIsGeneratingAdvice(false);
+                        }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-br from-[#d4af37]/20 to-[#b8860b]/20 border border-[#d4af37]/30 hover:from-[#d4af37]/30 hover:to-[#b8860b]/30 hover:border-[#d4af37]/50 transition-all active:scale-95 shadow-lg shadow-[#d4af37]/10 group/btn backdrop-blur-sm"
+                    title={t('smartSuggestion')}
+                >
+                    <Lightbulb size={14} className="text-[#d4af37] group-hover/btn:text-[#d4af37] transition-colors shrink-0" />
+                    <span className="text-xs font-bold text-[#d4af37] uppercase tracking-wider">{t('smartSuggestion')}</span>
+                </button>
+            </div>
         </motion.div>
     );
 });
@@ -637,7 +844,7 @@ const PhysicalDiagnosis = ({ data, update }) => {
                 title: defaultTitle,
                 category: titleToCategory[defaultTitle],
                 content: '',
-                workoutroutine: buildDefaultWorkoutRoutine(defaultTitle),
+                workoutroutine: buildDefaultWorkoutRoutine(defaultTitle, t),
                 isCustom: false,
                 grade: 'L1' // 默认等级
             }];
@@ -655,7 +862,7 @@ const PhysicalDiagnosis = ({ data, update }) => {
                 title: defaultTitle,
                 category: titleToCategory[defaultTitle],
                 content: '',
-                workoutroutine: buildDefaultWorkoutRoutine(defaultTitle),
+                workoutroutine: buildDefaultWorkoutRoutine(defaultTitle, t),
                 isCustom: false,
                 grade: 'L1' // 默认等级
             }];
@@ -679,7 +886,7 @@ const PhysicalDiagnosis = ({ data, update }) => {
             title: isCustom ? '' : nextTitle,
             category: isCustom ? '' : titleToCategory[nextTitle],
             content: '',
-            workoutroutine: buildDefaultWorkoutRoutine(nextTitle),
+            workoutroutine: buildDefaultWorkoutRoutine(nextTitle, t),
             isCustom: isCustom,
             grade: ''
         };
