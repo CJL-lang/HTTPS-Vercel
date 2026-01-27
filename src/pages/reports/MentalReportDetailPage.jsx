@@ -586,11 +586,11 @@ const MentalReportDetailPage = ({ onBack, student }) => {
             // 保存报告前先确保标题已落库
             await saveTitleIfNeeded();
 
-            if (!allSectionsSelected() || !id || !reportData?.aiReportId) {
+            if (!allSectionsSelected() || !id) {
                 throw new Error('请先为所有部分选择版本');
             }
 
-            const reportId = reportData.aiReportId;
+            const reportId = newReportData?.aiReportId || reportData?.aiReportId;
             if (!reportId || reportId === id) {
                 throw new Error('无法获取有效的 report_id。请先点击“重新生成”生成对比版本后再保存。');
             }
@@ -957,6 +957,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
 
             // 组装新报告数据（只包含需要对比的3个部分）
             const processedNewReport = {
+                aiReportId: newReportRaw.id || newReportRaw.report_id || resolvedReportId,
                 rawAIReport: newReportRaw,
                 trainingGoals: trainingGoals,
                 qualityAssessment: diagnosisSections.length > 0
@@ -989,7 +990,7 @@ const MentalReportDetailPage = ({ onBack, student }) => {
             const elapsedTime = Date.now() - startTime;
             const minAnimationTime = 10000; // 10秒
             const remainingTime = Math.max(0, minAnimationTime - elapsedTime);
-            
+
             setTimeout(() => {
                 setIsCompletingProgress(true);
                 setTimeout(() => {

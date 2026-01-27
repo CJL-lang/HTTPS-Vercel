@@ -40,26 +40,26 @@ import {
     getGoalFromBackend
 } from './utils/assessmentApi';
 
-const AddRecordPage = ({ 
-    onBack, 
-    initialPrimary = 0, 
-    initialSecondary = 0, 
-    assessmentData, 
-    data, 
-    setData, 
-    navigate, 
-    user, 
-    onLogout 
+const AddRecordPage = ({
+    onBack,
+    initialPrimary = 0,
+    initialSecondary = 0,
+    assessmentData,
+    data,
+    setData,
+    navigate,
+    user,
+    onLogout
 }) => {
     const { t } = useLanguage();
     const location = useLocation();
-    
+
     // 从 location.state 或 props 获取 assessmentData
     const actualAssessmentData = location.state?.assessmentData || assessmentData;
-    
+
     const mode = actualAssessmentData?.mode || 'complete';
     const isSingleMode = mode === 'single';
-    
+
     // 学员信息
     const student = location.state?.student || data;
 
@@ -90,7 +90,7 @@ const AddRecordPage = ({
             }
         };
     };
-    
+
     const navigation = useAssessmentNavigation({
         initialPrimary,
         initialSecondary,
@@ -233,7 +233,7 @@ const AddRecordPage = ({
     useEffect(() => {
         titleRef.current = assessmentData_hook.recordData?.title || '';
     }, [assessmentData_hook.recordData?.title]);
-    
+
     const draft = useAssessmentDraft(
         navigation.activePrimary,
         student,
@@ -429,11 +429,11 @@ const AddRecordPage = ({
         }
 
         await ensureCurrentTitlePatchedForCompleteExit();
-        
+
         // 根据当前测评类型返回到对应的历史测评记录页面
         const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
         const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
-        
+
         if (navigate && student?.id) {
             navigate(`/student/${student.id}/${reportPage}`);
         } else if (onBack) {
@@ -446,31 +446,37 @@ const AddRecordPage = ({
     const executePendingNavigation = async () => {
         const pending = unsavedChanges.pendingNavigation;
         if (!pending) return;
-        
-        if (pending.type === 'secondary') {
-            const type = ROUTE_MAP[navigation.activePrimary];
-            const step = navigation.secondaryTabs[pending.target].path;
-            if (navigate) {
-                // 必须带上最新的 state（含最新 title），否则切页会回滚
-                navigate(`/add-record/${type}/${step}`, { state: getNavigationState() });
-            }
-        } else if (pending.type === 'back') {
-            await ensureCurrentTitlePatchedForCompleteExit();
-            // 根据当前测评类型返回到对应的历史测评记录页面
-            const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
-            const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
-            
-            if (navigate && student?.id) {
-                navigate(`/student/${student.id}/${reportPage}`);
-            } else if (onBack) {
-                onBack();
-            } else if (navigate) {
-                navigate(`/${reportPage}`);
-            }
-        }
-        
-        unsavedChanges.setPendingNavigation(null);
+
+        // 先关闭对话框，避免导航时闪烁
         unsavedChanges.setShowUnsavedDialog(false);
+        unsavedChanges.setPendingNavigation(null);
+
+        // 使用 requestAnimationFrame 确保对话框关闭动画完成后再导航
+        requestAnimationFrame(() => {
+            requestAnimationFrame(async () => {
+                if (pending.type === 'secondary') {
+                    const type = ROUTE_MAP[navigation.activePrimary];
+                    const step = navigation.secondaryTabs[pending.target].path;
+                    if (navigate) {
+                        // 必须带上最新的 state（含最新 title），否则切页会回滚
+                        navigate(`/add-record/${type}/${step}`, { state: getNavigationState() });
+                    }
+                } else if (pending.type === 'back') {
+                    await ensureCurrentTitlePatchedForCompleteExit();
+                    // 根据当前测评类型返回到对应的历史测评记录页面
+                    const reportPages = { 0: 'physical-report', 1: 'mental-report', 2: 'skills-report' };
+                    const reportPage = reportPages[navigation.activePrimary] || 'physical-report';
+
+                    if (navigate && student?.id) {
+                        navigate(`/student/${student.id}/${reportPage}`);
+                    } else if (onBack) {
+                        onBack();
+                    } else if (navigate) {
+                        navigate(`/${reportPage}`);
+                    }
+                }
+            });
+        });
     };
 
     const handleGenerateLater = async () => {
@@ -614,7 +620,7 @@ const AddRecordPage = ({
                 show={unsavedChanges.showUnsavedDialog}
                 onSaveAndContinue={async () => {
                     // 传入空函数避免自动导航到下一步，保存完成后直接执行返回导航
-                    await save.handleSave(() => {});
+                    await save.handleSave(() => { });
                     executePendingNavigation();
                 }}
                 onLeaveWithoutSaving={() => {

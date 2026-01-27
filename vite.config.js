@@ -12,7 +12,7 @@ export default defineConfig({
         proxy: {
             '/api': {
                 target: 'https://unwisely-unaudited-lovetta.ngrok-free.dev',
-                // target: 'http://localhost:8080',
+                //target: 'http://localhost:8080',
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, ''),
                 configure: (proxy) => {
@@ -24,7 +24,7 @@ export default defineConfig({
             // WebSocket proxy: backend WS hub (e.g. /ws/ai-report/:ass_id)
             '/ws': {
                 target: 'wss://unwisely-unaudited-lovetta.ngrok-free.dev',
-                // target:'wss://localhost:8080',
+                //target: 'wss://localhost:8080',
                 changeOrigin: true,
                 ws: true,
                 configure: (proxy) => {

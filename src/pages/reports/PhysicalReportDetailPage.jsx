@@ -755,6 +755,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
 
             // 组装新报告数据（只包含需要对比的3个部分）
             const processedNewReport = {
+                aiReportId: newReportRaw.id || newReportRaw.report_id || resolvedReportId,
                 trainingGoals: trainingGoals,
                 qualityAssessment: diagnosisSections.length > 0
                     ? diagnosisSections.map(section => ({
@@ -788,7 +789,7 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
             const elapsedTime = Date.now() - startTime;
             const minAnimationTime = 10000; // 10秒
             const remainingTime = Math.max(0, minAnimationTime - elapsedTime);
-            
+
             setTimeout(() => {
                 setIsCompletingProgress(true);
                 setTimeout(() => {
@@ -840,13 +841,14 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             };
 
-            if (!allSectionsSelected() || !id || !reportData?.aiReportId) {
+            if (!allSectionsSelected() || !id) {
                 throw new Error('请先为所有部分选择版本');
             }
 
-            const reportId = reportData.aiReportId;
+            // 优先使用新报告的 aiReportId；如果没有新报告，则使用当前报告的 aiReportId
+            const reportId = newReportData?.aiReportId || reportData?.aiReportId;
             if (!reportId || reportId === id) {
-                throw new Error('无法获取有效的 report_id。请先点击“重新生成”生成对比版本后再保存。');
+                throw new Error('无法获取有效的 report_id。请先点击"重新生成"生成对比版本后再保存。');
             }
 
             // 根据选择组合数据
