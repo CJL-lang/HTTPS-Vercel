@@ -110,8 +110,8 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                 </span>
                             )}
 
-                            {/* 自定义标题的分数输入框 - 不在预设列表中且有grade字段的标题 */}
-                            {!presetTitles.includes(item.title) && (item.grade !== undefined && item.grade !== null) && (
+                            {/* 自定义标题的分数输入框 - 自定义模式或不在预设列表中，且有grade字段 */}
+                            {(item.isCustom || !presetTitles.includes(item.title)) && (item.grade !== undefined && item.grade !== null) && (
                                 <div className="flex items-center gap-1 shrink-0">
                                     <input
                                         ref={gradeInputRef}
@@ -237,7 +237,10 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                         type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            updateItem(item.id, { isCustom: true, title: '' });
+                                            // 切换到自定义标题时，如果原先没有分数（也就是从预设切换过来），赋予一个初始空字符串使其可编辑
+                                            // 如果原先已经有分数（比如已经是自定义了，虽然UI上不会这么操作），保留原分数
+                                            const newGrade = (item.grade === undefined || item.grade === null) ? '' : item.grade;
+                                            updateItem(item.id, { isCustom: true, title: '', grade: newGrade });
                                             setShowTitleSelector(null);
                                         }}
                                         className="title-selector-custom"
@@ -398,7 +401,7 @@ const MentalDiagnosis = ({ data, update }) => {
             title: isCustom ? '' : nextTitle,
             content: '',
             isCustom: isCustom,
-            grade: isCustom ? 0 : undefined  // 自定义标题默认0分
+            grade: isCustom ? '' : undefined  // 自定义标题初始化为空字符串，允许用户输入
         };
         const newItems = [...diagnosisItems, newItem];
         update('mentalDiagnosis', newItems);

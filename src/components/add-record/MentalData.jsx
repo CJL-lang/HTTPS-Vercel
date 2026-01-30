@@ -85,8 +85,9 @@ const MentalData = ({ data, update }) => {
                                         updateField(metric.id, Math.max(0, Math.round(current - 1)).toString());
                                     }}
                                     className="number-input-btn"
+                                    disabled={isReceiving}
                                 >
-                                    <Minus size={12} className="text-[#d4af37]" />
+                                    <Minus size={12} className={cn("text-[#d4af37]", isReceiving && "opacity-50")} />
                                 </button>
                                 <input
                                     type="number"
@@ -105,6 +106,7 @@ const MentalData = ({ data, update }) => {
                                         }
                                     }}
                                     placeholder="0"
+                                    disabled={isReceiving}
                                 />
                                 <button
                                     onClick={() => {
@@ -112,8 +114,9 @@ const MentalData = ({ data, update }) => {
                                         updateField(metric.id, Math.min(100, Math.round(current + 1)).toString());
                                     }}
                                     className="number-input-btn"
+                                    disabled={isReceiving}
                                 >
-                                    <Plus size={12} className="text-[#d4af37]" />
+                                    <Plus size={12} className={cn("text-[#d4af37]", isReceiving && "opacity-50")} />
                                 </button>
                             </div>
                             <span className="unit-label">{metric.unit}</span>

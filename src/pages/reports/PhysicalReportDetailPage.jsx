@@ -1106,15 +1106,17 @@ const PhysicalReportDetailPage = ({ onBack, student }) => {
                             <p className="text-white/60 text-sm">
                                 {t('waitAIReport')}
                             </p>
-                            <div className="mt-6 flex items-center justify-center">
-                                <button
-                                    onClick={handleBack}
-                                    className="px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
-                                    type="button"
-                                >
-                                    {t('WatchLater')}
-                                </button>
-                            </div>
+                            {!isCreatingAIReport && (
+                                <div className="mt-6 flex items-center justify-center">
+                                    <button
+                                        onClick={handleBack}
+                                        className="px-6 py-3 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm hover:bg-white/20 transition-all"
+                                        type="button"
+                                    >
+                                        {t('WatchLater')}
+                                    </button>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>

@@ -26,6 +26,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = 从新到旧, 'asc' = 从旧到新
+    const [refreshKey, setRefreshKey] = useState(0); // 用于触发列表刷新
     // 用于防止重复加载的 Ref
     const lastFetchedRef = useRef(null);
     // 存储原始数据，用于排序
@@ -95,12 +96,13 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
             if (!targetId || !user?.token) return;
 
             // 如果已经加载过这个目标的记录，不再重复加载
-            const fetchKey = `${targetId}_${user.token}`;
+            // 注意：当 refreshKey 变化（强制刷新）时，我们应该跳过这个缓存检查
+            const fetchKey = `${targetId}_${user.token}_${refreshKey}`;
             const isFirstLoad = lastFetchedRef.current !== fetchKey;
-            lastFetchedRef.current = fetchKey;
 
-            // 如果不是首次加载且已有原始数据，只重新排序
-            if (!isFirstLoad && rawRecordsRef.current.length > 0) {
+            // 只有当不是强制刷新(refreshKey===0)且已有数据时，才进行简单的排序优化
+            // 如果 refreshKey > 0，说明是WS失败触发的验证，必须走网络请求
+            if (!isFirstLoad && rawRecordsRef.current.length > 0 && refreshKey === 0) {
                 const sortedRecords = [...rawRecordsRef.current].sort((a, b) => {
                     const dateA = new Date(a.completedAt || a.timestamp || 0);
                     const dateB = new Date(b.completedAt || b.timestamp || 0);
@@ -112,6 +114,7 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
                 return;
             }
 
+            lastFetchedRef.current = fetchKey;
             setLoading(true);
 
             // 1. 从后端获取记录
@@ -171,13 +174,23 @@ const PhysicalReportPage = ({ onBack, onAddRecord, navigate, user, student }) =>
         };
 
         fetchRecords();
-    }, [user?.token, student?.id, sortOrder]);
+    }, [user?.token, student?.id, sortOrder, refreshKey]);
 
     useEffect(() => {
         const unsubscribe = onAIReportWsEvent((event) => {
             if (!event?.assessmentId) return;
-            if (event.terminal && event.status === 'success') {
-                applyReportCompletion(event.assessmentId, 'ws-success');
+
+            if (event.terminal) {
+                if (event.status === 'success') {
+                    // 成功：立即变更为已完成
+                    applyReportCompletion(event.assessmentId, 'ws-success');
+                } else if (event.status === 'failure' || event.status === 'timeout' || event.status === 'error') {
+                    // 失败/超时：先清除本地生成标记
+                    clearAIReportGenerating(event.assessmentId, event.status);
+                    // 关键：不要直接设为draft，而是触发一次后端刷新来验证真实状态
+                    // 防止因为WS连接断开导致的误报
+                    setRefreshKey(prev => prev + 1);
+                }
             }
         });
         return () => {

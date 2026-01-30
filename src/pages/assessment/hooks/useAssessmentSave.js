@@ -362,10 +362,33 @@ export const useAssessmentSave = ({
 
         // 目标制定步骤：保存目标到后端
         if (activeSecondary === 3) {
+            let rawGoalContent = null;
+            if (activePrimary === 0) rawGoalContent = recordData.physicalGoals;
+            else if (activePrimary === 1) rawGoalContent = recordData.mentalGoals;
+            else if (activePrimary === 2) rawGoalContent = recordData.skillsGoals;
+
+            // 预处理目标数据：如果标题为空，生成默认的“第X阶段目标”
+            // 这样确保后端保存的是具体的阶段标题，而不是默认的 fallback "目标"
             let goalContent = null;
-            if (activePrimary === 0) goalContent = recordData.physicalGoals;
-            else if (activePrimary === 1) goalContent = recordData.mentalGoals;
-            else if (activePrimary === 2) goalContent = recordData.skillsGoals;
+            if (rawGoalContent && Array.isArray(rawGoalContent)) {
+                const stageNames = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+                const stageNamesEn = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"];
+
+                goalContent = rawGoalContent.map((item, index) => {
+                    // 如果已有标题则保留
+                    if (item.title && item.title.trim()) return item;
+
+                    // 否则生成默认标题
+                    let defaultTitle;
+                    if (backendLang === 'en') {
+                        defaultTitle = `${stageNamesEn[index] || `Stage ${index + 1}`} Goal`;
+                    } else {
+                        defaultTitle = `第${stageNames[index] || (index + 1)}阶段目标`;
+                    }
+
+                    return { ...item, title: defaultTitle };
+                });
+            }
 
             const currentAssessmentId = recordData.assessmentId;
 
@@ -400,14 +423,12 @@ export const useAssessmentSave = ({
         // 最后一步：写回学员数据
         persistModuleToStudent(activePrimary, recordData, data, setData);
 
-        // 完整测评：点击“完成测评”时，确保把当前标题写回后端（防止用户改标题未点保存）
-        if (!isSingleMode) {
-            const titleNow = (recordData?.title || '').toString().trim();
-            if (titleNow) {
-                await patchCurrentTitleIfNeeded();
-            } else {
-                await ensureDefaultTitlePatchedIfNeeded();
-            }
+        // 完整测评/单项测评：点击“完成测评”时，确保把当前标题写回后端
+        const titleNow = (recordData?.title || '').toString().trim();
+        if (titleNow) {
+            await patchCurrentTitleIfNeeded();
+        } else {
+            await ensureDefaultTitlePatchedIfNeeded();
         }
 
         // NOTE: 后端文档尚未声明 PATCH /assessment 支持 status 字段；
@@ -574,6 +595,14 @@ export const useAssessmentSave = ({
     };
 
     const handleGenerateLater = async (navigate, assessmentData) => {
+        // Ensure title is saved before leaving
+        const titleNow = (recordData?.title || '').toString().trim();
+        if (titleNow) {
+            await patchCurrentTitleIfNeeded();
+        } else {
+            await ensureDefaultTitlePatchedIfNeeded();
+        }
+
         // 清理本地保存的“上次停留步骤”
         clearAssessmentStep({ userId: user?.id || 'guest', assessmentId: recordData.assessmentId });
 

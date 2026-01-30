@@ -204,7 +204,21 @@ const isPleaseEnterText = (value) => {
 
 // 获取测试项目显示格式
 const getTestItemDisplay = (title, t) => {
-    const testItem = titleToTestItem[title];
+    let keyTitle = title;
+    let testItem = titleToTestItem[title];
+
+    // 如果直接匹配失败，尝试通过翻译键反向查找（解决英文标题匹配不到配置的问题）
+    if (!testItem && typeof t === 'function') {
+        const entry = Object.entries(titleToTranslationKey).find(([cnTitle, key]) => {
+            // 检查翻译后的值是否匹配，或者 key 本身是否匹配
+            return t(key) === title || key === title || t(key)?.toUpperCase() === title?.toUpperCase();
+        });
+        if (entry) {
+            keyTitle = entry[0];
+            testItem = titleToTestItem[keyTitle];
+        }
+    }
+
     if (!testItem) return null;
 
     const translate = (key) => (typeof t === 'function' ? t(key) : key);
@@ -259,8 +273,10 @@ const parseWorkoutRoutineValue = (workoutroutine, testItem, itemIndex = 0) => {
     const extractNumeric = (raw) => {
         const s = (raw ?? '').toString().trim();
         if (isPleaseEnterText(s)) return '';
-        const m = s.match(/-?\d+(?:\.\d+)?/);
-        return m ? m[0] : '';
+        // 修改正则以支持不完整的小数输入：2. 或 .5 或 2.5
+        const m = s.match(/-?\d*\.?\d+/); // 至少需要有一位数字
+        if (!m && s.match(/^-?\d+\.?$/)) return s; // 允许 "2." 这种输入
+        return m && m[0] ? m[0] : '';
     };
 
     const testNameCandidates = Array.isArray(testItem.testNameCandidates) && testItem.testNameCandidates.length
@@ -275,7 +291,7 @@ const parseWorkoutRoutineValue = (workoutroutine, testItem, itemIndex = 0) => {
         const escapedName = escapeRegExp(name);
         for (const unit of unitCandidates) {
             const escapedUnit = escapeRegExp(unit);
-            const pattern = new RegExp(`^\\s*${escapedName}[：:]\\s*(.+?)\\s*${escapedUnit}\\s*$`);
+            const pattern = new RegExp(`^\\s*${escapedName}[：:]\\s*(.+?)\\s*${escapedUnit}\\s*$`, 'i');
             const match = target.match(pattern);
             if (!match) continue;
             const value = (match[1] ?? '').trim();
@@ -292,28 +308,27 @@ const parseWorkoutRoutineValue = (workoutroutine, testItem, itemIndex = 0) => {
             if (!unit) continue;
             const u = unit.toString().trim();
             if (!u) continue;
-            // 支持 "30 次" / "30次"
-            const unitPattern = new RegExp(`\\s*${escapeRegExp(u)}\\s*$`);
+            // 支持 "30 次" / "30次" (Case insensitive)
+            const unitPattern = new RegExp(`\\s*${escapeRegExp(u)}\\s*$`, 'i');
             rest = rest.replace(unitPattern, '').trim();
         }
         return extractNumeric(rest);
     }
 
-    // 如果 workoutroutine 不包含测试名称，可能是旧格式或纯数值
-    // 如果包含单位，尝试提取数值部分
     // 3) 兼容旧格式：仅包含单位时，剥离单位
     for (const unit of unitCandidates) {
         if (!unit) continue;
-        if (!target.includes(unit)) continue;
         const escapedUnit = escapeRegExp(unit);
-        const unitPattern = new RegExp(`(.+?)\\s*${escapedUnit}`);
+        // Case insensitive match for unit
+        const unitPattern = new RegExp(`(.+?)\\s*${escapedUnit}`, 'i');
         const unitMatch = target.match(unitPattern);
-        if (!unitMatch) continue;
-        const value = (unitMatch[1] ?? '').trim();
-        return extractNumeric(value);
+        if (unitMatch) {
+            const value = (unitMatch[1] ?? '').trim();
+            return extractNumeric(value);
+        }
     }
 
-    // 如果都不匹配，可能是旧格式的纯数值，直接返回（但排除占位符）
+    // 如果都不匹配，可能是旧格式的纯数值
     const trimmed = target.trim();
     return extractNumeric(trimmed);
 };
@@ -346,15 +361,34 @@ const parseWorkoutLineDynamic = (line) => {
     const rest = raw.slice(delimiterIndex + 1).trim();
     if (!testName) return null;
 
+    // Fix: Explicitly check for placeholder text
+    if (isPleaseEnterText(rest)) {
+        return { testName, value: '', unit: '' };
+    }
+
+    // Check if rest starts with any known placeholder text (e.g. "Please enter minutes")
+    for (const placeholder of PLEASE_ENTER_CANDIDATES) {
+        if (!placeholder) continue;
+        if (rest.toLowerCase().startsWith(placeholder.toLowerCase())) {
+            // Trim the placeholder from start and treat remaining as unit
+            const potentialUnit = rest.slice(placeholder.length).trim();
+            return { testName, value: '', unit: potentialUnit };
+        }
+    }
+
     // Extract leading number as value, remaining as unit.
-    const m = rest.match(/^(-?\d+(?:\.\d+)?)(?:\s*(.*))?$/);
-    if (m) {
+    // Use stricter regex: require at least one digit
+    const m = rest.match(/^(-?\d+\.?\d*|-?\d*\.\d+)(?:\s*(.*))?$/);
+    if (m && m[1]) {
         const value = (m[1] ?? '').trim();
         const unit = (m[2] ?? '').trim();
         return { testName, value, unit };
     }
 
-    // Fallback: treat the whole rest as value.
+    // Fallback: if no digit found, check if it's "Please enter" again or treat as empty
+    // If we're here, it's non-numeric content that didn't match placeholder check.
+    // It's likely text. Return as is, or empty if it looks like garbage?
+    // Let's assume it's the value if it's not empty.
     return { testName, value: rest, unit: '' };
 };
 
@@ -403,7 +437,7 @@ const PhysicalDiagnosisItem = forwardRef(({
     startListening
 }, ref) => {
     const { t } = useLanguage();
-    const [displayTitle, setDisplayTitle] = useState(item.title);
+    const [displayTitle, setDisplayTitle] = useState(item.isCustom ? item.title : '');
     const [showGradeSelector, setShowGradeSelector] = useState(false);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
@@ -432,8 +466,12 @@ const PhysicalDiagnosisItem = forwardRef(({
     };
 
     useEffect(() => {
-        setDisplayTitle(item.title);
-    }, [item.title]);
+        if (item.isCustom) {
+            setDisplayTitle(item.title);
+        } else {
+            setDisplayTitle('');
+        }
+    }, [item.title, item.isCustom]);
 
     useEffect(() => {
         if (isEditingTitle && inputRef.current) {
@@ -726,9 +764,18 @@ const PhysicalDiagnosisItem = forwardRef(({
                                         <div className="relative w-24">
                                             <input
                                                 type="text"
+                                                inputMode="decimal"
                                                 value={inputValue}
                                                 onChange={(e) => {
-                                                    const newValue = e.target.value;
+                                                    // 限制只能输入数字、小数点和负号
+                                                    const rawValue = e.target.value;
+                                                    // 允许空值，否则只允许数字/小数点/负号
+                                                    const newValue = rawValue.replace(/[^\d.-]/g, '');
+
+                                                    // 防止多个小数点
+                                                    if ((newValue.match(/\./g) || []).length > 1) return;
+                                                    // 防止多个负号或负号不在开头
+                                                    if (newValue.indexOf('-') > 0 || (newValue.match(/-/g) || []).length > 1) return;
 
                                                     if (isPreset) {
                                                         const formattedRoutine = formatWorkoutRoutine(newValue, itemDef, t('pleaseEnter'));
