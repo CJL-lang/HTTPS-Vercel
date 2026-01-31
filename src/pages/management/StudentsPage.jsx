@@ -45,7 +45,13 @@ const StudentsPage = ({ students, onSelectStudent, onAddStudent }) => {
                                         </span>
                                     </div>
                                     <p className="text-[11px] sm:text-[12px] font-bold text-white uppercase tracking-widest truncate">
-                                        {student.gender} · {student.age}{t('years')} · {student.history ? t('hasHistory') : t('newStudent')}
+                                        {((g) => {
+                                            if (!g) return '';
+                                            const lower = g.toString().toLowerCase().trim();
+                                            if (lower === 'male' || lower === '男') return t('male');
+                                            if (lower === 'female' || lower === '女') return t('female');
+                                            return g;
+                                        })(student.gender)} · {student.age}{t('years')} · {student.history ? t('hasHistory') : t('newStudent')}
                                     </p>
                                 </div>
                             </div>

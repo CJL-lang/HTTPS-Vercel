@@ -568,21 +568,21 @@ const AvatarSelector = ({ isOpen, onClose, onConfirm }) => {
                         <div className="space-y-3">
                             <button
                                 onClick={handleTakePhoto}
-                                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-black font-bold text-base uppercase tracking-widest shadow-[0_20px_40px_rgba(212,175,55,0.3)] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                className="w-full py-4 px-6 rounded-2xl surface-weak border border-white/10 text-white font-bold text-base uppercase tracking-widest hover:bg-[#d4af37] hover:text-black hover:border-[#d4af37] active:scale-95 transition-all flex items-center justify-center gap-3"
                             >
                                 <Camera size={20} />
                                 {t('takePhoto')}
                             </button>
                             <button
                                 onClick={handleChooseFromAlbum}
-                                className="w-full py-4 px-6 rounded-2xl surface-weak border border-white/10 text-white font-bold text-base uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-3"
+                                className="w-full py-4 px-6 rounded-2xl surface-weak border border-white/10 text-white font-bold text-base uppercase tracking-widest hover:bg-[#d4af37] hover:text-black hover:border-[#d4af37] active:scale-95 transition-all flex items-center justify-center gap-3"
                             >
                                 <Image size={20} />
                                 {t('chooseFromAlbum')}
                             </button>
                             <button
                                 onClick={handleClose}
-                                className="w-full py-3 px-6 rounded-2xl surface-weak border border-white/10 text-white/60 font-bold text-sm active:scale-95 transition-all"
+                                className="w-full py-4 px-6 rounded-2xl surface-weak border border-white/10 text-white font-bold text-base uppercase tracking-widest hover:bg-[#d4af37] hover:text-black hover:border-[#d4af37] active:scale-95 transition-all flex items-center justify-center gap-3"
                             >
                                 {t('cancel')}
                             </button>

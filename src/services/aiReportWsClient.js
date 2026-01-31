@@ -116,7 +116,7 @@ function buildWsUrl({ wsPath, params }) {
 
   // const qs = search.toString();
   // return qs ? `${base}?${qs}` : base;
-    // 1. 强制使用 wss 和 ngrok 的公网域名
+  // 1. 强制使用 wss 和 ngrok 的公网域名
   // 这样即便在 Vercel 运行，它也不会走 Vercel 的代理，而是直连 ngrok
   const protocol = 'wss:';
   const host = 'unwisely-unaudited-lovetta.ngrok-free.dev';
@@ -134,7 +134,7 @@ function buildWsUrl({ wsPath, params }) {
   const base = `${protocol}//${host}${cleanPath}`;
 
   const search = new URLSearchParams();
-  
+
   // 3. 注入 ngrok 跳过警告的参数
   // 这是解决 Vercel 拦截的关键，因为它能让握手请求直接通过 ngrok 的验证
   search.set('ngrok-skip-browser-warning', 'true');
