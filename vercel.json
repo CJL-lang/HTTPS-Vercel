@@ -5,10 +5,6 @@
     "devCommand": "npm run dev",
     "installCommand": "npm install",
     "framework": "vite",
-    "_comment_old_backend": {
-        "api": "https://unwisely-unaudited-lovetta.ngrok-free.dev",
-        "ws": "https://unwisely-unaudited-lovetta.ngrok-free.dev/ws"
-    },
     "rewrites": [
         {
             "source": "/api/:path*",
