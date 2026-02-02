@@ -5,14 +5,18 @@
     "devCommand": "npm run dev",
     "installCommand": "npm install",
     "framework": "vite",
+    "_comment_old_backend": {
+        "api": "https://unwisely-unaudited-lovetta.ngrok-free.dev",
+        "ws": "https://unwisely-unaudited-lovetta.ngrok-free.dev/ws"
+    },
     "rewrites": [
         {
             "source": "/api/:path*",
-            "destination": "https://unwisely-unaudited-lovetta.ngrok-free.dev/:path*"
+            "destination": "http://8.148.244.222:8080/:path*"
         },
         {
             "source": "/ws/:path*",
-            "destination": "https://unwisely-unaudited-lovetta.ngrok-free.dev/ws/:path*"
+            "destination": "http://8.148.244.222:8080/ws/:path*"
         },
         {
             "source": "/baidu-token",
