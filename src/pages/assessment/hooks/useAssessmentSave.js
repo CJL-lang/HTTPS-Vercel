@@ -697,12 +697,20 @@ export const useAssessmentSave = ({
                 console.error('Error creating next assessment in handleGenerateLater:', error);
             }
         } else {
-            // 所有测评都完成了（包括单项测评完成后），返回到学员的测评工作台
+            // 所有测评都完成了（包括单项测评完成后），返回到对应的历史报告列表
             if (navigate) {
+                const reportPages = {
+                    'physical': 'physical-report',
+                    'mental': 'mental-report',
+                    'skills': 'skills-report',
+                    'technique': 'skills-report'
+                };
+                const reportPage = reportPages[type] || 'physical-report';
+
                 if (studentId && studentId !== 'no-student') {
-                    navigate(`/student/${studentId}`);
+                    navigate(`/student/${studentId}/${reportPage}`);
                 } else {
-                    navigate('/');
+                    navigate(`/${reportPage}`);
                 }
             }
         }

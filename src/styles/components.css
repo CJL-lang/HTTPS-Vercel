@@ -565,7 +565,7 @@
 
   /* STYKU 输入标签 */
   .styku-input-label {
-    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest truncate;
+    @apply text-sm font-bold text-[#d4af37] uppercase tracking-widest whitespace-pre-line leading-tight;
   }
 
   /* STYKU 输入单位 */

@@ -70,7 +70,7 @@ const SkillsData = ({ data, update }) => {
         const faceAngle = randomSigned(6.0, 1);                        // 杆面角：-6.0 到 +6.0 DEG（青少年范围可能更大）
         const faceToPath = randomSigned(8.0, 1);                      // 杆面与路径：-8.0 到 +8.0 DEG（青少年范围可能更大）
         const dynamicLoft = randomFloat(10, 22, 1).toFixed(1);        // 动态杆面角：10-22 DEG（青少年到顶尖选手）
-        const smashFactor = randomFloat(1.35, 1.50, 2).toFixed(2);    // 击球效率：1.35-1.50（青少年到顶尖选手）
+        const smashFactor = randomFloat(1.35, 1.50, 1).toFixed(1);    // 击球效率：1.35-1.50（青少年到顶尖选手）
         const spinLoft = randomFloat(14, 24, 1).toFixed(1);           // 旋转杆面角：14-24 DEG（青少年到顶尖选手）
 
         // Layer C - 击球效率数据（生成合理的组合值）
@@ -171,7 +171,7 @@ const SkillsData = ({ data, update }) => {
                     <Activity size={48} className="text-[#d4af37] mb-4 opacity-80" strokeWidth={1} />
                     <p className="processing-text">{t('processingSwing')}</p>
                 </div>
-            ) : data.trackmanData?.layerA?.ballSpeed ? (
+            ) : ([data.trackmanData?.layerA, data.trackmanData?.layerB, data.trackmanData?.layerC].some(layer => layer && Object.values(layer).some(val => val && val.toString().trim() !== ''))) ? (
                 <div className="scan-complete-container group">
                     <div className="absolute top-4 left-6">
                         <span className="system-encrypted-label">{t('systemEncrypted')}</span>
@@ -186,58 +186,61 @@ const SkillsData = ({ data, update }) => {
                     <Activity size={40} className="text-white mb-3" strokeWidth={1} />
                     <p className="no-data-text">{t('noTrackmanData')}</p>
                 </div>
-            )}
+            )
+            }
 
-            {!isTesting && (
-                <div className="space-y-8 px-2">
-                    <section className="space-y-6">
-                        <div className="section-header">
-                            <div className="section-header-line"></div>
-                            <h4 className="section-header-title">{t('ballFlightData')}</h4>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <TrackmanInput label={t('ballSpeed')} unit="MPH" value={data.trackmanData?.layerA?.ballSpeed} onChange={v => updateLayer('layerA', 'ballSpeed', v)} />
-                            <TrackmanInput label={t('launchAngle')} unit="DEG" value={data.trackmanData?.layerA?.launchAngle} onChange={v => updateLayer('layerA', 'launchAngle', v)} />
-                            <TrackmanInput label={t('launchDirection')} unit="" value={data.trackmanData?.layerA?.launchDirection} onChange={v => updateLayer('layerA', 'launchDirection', v)} />
-                            <TrackmanInput label={t('spinRate')} unit="RPM" value={data.trackmanData?.layerA?.spinRate} onChange={v => updateLayer('layerA', 'spinRate', v)} />
-                            <TrackmanInput label={t('spinAxis')} unit="" value={data.trackmanData?.layerA?.spinAxis} onChange={v => updateLayer('layerA', 'spinAxis', v)} />
-                            <TrackmanInput label={t('carry')} unit="YDS" value={data.trackmanData?.layerA?.carry} onChange={v => updateLayer('layerA', 'carry', v)} />
-                            <TrackmanInput label={t('landingAngle')} unit="DEG" value={data.trackmanData?.layerA?.landingAngle} onChange={v => updateLayer('layerA', 'landingAngle', v)} />
-                            <TrackmanInput label={t('offline')} unit="YDS" value={data.trackmanData?.layerA?.offline} onChange={v => updateLayer('layerA', 'offline', v)} />
-                        </div>
-                    </section>
+            {
+                !isTesting && (
+                    <div className="space-y-8 px-2">
+                        <section className="space-y-6">
+                            <div className="section-header">
+                                <div className="section-header-line"></div>
+                                <h4 className="section-header-title">{t('ballFlightData')}</h4>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <TrackmanInput label={t('ballSpeed')} unit="MPH" value={data.trackmanData?.layerA?.ballSpeed} onChange={v => updateLayer('layerA', 'ballSpeed', v)} />
+                                <TrackmanInput label={t('launchAngle')} unit="DEG" value={data.trackmanData?.layerA?.launchAngle} onChange={v => updateLayer('layerA', 'launchAngle', v)} />
+                                <TrackmanInput label={t('launchDirection')} unit="" value={data.trackmanData?.layerA?.launchDirection} onChange={v => updateLayer('layerA', 'launchDirection', v)} allowText={true} />
+                                <TrackmanInput label={t('spinRate')} unit="RPM" value={data.trackmanData?.layerA?.spinRate} onChange={v => updateLayer('layerA', 'spinRate', v)} />
+                                <TrackmanInput label={t('spinAxis')} unit="" value={data.trackmanData?.layerA?.spinAxis} onChange={v => updateLayer('layerA', 'spinAxis', v)} allowText={true} />
+                                <TrackmanInput label={t('carry')} unit="YDS" value={data.trackmanData?.layerA?.carry} onChange={v => updateLayer('layerA', 'carry', v)} />
+                                <TrackmanInput label={t('landingAngle')} unit="DEG" value={data.trackmanData?.layerA?.landingAngle} onChange={v => updateLayer('layerA', 'landingAngle', v)} />
+                                <TrackmanInput label={t('offline')} unit="YDS" value={data.trackmanData?.layerA?.offline} onChange={v => updateLayer('layerA', 'offline', v)} allowText={true} />
+                            </div>
+                        </section>
 
-                    <section className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="section-decorative-line"></div>
-                            <h4 className="section-title-text">{t('clubData')}</h4>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <TrackmanInput label={t('clubSpeed')} unit="MPH" value={data.trackmanData?.layerB?.clubSpeed} onChange={v => updateLayer('layerB', 'clubSpeed', v)} />
-                            <TrackmanInput label={t('attackAngle')} unit="DEG" value={data.trackmanData?.layerB?.attackAngle} onChange={v => updateLayer('layerB', 'attackAngle', v)} />
-                            <TrackmanInput label={t('clubPath')} unit="DEG" value={data.trackmanData?.layerB?.clubPath} onChange={v => updateLayer('layerB', 'clubPath', v)} />
-                            <TrackmanInput label={t('faceAngle')} unit="DEG" value={data.trackmanData?.layerB?.faceAngle} onChange={v => updateLayer('layerB', 'faceAngle', v)} />
-                            <TrackmanInput label={t('faceToPath')} unit="DEG" value={data.trackmanData?.layerB?.faceToPath} onChange={v => updateLayer('layerB', 'faceToPath', v)} />
-                            <TrackmanInput label={t('dynamicLoft')} unit="DEG" value={data.trackmanData?.layerB?.dynamicLoft} onChange={v => updateLayer('layerB', 'dynamicLoft', v)} />
-                            <TrackmanInput label={t('smashFactor')} unit="" value={data.trackmanData?.layerB?.smashFactor} onChange={v => updateLayer('layerB', 'smashFactor', v)} />
-                            <TrackmanInput label={t('spinLoft')} unit="DEG" value={data.trackmanData?.layerB?.spinLoft} onChange={v => updateLayer('layerB', 'spinLoft', v)} />
-                        </div>
-                    </section>
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="section-decorative-line"></div>
+                                <h4 className="section-title-text">{t('clubData')}</h4>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <TrackmanInput label={t('clubSpeed')} unit="MPH" value={data.trackmanData?.layerB?.clubSpeed} onChange={v => updateLayer('layerB', 'clubSpeed', v)} />
+                                <TrackmanInput label={t('attackAngle')} unit="DEG" value={data.trackmanData?.layerB?.attackAngle} onChange={v => updateLayer('layerB', 'attackAngle', v)} />
+                                <TrackmanInput label={t('clubPath')} unit="DEG" value={data.trackmanData?.layerB?.clubPath} onChange={v => updateLayer('layerB', 'clubPath', v)} />
+                                <TrackmanInput label={t('faceAngle')} unit="DEG" value={data.trackmanData?.layerB?.faceAngle} onChange={v => updateLayer('layerB', 'faceAngle', v)} />
+                                <TrackmanInput label={t('faceToPath')} unit="DEG" value={data.trackmanData?.layerB?.faceToPath} onChange={v => updateLayer('layerB', 'faceToPath', v)} />
+                                <TrackmanInput label={t('dynamicLoft')} unit="DEG" value={data.trackmanData?.layerB?.dynamicLoft} onChange={v => updateLayer('layerB', 'dynamicLoft', v)} />
+                                <TrackmanInput label={t('smashFactor')} unit="" value={data.trackmanData?.layerB?.smashFactor} onChange={v => updateLayer('layerB', 'smashFactor', v)} />
+                                <TrackmanInput label={t('spinLoft')} unit="DEG" value={data.trackmanData?.layerB?.spinLoft} onChange={v => updateLayer('layerB', 'spinLoft', v)} />
+                            </div>
+                        </section>
 
-                    <section className="space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="section-decorative-line"></div>
-                            <h4 className="section-title-text">{t('deepAnalysis')}</h4>
-                        </div>
-                        <div className="space-y-4">
-                            <TrackmanInputWide label={t('lowPoint')} value={data.trackmanData?.layerC?.lowPoint} onChange={v => updateLayer('layerC', 'lowPoint', v)} />
-                            <TrackmanInputWide label={t('impactOffset')} value={data.trackmanData?.layerC?.impactOffset} onChange={v => updateLayer('layerC', 'impactOffset', v)} />
-                            <TrackmanInputWide label={t('indexing')} value={data.trackmanData?.layerC?.indexing} onChange={v => updateLayer('layerC', 'indexing', v)} />
-                        </div>
-                    </section>
-                </div>
-            )}
-        </div>
+                        <section className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <div className="section-decorative-line"></div>
+                                <h4 className="section-title-text">{t('deepAnalysis')}</h4>
+                            </div>
+                            <div className="space-y-4">
+                                <TrackmanInputWide label={t('lowPoint')} value={data.trackmanData?.layerC?.lowPoint} onChange={v => updateLayer('layerC', 'lowPoint', v)} />
+                                <TrackmanInputWide label={t('impactOffset')} value={data.trackmanData?.layerC?.impactOffset} onChange={v => updateLayer('layerC', 'impactOffset', v)} />
+                                <TrackmanInputWide label={t('indexing')} value={data.trackmanData?.layerC?.indexing} onChange={v => updateLayer('layerC', 'indexing', v)} />
+                            </div>
+                        </section>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 
@@ -258,49 +261,110 @@ const TrackmanInputWide = ({ label, value, onChange }) => (
     </div>
 );
 
-const TrackmanInput = ({ label, unit, value, onChange }) => (
-    <div className="styku-input-card group">
-        <div className="styku-input-content">
-            <p className="styku-input-label">
-                {label}
-            </p>
-            <p className="styku-input-unit">
-                {unit || 'UNIT'}
-            </p>
-            <input
-                type="text"
-                className="styku-input-field"
-                value={value || ""}
-                onChange={e => onChange(e.target.value)}
-                placeholder="--"
-            />
-        </div>
+const TrackmanInput = ({ label, unit, value, onChange, allowText = false }) => {
+    const adjustValue = (delta) => {
+        const valStr = (value || '').toString().trim();
 
-        <div className="styku-buttons-container">
-            <button
-                type="button"
-                onClick={() => {
-                    const current = parseFloat(value) || 0;
-                    onChange((current + 0.1).toFixed(1));
-                }}
-                className="styku-button"
-                aria-label="increase"
-            >
-                <Plus className="icon-plus-minus" />
-            </button>
-            <button
-                type="button"
-                onClick={() => {
-                    const current = parseFloat(value) || 0;
-                    onChange(Math.max(0, current - 0.1).toFixed(1));
-                }}
-                className="styku-button"
-                aria-label="decrease"
-            >
-                <Minus className="icon-plus-minus" />
-            </button>
+        // 1. 处理带方向的值 (L/R)
+        // 匹配: "R 5.2", "L 2.1", "R5.2"
+        const dirMatch = valStr.match(/^([LR])\s*([\d\.]+)/i);
+        if (dirMatch) {
+            const dir = dirMatch[1].toUpperCase();
+            const num = parseFloat(dirMatch[2]);
+            if (isNaN(num)) return;
+
+            let newNum = num + delta;
+            // 方向值的数值部分不能为负
+            if (newNum < 0) newNum = 0;
+
+            onChange(`${dir} ${newNum.toFixed(1)}`);
+            return;
+        }
+
+        // 2. 处理普通数字或带符号数字 (+/-)
+        // 检查是否有显式加号
+        const hasPlus = valStr.startsWith('+');
+        const hasMinus = valStr.startsWith('-');
+        const isSignedField = hasPlus || hasMinus;
+
+        let num = parseFloat(valStr);
+        if (isNaN(num)) num = 0;
+
+        let newNum = num + delta;
+
+        const content = newNum.toFixed(1);
+
+        // 如果原来有正号且结果仍非负，保持正号
+        if (isSignedField && newNum >= 0) {
+            onChange(`+${content}`);
+        } else {
+            onChange(content);
+        }
+    };
+
+    const handleInputChange = (e) => {
+        let val = e.target.value;
+
+        if (!allowText) {
+            // 只允许数字、小数点、正负号
+            // 移除非法字符
+            val = val.replace(/[^\d.+\-]/g, '');
+
+            // 只能有一个小数点
+            const parts = val.split('.');
+            if (parts.length > 2) {
+                val = parts[0] + '.' + parts.slice(1).join('');
+            }
+
+            // 小数点后只能有一位
+            if (parts.length === 2 && parts[1].length > 1) {
+                val = parts[0] + '.' + parts[1].substring(0, 1);
+            }
+
+            // 暂时不做太严格的格式校验，允许用户输入过程中出现 "." 或 "-"
+        }
+
+        onChange(val);
+    };
+
+    return (
+        <div className="styku-input-card group">
+            <div className="styku-input-content">
+                <p className="styku-input-label">
+                    {label}
+                </p>
+                <p className="styku-input-unit">
+                    {unit || 'UNIT'}
+                </p>
+                <input
+                    type="text"
+                    className="styku-input-field"
+                    value={value || ""}
+                    onChange={handleInputChange}
+                    placeholder="--"
+                />
+            </div>
+
+            <div className="styku-buttons-container">
+                <button
+                    type="button"
+                    onClick={() => adjustValue(0.1)}
+                    className="styku-button"
+                    aria-label="increase"
+                >
+                    <Plus className="icon-plus-minus" />
+                </button>
+                <button
+                    type="button"
+                    onClick={() => adjustValue(-0.1)}
+                    className="styku-button"
+                    aria-label="decrease"
+                >
+                    <Minus className="icon-plus-minus" />
+                </button>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 export default SkillsData;

@@ -510,8 +510,8 @@ const SkillsPlan = ({ data, update }) => {
         <div className="page-container">
             <div className="page-header px-2">
                 <div className="page-title-group">
-                    <h2 className="title-main">{t('planTitle')}</h2>
-                    <p className="title-subtitle">{t('planSubtitle')}</p>
+                    <h2 className="title-main">{t('skillsPlan')}</h2>
+                    <p className="title-subtitle">{t('skillsPlanSubtitle')}</p>
                 </div>
             </div>
 

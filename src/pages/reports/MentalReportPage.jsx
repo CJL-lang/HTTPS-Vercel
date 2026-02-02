@@ -416,12 +416,7 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
                                             {record.title || t('mentalAssessment')}
                                         </h3>
                                         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                                            {record.has_ai_report === 1 && (
-                                                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-purple-500/20 border border-purple-500/30">
-                                                    <Brain className="w-3 h-3 text-purple-400" />
-                                                    <span className="text-[11px] font-bold text-purple-400 uppercase">AI</span>
-                                                </div>
-                                            )}
+                                            {/* AI badge removed */}
                                             <button
                                                 type="button"
                                                 disabled={generating || deleting}
