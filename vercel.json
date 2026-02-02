@@ -8,11 +8,11 @@
     "rewrites": [
         {
             "source": "/api/:path*",
-            "destination": "http://8.148.244.222:8080/:path*"
+            "destination": "https://unwisely-unaudited-lovetta.ngrok-free.dev/:path*"
         },
         {
             "source": "/ws/:path*",
-            "destination": "http://8.148.244.222:8080/ws/:path*"
+            "destination": "https://unwisely-unaudited-lovetta.ngrok-free.dev/ws/:path*"
         },
         {
             "source": "/baidu-token",

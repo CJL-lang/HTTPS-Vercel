@@ -28,8 +28,7 @@ export const getWsBaseUrl = () => {
 
     // 开发环境默认使用本地
     if (import.meta.env.DEV) {
-        // return 'ws://localhost:8080';
-        return 'ws://8.148.244.222:8080';
+        return 'ws://localhost:8080';
     }
 
     // 生产环境：根据当前协议自动判断
