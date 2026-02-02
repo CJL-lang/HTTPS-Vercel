@@ -54,11 +54,44 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
 
         // basic front validation
         if (!data.name || data.name.trim() === '') {
-            alert(t('nameLabel') + ' ' + '不能为空');
+            alert(t('nameLabel') + t('cannotBeEmpty'));
             return;
         }
         if (!data.email || data.email.trim() === '') {
-            alert('请填写邮箱（用于创建学员账号）');
+            alert(t('pleaseEnterEmail'));
+            return;
+        }
+        if (!data.gender) {
+            alert(t('pleaseSelectGender'));
+            return;
+        }
+        if (!data.age) {
+            alert(t('pleaseEnterAge'));
+            return;
+        }
+        if (!data.physical?.height) {
+            alert(t('pleaseEnterHeight'));
+            return;
+        }
+        if (!data.physical?.weight) {
+            alert(t('pleaseEnterWeight'));
+            return;
+        }
+
+        if (Number(data.age) < 0) {
+            alert(t('ageLabel') + t('valueCannotBeNegative'));
+            return;
+        }
+        if (Number(data.yearsOfGolf || 0) < 0) {
+            alert(t('yearsOfGolf') + t('valueCannotBeNegative'));
+            return;
+        }
+        if (Number(data.physical?.height || 0) < 0) {
+            alert(t('height') + t('valueCannotBeNegative'));
+            return;
+        }
+        if (Number(data.physical?.weight || 0) < 0) {
+            alert(t('weight') + t('valueCannotBeNegative'));
             return;
         }
 
@@ -220,7 +253,7 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                 {/* Email field - required by /register_zl endpoint */}
                 <div className="relative z-10">
                     <label className="label-gold label-required">
-                        邮箱
+                        {t('emailLabel')}
                     </label>
                     <div className="relative">
                         <input
@@ -234,7 +267,7 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
 
                 <div className="grid grid-cols-2 gap-6 relative z-10">
                     <div>
-                        <label className="label-gold">{t('genderLabel')}</label>
+                        <label className="label-gold label-required">{t('genderLabel')}</label>
                         <div className="flex p-1 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 relative h-[48px] sm:h-[52px]">
                             {data.gender && (
                                 <motion.div
@@ -264,13 +297,14 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                         </div>
                     </div>
                     <div>
-                        <label className="label-gold">{t('ageLabel')}</label>
+                        <label className="label-gold label-required">{t('ageLabel')}</label>
                         <input
                             type="number"
                             className="input-dark text-sm font-normal h-[48px] sm:h-[52px]"
                             placeholder={t('agePlaceholder')}
                             value={data.age}
                             onChange={e => setData({ ...data, age: e.target.value })}
+                            onWheel={(e) => e.target.blur()}
                         />
                     </div>
                 </div>
@@ -284,27 +318,30 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                             placeholder={t('yearsOfGolfPlaceholder')}
                             value={data.yearsOfGolf}
                             onChange={e => setData({ ...data, yearsOfGolf: e.target.value })}
+                            onWheel={(e) => e.target.blur()}
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                         <div>
-                            <label className="label-gold">{t('height')}</label>
+                            <label className="label-gold label-required">{t('height')}</label>
                             <input
                                 type="number"
                                 className="input-dark text-sm font-normal h-[48px] sm:h-[52px]"
                                 placeholder="cm"
                                 value={data.physical?.height || ''}
                                 onChange={e => setData({ ...data, physical: { ...data.physical, height: e.target.value } })}
+                                onWheel={(e) => e.target.blur()}
                             />
                         </div>
                         <div>
-                            <label className="label-gold">{t('weight')}</label>
+                            <label className="label-gold label-required">{t('weight')}</label>
                             <input
                                 type="number"
                                 className="input-dark text-sm font-normal h-[48px] sm:h-[52px]"
                                 placeholder="kg"
                                 value={data.physical?.weight || ''}
                                 onChange={e => setData({ ...data, physical: { ...data.physical, weight: e.target.value } })}
+                                onWheel={(e) => e.target.blur()}
                             />
                         </div>
                     </div>

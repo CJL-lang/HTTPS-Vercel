@@ -106,7 +106,7 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                             {/* 分数展示 - 预设标题的分数显示 */}
                             {!item.isCustom && presetTitles.includes(item.title) && getScoreByTitle(item.title) && (
                                 <span className="text-sm font-bold text-[#d4af37] uppercase tracking-widest shrink-0">
-                                    {getScoreByTitle(item.title)} 分
+                                    {getScoreByTitle(item.title)} {t('Point')}
                                 </span>
                             )}
 
@@ -152,7 +152,7 @@ const MentalDiagnosisItem = React.forwardRef(({ item, updateItem, removeItem, sh
                                         }}
                                         onClick={(e) => e.stopPropagation()}
                                     />
-                                    <span className="text-sm font-bold text-[#d4af37] uppercase tracking-widest">分</span>
+                                    <span className="text-sm font-bold text-[#d4af37] uppercase tracking-widest">{t('Point')}</span>
                                 </div>
                             )}
                         </div>

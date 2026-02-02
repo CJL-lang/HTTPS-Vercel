@@ -37,7 +37,7 @@ const StudentsPage = ({ students, onSelectStudent, onAddStudent }) => {
                                 </div>
                                 <div className="min-w-0">
                                     <div className="flex items-center gap-2 sm:gap-3 mb-1 min-w-0">
-                                        <h3 className="font-bold text-white text-base sm:text-xl tracking-tighter uppercase truncate">
+                                        <h3 className="font-bold text-white text-base sm:text-xl tracking-tighter truncate">
                                             {student.name}
                                         </h3>
                                         <span className="shrink-0 text-[11px] sm:text-[12px] bg-[#d4af37]/10 text-[#d4af37] px-1.5 sm:px-2 py-0.5 rounded-full border border-[#d4af37]/20 font-bold tracking-widest uppercase">
