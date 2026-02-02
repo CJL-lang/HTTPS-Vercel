@@ -16,6 +16,7 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
     const { t, language } = useLanguage(); // 翻译函数
     const { isListening, startListening, stopListening } = useVoiceInput(); // 语音输入状态和启动/停止函数
     const [isSaving, setIsSaving] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const backendLang = language === 'en' ? 'en' : 'zh';
 
@@ -52,46 +53,47 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
             return;
         }
 
-        // basic front validation
+        // basic front validation with inline errors
+        let newErrors = {};
+
         if (!data.name || data.name.trim() === '') {
-            alert(t('nameLabel') + t('cannotBeEmpty'));
-            return;
-        }
-        if (!data.email || data.email.trim() === '') {
-            alert(t('pleaseEnterEmail'));
-            return;
-        }
-        if (!data.gender) {
-            alert(t('pleaseSelectGender'));
-            return;
-        }
-        if (!data.age) {
-            alert(t('pleaseEnterAge'));
-            return;
-        }
-        if (!data.physical?.height) {
-            alert(t('pleaseEnterHeight'));
-            return;
-        }
-        if (!data.physical?.weight) {
-            alert(t('pleaseEnterWeight'));
-            return;
+            newErrors.name = t('cannotBeEmpty');
         }
 
-        if (Number(data.age) < 0) {
-            alert(t('ageLabel') + t('valueCannotBeNegative'));
-            return;
+        if (!data.email || data.email.trim() === '') {
+            newErrors.email = t('cannotBeEmpty');
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+            newErrors.email = t('invalidEmailFormat');
         }
+
+        if (!data.gender) {
+            newErrors.gender = t('pleaseSelectGender');
+        }
+
+        if (!data.age) {
+            newErrors.age = t('cannotBeEmpty');
+        } else if (Number(data.age) < 0) {
+            newErrors.age = t('valueCannotBeNegative');
+        }
+
+        if (!data.physical?.height) {
+            newErrors.height = t('cannotBeEmpty');
+        } else if (Number(data.physical.height) < 0) {
+            newErrors.height = t('valueCannotBeNegative');
+        }
+
+        if (!data.physical?.weight) {
+            newErrors.weight = t('cannotBeEmpty');
+        } else if (Number(data.physical.weight) < 0) {
+            newErrors.weight = t('valueCannotBeNegative');
+        }
+
         if (Number(data.yearsOfGolf || 0) < 0) {
-            alert(t('yearsOfGolf') + t('valueCannotBeNegative'));
-            return;
+            newErrors.yearsOfGolf = t('valueCannotBeNegative');
         }
-        if (Number(data.physical?.height || 0) < 0) {
-            alert(t('height') + t('valueCannotBeNegative'));
-            return;
-        }
-        if (Number(data.physical?.weight || 0) < 0) {
-            alert(t('weight') + t('valueCannotBeNegative'));
+
+        setErrors(newErrors);
+        if (Object.keys(newErrors).length > 0) {
             return;
         }
 
@@ -230,11 +232,15 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                     </label>
                     <div className="relative">
                         <input
-                            className="input-dark text-sm font-normal tracking-tight pr-12 sm:pr-14 h-[48px] sm:h-[52px]"
+                            className={`input-dark text-sm font-normal tracking-tight pr-12 sm:pr-14 h-[48px] sm:h-[52px] ${errors.name ? '!border-red-500' : ''}`}
                             placeholder={t('namePlaceholder')}
                             value={data.name}
-                            onChange={e => setData({ ...data, name: e.target.value })}
+                            onChange={e => {
+                                setData({ ...data, name: e.target.value });
+                                if (errors.name) setErrors({ ...errors, name: null });
+                            }}
                         />
+                        {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                         <button
                             onClick={() => {
                                 if (isListening) {
@@ -257,18 +263,22 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                     </label>
                     <div className="relative">
                         <input
-                            className="input-dark text-sm font-normal tracking-tight pr-14 h-[52px]"
+                            className={`input-dark text-sm font-normal tracking-tight pr-14 h-[52px] ${errors.email ? '!border-red-500' : ''}`}
                             placeholder="example@domain.com"
                             value={data.email || ''}
-                            onChange={e => setData({ ...data, email: e.target.value })}
+                            onChange={e => {
+                                setData({ ...data, email: e.target.value });
+                                if (errors.email) setErrors({ ...errors, email: null });
+                            }}
                         />
+                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 relative z-10">
                     <div>
                         <label className="label-gold label-required">{t('genderLabel')}</label>
-                        <div className="flex p-1 bg-white/5 rounded-xl sm:rounded-2xl border border-white/10 relative h-[48px] sm:h-[52px]">
+                        <div className={`flex p-1 bg-white/5 rounded-xl sm:rounded-2xl border ${errors.gender ? 'border-red-500' : 'border-white/10'} relative h-[48px] sm:h-[52px]`}>
                             {data.gender && (
                                 <motion.div
                                     className="absolute top-1 bottom-1 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8860b] shadow-[0_0_20px_rgba(212,175,55,0.2)]"
@@ -289,23 +299,31 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setData({ ...data, gender: 'female' })}
+                                onClick={() => {
+                                    setData({ ...data, gender: 'female' });
+                                    if (errors.gender) setErrors({ ...errors, gender: null });
+                                }}
                                 className={`flex-1 relative z-10 text-[11px] sm:text-xs font-black tracking-widest transition-colors duration-500 ${(data.gender === t('female') || data.gender === '女' || data.gender === 'female') ? 'text-black' : 'text-white/40'}`}
                             >
                                 {t('female')}
                             </button>
                         </div>
+                        {errors.gender && <p className="text-red-500 text-xs mt-1">{errors.gender}</p>}
                     </div>
                     <div>
                         <label className="label-gold label-required">{t('ageLabel')}</label>
                         <input
                             type="number"
-                            className="input-dark text-sm font-normal h-[48px] sm:h-[52px]"
+                            className={`input-dark text-sm font-normal h-[48px] sm:h-[52px] ${errors.age ? '!border-red-500' : ''}`}
                             placeholder={t('agePlaceholder')}
                             value={data.age}
-                            onChange={e => setData({ ...data, age: e.target.value })}
+                            onChange={e => {
+                                setData({ ...data, age: e.target.value });
+                                if (errors.age) setErrors({ ...errors, age: null });
+                            }}
                             onWheel={(e) => e.target.blur()}
                         />
+                        {errors.age && <p className="text-red-500 text-xs mt-1">{errors.age}</p>}
                     </div>
                 </div>
 
@@ -314,35 +332,47 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                         <label className="label-gold">{t('yearsOfGolf')}</label>
                         <input
                             type="number"
-                            className="input-dark text-sm font-normal h-[48px] sm:h-[52px]"
+                            className={`input-dark text-sm font-normal h-[48px] sm:h-[52px] ${errors.yearsOfGolf ? '!border-red-500' : ''}`}
                             placeholder={t('yearsOfGolfPlaceholder')}
                             value={data.yearsOfGolf}
-                            onChange={e => setData({ ...data, yearsOfGolf: e.target.value })}
+                            onChange={e => {
+                                setData({ ...data, yearsOfGolf: e.target.value });
+                                if (errors.yearsOfGolf) setErrors({ ...errors, yearsOfGolf: null });
+                            }}
                             onWheel={(e) => e.target.blur()}
                         />
+                        {errors.yearsOfGolf && <p className="text-red-500 text-xs mt-1">{errors.yearsOfGolf}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                         <div>
                             <label className="label-gold label-required">{t('height')}</label>
                             <input
                                 type="number"
-                                className="input-dark text-sm font-normal h-[48px] sm:h-[52px]"
+                                className={`input-dark text-sm font-normal h-[48px] sm:h-[52px] ${errors.height ? '!border-red-500' : ''}`}
                                 placeholder="cm"
                                 value={data.physical?.height || ''}
-                                onChange={e => setData({ ...data, physical: { ...data.physical, height: e.target.value } })}
+                                onChange={e => {
+                                    setData({ ...data, physical: { ...data.physical, height: e.target.value } });
+                                    if (errors.height) setErrors({ ...errors, height: null });
+                                }}
                                 onWheel={(e) => e.target.blur()}
                             />
+                            {errors.height && <p className="text-red-500 text-xs mt-1">{errors.height}</p>}
                         </div>
                         <div>
                             <label className="label-gold label-required">{t('weight')}</label>
                             <input
                                 type="number"
-                                className="input-dark text-sm font-normal h-[48px] sm:h-[52px]"
+                                className={`input-dark text-sm font-normal h-[48px] sm:h-[52px] ${errors.weight ? '!border-red-500' : ''}`}
                                 placeholder="kg"
                                 value={data.physical?.weight || ''}
-                                onChange={e => setData({ ...data, physical: { ...data.physical, weight: e.target.value } })}
+                                onChange={e => {
+                                    setData({ ...data, physical: { ...data.physical, weight: e.target.value } });
+                                    if (errors.weight) setErrors({ ...errors, weight: null });
+                                }}
                                 onWheel={(e) => e.target.blur()}
                             />
+                            {errors.weight && <p className="text-red-500 text-xs mt-1">{errors.weight}</p>}
                         </div>
                     </div>
                 </div>
