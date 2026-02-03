@@ -196,11 +196,34 @@ export function startAIReportWsJob({
 
   let resolveDone;
   let rejectDone;
+  let resolveConnected;
+  let rejectConnected;
 
   const done = new Promise((resolve, reject) => {
     resolveDone = resolve;
     rejectDone = reject;
   });
+
+  const connectionPromise = new Promise((resolve, reject) => {
+    resolveConnected = resolve;
+    rejectConnected = reject;
+  });
+
+  // Helper to ensure we don't reject/resolve twice if handled elsewhere
+  const safeRejectConnected = (err) => {
+    if (rejectConnected) {
+      rejectConnected(err);
+      rejectConnected = null;
+      resolveConnected = null;
+    }
+  };
+  const safeResolveConnected = () => {
+    if (resolveConnected) {
+      resolveConnected();
+      resolveConnected = null;
+      rejectConnected = null;
+    }
+  };
 
   const cleanup = () => {
     if (connectTimer) clearTimeout(connectTimer);
@@ -213,6 +236,7 @@ export function startAIReportWsJob({
   connectTimer = setTimeout(() => {
     const meta = getPersistedJobMeta(assessmentId);
     emit({ type: 'error', status: 'failure', terminal: true, message: 'WebSocket 连接超时', assessmentId, ...(meta || {}) });
+    safeRejectConnected(new Error('WebSocket connection timeout'));
     try {
       ws.close(1000, 'connect-timeout');
     } catch {
@@ -223,6 +247,7 @@ export function startAIReportWsJob({
   ws.onopen = () => {
     if (connectTimer) clearTimeout(connectTimer);
     connectTimer = null;
+    safeResolveConnected();
 
     const meta = getPersistedJobMeta(assessmentId);
     emit({ type: 'open', assessmentId, ...(meta || {}) });
@@ -273,10 +298,14 @@ export function startAIReportWsJob({
   ws.onerror = () => {
     const meta = getPersistedJobMeta(assessmentId);
     emit({ type: 'error', status: 'failure', terminal: true, message: 'WebSocket 连接失败', assessmentId, ...(meta || {}) });
+    safeRejectConnected(new Error('WebSocket connection failed'));
   };
 
   ws.onclose = () => {
     cleanup();
+    // In case it closed before opening
+    safeRejectConnected(new Error('WebSocket closed before open'));
+
     const meta = getPersistedJobMeta(assessmentId);
     emit({ type: 'close', assessmentId, ...(meta || {}) });
   };
@@ -290,6 +319,7 @@ export function startAIReportWsJob({
         // ignore
       }
     },
-    done
+    done,
+    connectionPromise
   };
 }

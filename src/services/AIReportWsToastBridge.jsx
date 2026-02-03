@@ -8,6 +8,15 @@ export default function AIReportWsToastBridge() {
 
   useEffect(() => {
     return onAIReportWsEvent((event) => {
+      // DEBUG: Log breakdown for ALL messages if needed, currently set to only log errors explicitly requested by user
+      if (event?.status === 'failure') {
+        console.group('%c[AIReportWs] Generation Failed Details', 'color: red; font-weight: bold;');
+        console.log('Reason/Message:', event.message);
+        console.log('Raw Backend Payload:', event.payload);
+        console.log('Full Event Context:', event);
+        console.groupEnd();
+      }
+
       if (event?.type !== 'message') return;
       if (!event?.terminal) return;
 
