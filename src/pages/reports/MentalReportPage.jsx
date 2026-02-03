@@ -224,8 +224,8 @@ const MentalReportPage = ({ onBack, onAddRecord, navigate, user, student }) => {
         if (isAIReportGenerating(record?.id) && !backendCompleted) {
             addToast({
                 kind: 'info',
-                title: '报告正在生成请勿重复点击',
-                description: '如果收到已生成通知，请刷新页面',
+                title: t('reportGenerating'),
+                description: t('reportGenerated'),
                 durationMs: 6000
             });
             return;

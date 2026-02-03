@@ -293,7 +293,7 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                             <button
                                 type="button"
                                 onClick={() => setData({ ...data, gender: 'male' })}
-                                className={`flex-1 relative z-10 text-[11px] sm:text-xs font-black tracking-widest transition-colors duration-500 ${(data.gender === t('male') || data.gender === '男' || data.gender === 'male') ? 'text-black' : 'text-white/40'}`}
+                                className={`flex-1 relative z-10 text-[11px] sm:text-xs font-bold tracking-widest transition-colors duration-500 ${(data.gender === t('male') || data.gender === '男' || data.gender === 'male') ? 'text-black' : 'text-white/40'}`}
                             >
                                 {t('male')}
                             </button>
@@ -303,7 +303,7 @@ const BasicInfoPage = ({ data, setData, onBack, onNext, isEdit, user, refreshStu
                                     setData({ ...data, gender: 'female' });
                                     if (errors.gender) setErrors({ ...errors, gender: null });
                                 }}
-                                className={`flex-1 relative z-10 text-[11px] sm:text-xs font-black tracking-widest transition-colors duration-500 ${(data.gender === t('female') || data.gender === '女' || data.gender === 'female') ? 'text-black' : 'text-white/40'}`}
+                                className={`flex-1 relative z-10 text-[11px] sm:text-xs font-bold tracking-widest transition-colors duration-500 ${(data.gender === t('female') || data.gender === '女' || data.gender === 'female') ? 'text-black' : 'text-white/40'}`}
                             >
                                 {t('female')}
                             </button>

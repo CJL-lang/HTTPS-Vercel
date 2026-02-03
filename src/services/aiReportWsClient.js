@@ -95,33 +95,10 @@ function emit(event) {
 }
 
 function buildWsUrl({ wsPath, params }) {
-  // const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  // const host = window.location.host;
-  // // wsPath can be:
-  // // - absolute: ws://... or wss://...
-  // // - absolute http(s) url (rare, but accept)
-  // // - relative path starting with '/'
-  // const base =
-  //   typeof wsPath === 'string' && (wsPath.startsWith('ws://') || wsPath.startsWith('wss://'))
-  //     ? wsPath
-  //     : typeof wsPath === 'string' && (wsPath.startsWith('http://') || wsPath.startsWith('https://'))
-  //       ? wsPath.replace(/^http(s?):/i, protocol)
-  //       : `${protocol}//${host}${wsPath}`;
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
 
-  // const search = new URLSearchParams();
-  // Object.entries(params || {}).forEach(([k, v]) => {
-  //   if (v === undefined || v === null || v === '') return;
-  //   search.set(k, String(v));
-  // });
-
-  // const qs = search.toString();
-  // return qs ? `${base}?${qs}` : base;
-  // 1. 强制使用 wss 和 ngrok 的公网域名
-  // 这样即便在 Vercel 运行，它也不会走 Vercel 的代理，而是直连 ngrok
-  const protocol = 'wss:';
-  const host = 'unwisely-unaudited-lovetta.ngrok-free.dev';
-
-  // 2. 路径清洗：确保路径是后端要求的 /ws/ai-report/:id
+  // 路径清洗：确保路径是后端要求的 /ws/ai-report/:id
   let cleanPath = wsPath;
   if (typeof cleanPath === 'string' && cleanPath.startsWith('/api')) {
     cleanPath = cleanPath.replace('/api', '');
@@ -131,15 +108,25 @@ function buildWsUrl({ wsPath, params }) {
     cleanPath = cleanPath.replace('/AIReport', '/ai-report');
   }
 
+  // Force relative path to ensure we use the proxy (strip domain/protocol from backend response)
+  if (typeof cleanPath === 'string' && cleanPath.includes('://')) {
+    try {
+      const urlObj = new URL(cleanPath);
+      cleanPath = urlObj.pathname + urlObj.search;
+    } catch (e) {
+      // ignore parsing error
+    }
+  }
+
+  // Always build absolute URL pointing to current host (Vite Proxy)
   const base = `${protocol}//${host}${cleanPath}`;
 
   const search = new URLSearchParams();
 
-  // 3. 注入 ngrok 跳过警告的参数
-  // 这是解决 Vercel 拦截的关键，因为它能让握手请求直接通过 ngrok 的验证
+  // 注入 ngrok 跳过警告的参数 (Re-added for stability)
   search.set('ngrok-skip-browser-warning', 'true');
 
-  // 4. 注入 token 和其他业务参数
+  // 注入 token 和其他业务参数
   Object.entries(params || {}).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== '') {
       search.set(k, String(v));
@@ -147,7 +134,7 @@ function buildWsUrl({ wsPath, params }) {
   });
 
   const qs = search.toString();
-  return `${base}?${qs}`;
+  return qs ? `${base}?${qs}` : base;
 }
 
 export function onAIReportWsEvent(listener) {
@@ -209,11 +196,34 @@ export function startAIReportWsJob({
 
   let resolveDone;
   let rejectDone;
+  let resolveConnected;
+  let rejectConnected;
 
   const done = new Promise((resolve, reject) => {
     resolveDone = resolve;
     rejectDone = reject;
   });
+
+  const connectionPromise = new Promise((resolve, reject) => {
+    resolveConnected = resolve;
+    rejectConnected = reject;
+  });
+
+  // Helper to ensure we don't reject/resolve twice if handled elsewhere
+  const safeRejectConnected = (err) => {
+    if (rejectConnected) {
+      rejectConnected(err);
+      rejectConnected = null;
+      resolveConnected = null;
+    }
+  };
+  const safeResolveConnected = () => {
+    if (resolveConnected) {
+      resolveConnected();
+      resolveConnected = null;
+      rejectConnected = null;
+    }
+  };
 
   const cleanup = () => {
     if (connectTimer) clearTimeout(connectTimer);
@@ -226,6 +236,7 @@ export function startAIReportWsJob({
   connectTimer = setTimeout(() => {
     const meta = getPersistedJobMeta(assessmentId);
     emit({ type: 'error', status: 'failure', terminal: true, message: 'WebSocket 连接超时', assessmentId, ...(meta || {}) });
+    safeRejectConnected(new Error('WebSocket connection timeout'));
     try {
       ws.close(1000, 'connect-timeout');
     } catch {
@@ -236,6 +247,7 @@ export function startAIReportWsJob({
   ws.onopen = () => {
     if (connectTimer) clearTimeout(connectTimer);
     connectTimer = null;
+    safeResolveConnected();
 
     const meta = getPersistedJobMeta(assessmentId);
     emit({ type: 'open', assessmentId, ...(meta || {}) });
@@ -286,10 +298,14 @@ export function startAIReportWsJob({
   ws.onerror = () => {
     const meta = getPersistedJobMeta(assessmentId);
     emit({ type: 'error', status: 'failure', terminal: true, message: 'WebSocket 连接失败', assessmentId, ...(meta || {}) });
+    safeRejectConnected(new Error('WebSocket connection failed'));
   };
 
   ws.onclose = () => {
     cleanup();
+    // In case it closed before opening
+    safeRejectConnected(new Error('WebSocket closed before open'));
+
     const meta = getPersistedJobMeta(assessmentId);
     emit({ type: 'close', assessmentId, ...(meta || {}) });
   };
@@ -303,6 +319,7 @@ export function startAIReportWsJob({
         // ignore
       }
     },
-    done
+    done,
+    connectionPromise
   };
 }
