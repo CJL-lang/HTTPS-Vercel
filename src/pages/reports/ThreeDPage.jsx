@@ -233,24 +233,14 @@ const ThreeDPage = () => {
     // 处理按键语音输入（保留原有逻辑：用户开始说话时停止AI朗读，结束录音后自动发送）
     const handleManualVoiceInput = async () => {
         if (isListening) {
-            // 如果正在录音，标记为需要自动发送，然后停止录音
-            shouldAutoSendRef.current = true;
+            // 停止录音，保留文本在输入框中供用户编辑和发送
             await stopListening();
-            // 等待一下，确保最后的识别结果已经通过回调填入输入框
-            setTimeout(() => {
-                const currentValue = inputRef.current?.value || '';
-                if (currentValue.trim()) {
-                    handleSendMessage();
-                }
-                shouldAutoSendRef.current = false;
-            }, 600); // 给足够时间让 stopListening 完成并触发回调
         } else {
             // 开始录音前，先停止AI的语音播放（"动漫角色不抢话"功能）
             if (isTtsSpeaking) {
                 stopTtsSpeaking();
             }
-            // 清空输入框，准备接收语音识别结果
-            setInputValue('');
+            // 准备接收语音识别结果
             shouldAutoSendRef.current = false; // 重置自动发送标志
             // 开始录音，识别结果实时填入输入框
             startListening((text) => {
@@ -326,7 +316,11 @@ const ThreeDPage = () => {
         setIsLoading(true);
 
         try {
-            const payload = { current_info: currentInfo, last_user_message: text };
+            const payload = {
+                current_info: currentInfo,
+                last_user_message: text,
+                language: language === 'en' ? 'en' : 'cn'
+            };
             // build headers (include auth if available)
             const savedUser = (() => {
                 try { const s = localStorage.getItem('user'); return s ? JSON.parse(s) : null; } catch (e) { return null; }
@@ -433,7 +427,11 @@ const ThreeDPage = () => {
             const res = await fetch(`/api/AIDialog`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ current_info: {}, last_user_message: 'start' })
+                body: JSON.stringify({
+                    current_info: {},
+                    last_user_message: 'start',
+                    language: language === 'en' ? 'en' : 'cn'
+                })
             }).then(r => r.json()).catch(() => null);
 
             // 丢弃过期响应
