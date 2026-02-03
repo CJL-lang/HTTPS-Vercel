@@ -14,6 +14,7 @@ import { Mic, Plus, X, Target, Edit2, Check } from 'lucide-react';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useLanguage } from '../../utils/LanguageContext';
 import { cn } from '../../utils/cn';
+import { numberToChinese } from '../../utils/numberToChinese';
 
 const GoalItem = React.forwardRef(({ item, index, updateItem, removeItem, setListeningId, listeningId, startListening }, ref) => {
     const { t, language } = useLanguage();
@@ -22,11 +23,14 @@ const GoalItem = React.forwardRef(({ item, index, updateItem, removeItem, setLis
     const inputRef = useRef(null);
     const isSavingRef = useRef(false);
 
-    const stageNames = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
     const stageNamesEn = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"];
+
+    // Get Chinese number string for current index + 1
+    const chineseNumber = numberToChinese(index + 1);
+
     const defaultStageTitle = language === 'en'
         ? `${stageNamesEn[index] || `Stage ${index + 1}`} ${t('goal')}`
-        : `第${stageNames[index] || (index + 1)}阶段目标`;
+        : `第${chineseNumber}阶段目标`;
 
     const displayTitle = item.title || defaultStageTitle;
 

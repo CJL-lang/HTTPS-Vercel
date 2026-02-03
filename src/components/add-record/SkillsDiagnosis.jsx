@@ -226,7 +226,7 @@ const SkillsDiagnosisItem = forwardRef(({
                                         }}
                                         className="title-selector-btn"
                                     >
-                                        <span className="truncate">{item.level || 'L1'}</span>
+                                        <span className="truncate">{item.grade || 'L1'}</span>
                                         <ChevronDown size={12} className={cn("transition-transform shrink-0", showGradeSelector && "rotate-180")} />
                                     </button>
 
@@ -235,8 +235,8 @@ const SkillsDiagnosisItem = forwardRef(({
                                             <GradeDropdown
                                                 buttonRef={gradeButtonRef}
                                                 grades={levelOptions}
-                                                onSelect={(level) => {
-                                                    updateItem(item.id, { level });
+                                                onSelect={(grade) => {
+                                                    updateItem(item.id, { grade });
                                                     setShowGradeSelector(false);
                                                 }}
                                                 onClose={() => setShowGradeSelector(false)}
@@ -468,7 +468,7 @@ const SkillsDiagnosis = ({ data, update }) => {
             const newItem = {
                 id: crypto?.randomUUID?.() || Date.now().toString(),
                 title: presetTitles[0],
-                level: 'L1',
+                grade: 'L1',
                 content: '',
                 isCustom: false
             };
@@ -480,7 +480,7 @@ const SkillsDiagnosis = ({ data, update }) => {
             const newItem = {
                 id: crypto?.randomUUID?.() || Date.now().toString(),
                 title: presetTitles[0],
-                level: 'L1',
+                grade: 'L1',
                 content: '',
                 isCustom: false
             };
@@ -546,7 +546,7 @@ const SkillsDiagnosis = ({ data, update }) => {
         const newItem = {
             id: Date.now().toString(),
             title: isCustom ? '' : nextTitle,
-            level: 'L1',
+            grade: 'L1',
             content: '',
             isCustom: isCustom
         };
@@ -575,8 +575,8 @@ const SkillsDiagnosis = ({ data, update }) => {
         <div className="page-container">
             <div className="page-header">
                 <div className="page-title-group">
-                    <h2 className="title-main">{t('diagnosisTitle')}</h2>
-                    <p className="title-subtitle">{t('diagnosisSubtitle')}</p>
+                    <h2 className="title-main">{t('skillsDiagnosis')}</h2>
+                    <p className="title-subtitle">{t('skillsDiagnosisSubtitle')}</p>
                 </div>
             </div>
 

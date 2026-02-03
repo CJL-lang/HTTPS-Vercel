@@ -193,8 +193,9 @@ const PLEASE_ENTER_CANDIDATES = uniqNonEmpty([
     getTranslationValue('zh', 'pleaseEnter'),
     getTranslationValue('en', 'pleaseEnter'),
     '请输入',
-    'Please enter'
-]);
+    'Please enter',
+    'Enter'
+].map(s => s && s.toString().trim()));
 
 const isPleaseEnterText = (value) => {
     const v = (value ?? '').toString().trim();
@@ -273,9 +274,13 @@ const parseWorkoutRoutineValue = (workoutroutine, testItem, itemIndex = 0) => {
     const extractNumeric = (raw) => {
         const s = (raw ?? '').toString().trim();
         if (isPleaseEnterText(s)) return '';
-        // 修改正则以支持不完整的小数输入：2. 或 .5 或 2.5
+
+        // 优先匹配 "10." 或 "-" 这种未完成输入的格式
+        // 解决 "10." 被 match(/-?\d*\.?\d+/) 匹配为 "10" 导致无法输入小数点的问题
+        // 同时支持单独输入负号
+        if (/^-?(\d+\.?)?$/.test(s)) return s;
+
         const m = s.match(/-?\d*\.?\d+/); // 至少需要有一位数字
-        if (!m && s.match(/^-?\d+\.?$/)) return s; // 允许 "2." 这种输入
         return m && m[0] ? m[0] : '';
     };
 

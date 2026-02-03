@@ -177,8 +177,19 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
             setRecordData(prev => {
                 const newData = { ...prev };
 
+                // Get existing items to reuse IDs
+                let existingItems = [];
+                if (activePrimary === 0) existingItems = prev.physicalDiagnosis || [];
+                else if (activePrimary === 1) existingItems = prev.mentalDiagnosis || [];
+                else if (activePrimary === 2) existingItems = prev.skillsDiagnosis || [];
+
+                const existingMap = new Map();
+                existingItems.forEach(item => {
+                    if (item && item.title) existingMap.set(item.title, item.id);
+                });
+
                 const formattedDiagnosis = diagnosisList.map(item => ({
-                    id: crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 11),
+                    id: existingMap.get(item.title) || crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 11),
                     title: item.title,
                     content: item.content,
                     grade: item.grade || '',
@@ -206,8 +217,19 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
             setRecordData(prev => {
                 const newData = { ...prev };
 
+                // Get existing items to reuse IDs
+                let existingItems = [];
+                if (activePrimary === 0) existingItems = prev.physicalPlan || [];
+                else if (activePrimary === 1) existingItems = prev.mentalPlan || [];
+                else if (activePrimary === 2) existingItems = prev.skillsPlan || [];
+
+                const existingMap = new Map();
+                existingItems.forEach(item => {
+                    if (item && item.title) existingMap.set(item.title, item.id);
+                });
+
                 const formattedPlans = planList.map(item => ({
-                    id: crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 11),
+                    id: existingMap.get(item.title) || crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 11),
                     title: item.title,
                     content: item.content
                 }));
@@ -231,8 +253,19 @@ export const useAssessmentData = (assessmentData, activePrimary, activeSecondary
             setRecordData(prev => {
                 const newData = { ...prev };
 
+                // Get existing items to reuse IDs
+                let existingItems = [];
+                if (activePrimary === 0) existingItems = prev.physicalGoals || [];
+                else if (activePrimary === 1) existingItems = prev.mentalGoals || [];
+                else if (activePrimary === 2) existingItems = prev.skillsGoals || [];
+
+                const existingMap = new Map();
+                existingItems.forEach(item => {
+                    if (item && item.title) existingMap.set(item.title, item.id);
+                });
+
                 const formattedGoals = goalList.map(item => ({
-                    id: crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 11),
+                    id: existingMap.get(item.title) || crypto?.randomUUID?.() || Math.random().toString(36).substring(2, 11),
                     title: item.title,
                     content: item.content
                 }));

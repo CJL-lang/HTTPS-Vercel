@@ -36,6 +36,8 @@ function getRadarLabelI18nKey(type, fieldKey) {
     }
 
     if (type === 'skills') {
+        if (fieldKey === 'basicAction') return 'basicAction';
+        if (fieldKey === 'swingAnalysis') return 'swingAnalysis';
         if (fieldKey === 'driver') return 'clubDriver';
         if (fieldKey === 'mainIron') return 'clubMainIron';
         if (fieldKey === 'wood') return 'clubWood';
@@ -142,12 +144,14 @@ function buildCandidateMap(type) {
             'cardio'
         ]);
     } else if (type === 'skills') {
-        add('driver', [...getI18nText('clubDriver'), '1号木', '一号木', 'driver']);
+        add('basicAction', [...getI18nText('basicAction'), '基础动作', 'basicaction', 'basic actions']);
+        add('swingAnalysis', [...getI18nText('swingAnalysis'), '挥杆分析', 'swinganalysis', 'swing analysis']);
+        add('driver', [...getI18nText('clubDriver'), '1号木', '一号木', 'driver', 'no1wood']);
         add('mainIron', [...getI18nText('clubMainIron'), '主力铁', '主力铁杆', 'mainiron', 'primaryiron']);
         add('wood', [...getI18nText('clubWood'), '球道木', '木杆', 'wood']);
         add('putting', [...getI18nText('clubPutting'), '推杆', 'putt', 'putting']);
         add('scrambling', [...getI18nText('clubScrambling'), '救球', '救球率', 'scrambling']);
-        add('finesseWedges', [...getI18nText('clubFinesseWedges'), '切杆', '挖起杆', 'wedge', 'finessewedge']);
+        add('finesseWedges', [...getI18nText('clubFinesseWedges'), '切杆', '挖起杆', 'wedge', 'finessewedge', 'finessewedges']);
         add('irons', [...getI18nText('clubIrons'), '铁杆', 'iron', 'irons']);
     }
 

@@ -41,9 +41,9 @@ const MentalData = ({ data, update }) => {
     };
 
     const metrics = [
-        { id: 'focus', label: t('focusAbility'), icon: <Target size={16} />, unit: '分' },
-        { id: 'stability', label: t('mentalResilience'), icon: <ShieldCheck size={16} />, unit: '分' },
-        { id: 'confidence', label: t('confidenceAndMotivation'), icon: <Zap size={16} />, unit: '分' }
+        { id: 'focus', label: t('focusAbility'), icon: <Target size={16} />, unit: t('Point') },
+        { id: 'stability', label: t('mentalResilience'), icon: <ShieldCheck size={16} />, unit: t('Point') },
+        { id: 'confidence', label: t('confidenceAndMotivation'), icon: <Zap size={16} />, unit: t('Point') }
     ];
 
     return (

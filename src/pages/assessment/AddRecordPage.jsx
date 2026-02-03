@@ -188,44 +188,8 @@ const AddRecordPage = ({
     };
 
     const guardGenerateAIReport = async () => {
-        const missing = [];
-        const backendFlags = assessmentData_hook.hasBackendData || {};
-        const assessmentId =
-            assessmentData_hook.recordData?.assessmentId ||
-            actualAssessmentData?.assessment_id ||
-            actualAssessmentData?.id;
-
-        const diagnosisLabel = navigation.activePrimary === 0
-            ? t('bodyDiagnosis')
-            : navigation.activePrimary === 1
-                ? t('mentalDiagnosis')
-                : t('skillsDiagnosis');
-
-        let effectiveFlags = backendFlags;
-
-        // 防止“隔天继续填写”时未打开旧 Tab 导致 flags 还是 false：生成前补拉取缺失模块
-        if ((!backendFlags.assessment_data || !backendFlags.diagnosis || !backendFlags.plan || !backendFlags.goal) && !isCheckingBeforeGenerate) {
-            setIsCheckingBeforeGenerate(true);
-            try {
-                const hydrated = await hydrateMissingBackendFlags(assessmentId, backendFlags);
-                effectiveFlags = { ...backendFlags, ...hydrated };
-            } finally {
-                setIsCheckingBeforeGenerate(false);
-            }
-        }
-
-        if (!effectiveFlags.assessment_data) missing.push(t('dataCollection'));
-        if (!effectiveFlags.diagnosis) missing.push(diagnosisLabel);
-        if (!effectiveFlags.plan) missing.push(t('trainingPlan'));
-        if (!effectiveFlags.goal) missing.push(t('goalSetting'));
-
-        if (missing.length > 0) {
-            const prefix = t('incompleteBeforeGeneratePrefix') || '请先完成并保存以下内容后再生成报告：';
-            setIncompleteMessage(`${prefix}\n${missing.map(x => `• ${x}`).join('\n')}`);
-            setShowIncompleteDialog(true);
-            return false;
-        }
-
+        // 用户反馈：严格校验会导致体验不佳（例如再次进入只改方案时，会误报数据未填写）
+        // 暂时移除校验，直接允许生成 AI 报告
         return true;
     };
 

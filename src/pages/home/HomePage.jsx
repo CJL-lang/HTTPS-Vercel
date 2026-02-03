@@ -106,10 +106,13 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
 
     // 使用处理后的学员数据
     const getGenderDisplay = (gender) => {
-        if (!gender || gender === '--') return '--';
-        if (gender === 'male' || gender === '男') return t('male');
-        if (gender === 'female' || gender === '女') return t('female');
+        if (gender === undefined || gender === null || gender === '' || gender === '--') return '--';
         if (typeof gender === 'number') return gender === 0 ? t('female') : t('male');
+
+        const g = String(gender).toLowerCase().trim();
+        if (g === 'male' || g === '男') return t('male');
+        if (g === 'female' || g === '女') return t('female');
+
         return gender; // 如果已经是翻译后的值，直接返回
     };
 
@@ -252,7 +255,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                             </div>
                         </motion.div>
                         <div className="text-center">
-                            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black mb-3 tracking-tighter text-white uppercase">{displayStudent.name}</p>
+                            <p className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black mb-3 tracking-tighter text-white">{displayStudent.name}</p>
                             <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-black/40 border border-white/10 shadow-inner">
                                 <span className="text-[10px] sm:text-xs font-black text-[#d4af37] uppercase tracking-[0.2em] mr-3">OFFICIAL ID</span>
                                 <span className="student-info-value text-xs sm:text-sm font-mono tracking-widest text-white/90">{fmtId(student?.id)}</span>
@@ -283,7 +286,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                     {displayStudent.history.length > 0 && (
                         <div className="student-info-card p-3 sm:p-4 w-full">
                             <p className="text-xs sm:text-sm font-bold text-[#d4af37] uppercase tracking-widest mb-1">{t('detailedHistory')}</p>
-                            <p className="student-info-value break-words px-1">{displayStudent.history}</p>
+                            <p className="student-info-value break-words px-1 whitespace-pre-line">{displayStudent.history}</p>
                         </div>
                     )}
                 </div>
@@ -291,7 +294,7 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                 {/* Core Goal Card - Swapped to bottom */}
                 <div className="student-info-card p-3 sm:p-4 mb-6 sm:mb-8 w-full">
                     <p className="text-xs sm:text-sm font-bold text-[#d4af37] mb-1 uppercase tracking-widest">{t('coreGoal')}</p>
-                    <p className="student-info-value tracking-tight relative z-10 break-words px-1">{displayStudent.purpose}</p>
+                    <p className="student-info-value tracking-tight relative z-10 break-words px-1 whitespace-pre-line">{displayStudent.purpose}</p>
                 </div>
 
                 {/* Main Action Cards - 优化设计 */}
