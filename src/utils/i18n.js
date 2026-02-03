@@ -168,6 +168,8 @@ const translations = {
         completeOtherForComprehensive: "建议完成其他测评项以获得更全面的分析",
         completeOtherAssessments: "建议完成其他测评项以获得综合分析报告",
         noAssessmentData: "暂无测评数据",
+        reportGenerating: "报告正在生成请勿重复点击",
+        reportGenerated: '如果收到已生成通知，请刷新页面',
 
         // Report Pages
         physicalHistory: "身体素质历史",
@@ -1015,6 +1017,8 @@ const translations = {
         completeOtherForComprehensive: "Complete other assessments for comprehensive analysis",
         completeOtherAssessments: "Complete other assessments for comprehensive analysis report",
         noAssessmentData: "No assessment data available",
+        reportGenerating: "Report is being generated, please do not click again",
+        reportGenerated: "If you receive a generation notification, please refresh the page",
 
         // Report Pages
         physicalHistory: "Physical History",
