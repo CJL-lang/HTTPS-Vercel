@@ -168,6 +168,8 @@ const translations = {
         completeOtherForComprehensive: "建议完成其他测评项以获得更全面的分析",
         completeOtherAssessments: "建议完成其他测评项以获得综合分析报告",
         noAssessmentData: "暂无测评数据",
+        reportGenerating: "报告正在生成请勿重复点击",
+        reportGenerated: '如果收到已生成通知，请刷新页面',
 
         // Report Pages
         physicalHistory: "身体素质历史",
@@ -787,7 +789,7 @@ const translations = {
         genderPlaceholder: "男/女",
         emailPlaceholder: "请输入邮箱",
         golfYearsPlaceholder: "请输入球龄",
-        golfHistoryPlaceholder: "请输入高尔夫训练或比赛经历",
+        golfHistoryPlaceholder: "请输入高尔夫训练或比赛经历...",
         medicalHistoryPlaceholder: "请输入伤病历史",
         trainingGoalPlaceholder: "请输入训练目标",
         collectingInfo: "正在收集：",
@@ -870,7 +872,7 @@ const translations = {
         expertInput: "Expert Input Required",
         coachNotFilledGrades: "Coach has not filled in grade information",
         years: " Yrs",
-        yearUnit: " Years",
+        yearUnit: " Yrs",
 
         // Navigation
         physicalAssessment: "Physical",
@@ -895,7 +897,7 @@ const translations = {
         gender: "Gender",
         height: "Height",
         weight: "Weight",
-        yearsOfGolf: "Golf experience",
+        yearsOfGolf: "Golf Age",
         yearsOfGolfPlaceholder: "Enter Golf Years",
         pleaseSelectGender: "Please select gender",
         pleaseEnterAge: "Please enter age",
@@ -1015,6 +1017,8 @@ const translations = {
         completeOtherForComprehensive: "Complete other assessments for comprehensive analysis",
         completeOtherAssessments: "Complete other assessments for comprehensive analysis report",
         noAssessmentData: "No assessment data available",
+        reportGenerating: "Report is being generated, please do not click again",
+        reportGenerated: "If you receive a generation notification, please refresh the page",
 
         // Report Pages
         physicalHistory: "Physical History",
@@ -1610,7 +1614,7 @@ const translations = {
         genderPlaceholder: "Male/Female",
         emailPlaceholder: "Enter email",
         golfYearsPlaceholder: "Enter golf years",
-        golfHistoryPlaceholder: "Enter golf training or competition experience",
+        golfHistoryPlaceholder: "Enter golf training or competition experience...",
         medicalHistoryPlaceholder: "Enter injury history",
         trainingGoalPlaceholder: "Enter training goals",
         collectingInfo: "Collecting:",
