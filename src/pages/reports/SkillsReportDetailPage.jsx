@@ -1217,7 +1217,7 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                 <div className="space-y-4 sm:space-y-5">
                                     {/* 初始化：仅显示第一组（核心数据）的前4个指标 */}
                                     {reportData.trackmanGroups[0] && (
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                             {(reportData.trackmanGroups[0].items?.slice(0, 4) || []).map((item, idx) => (
                                                 <div
                                                     key={idx}
@@ -1255,25 +1255,29 @@ const SkillsReportDetailPage = ({ onBack, student }) => {
                                                         key={`${group.title}-${gIdx}`}
                                                         className={gIdx === 0 ? '' : 'pt-3 sm:pt-4 border-t border-white/5'}
                                                     >
-                                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                                                            {itemsToShow.map((item, idx) => (
-                                                                <div
-                                                                    key={idx}
-                                                                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-                                                                >
-                                                                    <p className="text-[10px] sm:text-[11px] font-bold text-white/50 truncate">
-                                                                        {item.label}
-                                                                    </p>
-                                                                    <div className="mt-0.5 flex items-baseline gap-1">
-                                                                        <span className="text-[13px] sm:text-[14px] font-black text-white/50 truncate">
-                                                                            {item.value}
-                                                                        </span>
-                                                                        <span className="text-[10px] sm:text-[11px] font-bold text-white/50">
-                                                                            {item.unit}
-                                                                        </span>
+                                                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                                            {itemsToShow.map((item, idx) => {
+                                                                const isLast = idx === itemsToShow.length - 1;
+                                                                const isOdd = itemsToShow.length % 2 !== 0;
+                                                                return (
+                                                                    <div
+                                                                        key={idx}
+                                                                        className={`rounded-xl border border-white/10 bg-white/5 px-3 py-2 ${isLast && isOdd ? 'col-span-2' : ''}`}
+                                                                    >
+                                                                        <p className="text-[10px] sm:text-[11px] font-bold text-white/50 truncate">
+                                                                            {item.label}
+                                                                        </p>
+                                                                        <div className="mt-0.5 flex items-baseline gap-1">
+                                                                            <span className="text-[13px] sm:text-[14px] font-black text-white/50 truncate">
+                                                                                {item.value}
+                                                                            </span>
+                                                                            <span className="text-[10px] sm:text-[11px] font-bold text-white/50">
+                                                                                {item.unit}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            ))}
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                 );

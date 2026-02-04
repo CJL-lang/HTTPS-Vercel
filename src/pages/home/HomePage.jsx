@@ -265,16 +265,16 @@ const HomePage = ({ student: initialStudent, navigate, onAddRecord, onStartCompl
                 </motion.div>
 
                 {/* Student Info Section - 3 Column Layout */}
-                <div className="grid w-full grid-cols-[repeat(3,minmax(0,max-content))] justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-6">
-                    <div className="student-info-card py-3 sm:py-4 px-8 sm:px-10">
+                <div className="flex w-full justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+                    <div className="student-info-card py-3 sm:py-4 px-7 sm:px-8 shrink-0">
                         <p className="student-info-label truncate px-0.5">{t('age')}</p>
                         <p className="student-info-value truncate">{displayStudent.age}{t('years')}</p>
                     </div>
-                    <div className="student-info-card py-3 sm:py-4 px-8 sm:px-10">
+                    <div className="student-info-card py-3 sm:py-4 px-3 sm:px-4 flex-1 min-w-0">
                         <p className="student-info-label truncate px-0.5">{t('gender')}</p>
                         <p className="student-info-value truncate">{displayStudent.gender}</p>
                     </div>
-                    <div className="student-info-card py-3 sm:py-4 px-8 sm:px-10">
+                    <div className="student-info-card py-3 sm:py-4 px-3 sm:px-4 flex-1 min-w-0">
                         <p className="student-info-label truncate px-0.5">{t('yearsOfGolf')}</p>
                         <p className="student-info-value truncate">{displayStudent.yearsOfGolf}</p>
                     </div>

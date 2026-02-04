@@ -11,7 +11,8 @@ export default defineConfig({
         strictPort: false, // 如果端口被占用，自动尝试下一个可用端口
         proxy: {
             '/api': {
-                target: 'https://unwisely-unaudited-lovetta.ngrok-free.dev',
+                //target: 'https://unwisely-unaudited-lovetta.ngrok-free.dev',
+                target: 'http://8.148.244.222:8080',
                 //target: 'http://localhost:8080',
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, ''),
@@ -23,8 +24,9 @@ export default defineConfig({
             },
             // WebSocket proxy: backend WS hub (e.g. /ws/ai-report/:ass_id)
             '/ws': {
-                target: 'wss://unwisely-unaudited-lovetta.ngrok-free.dev',
+                //target: 'wss://unwisely-unaudited-lovetta.ngrok-free.dev',
                 //target: 'wss://localhost:8080',
+                target: 'ws://8.148.244.222:8080',
                 changeOrigin: true,
                 ws: true,
                 configure: (proxy) => {
