@@ -12,6 +12,12 @@ api.interceptors.request.use(config => {
     // 只要是 ngrok 的免费域名，这个 header 就能生效，值可以是任意字符串
     config.headers['ngrok-skip-browser-warning'] = 'true';
 
+    // 自动适配生产环境：移除 /api 前缀，直接访问后端
+    // 开发环境由 Vite Proxy 负责重写，生产环境需要手动处理
+    if (import.meta.env.PROD && config.url && config.url.startsWith('/api/')) {
+        config.url = config.url.replace('/api/', '/');
+    }
+
     // 你也可以在这里统一加 token
     // const token = localStorage.getItem('token');
     // if (token) {
