@@ -37,7 +37,15 @@ export const setupFetchInterceptor = (onUnauthorized, getToken) => {
 
     window.fetch = async (input, init = {}) => {
         // 获取请求 URL 字符串
-        const url = typeof input === 'string' ? input : input.url;
+        let url = typeof input === 'string' ? input : input.url;
+
+        // 自动适配生产环境：移除 /api 前缀，直接访问后端
+        // 开发环境由 Vite Proxy 负责重写，生产环境需要手动处理
+        if (import.meta.env.PROD && typeof input === 'string' && url.startsWith('/api/')) {
+            url = url.replace('/api/', '/');
+            input = url;
+        }
+
         const method = (init && init.method) || (typeof input !== 'string' && input.method) || 'GET';
 
         // 检查是否在白名单中
