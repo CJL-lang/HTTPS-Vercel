@@ -316,9 +316,14 @@ const ThreeDPage = () => {
         setIsLoading(true);
 
         try {
+            // 获取 AI 刚刚问过的话
+            const lastAiMessage = [...messages].reverse().find(msg => msg.sender === 'ai');
+            const lastAiPrompt = lastAiMessage ? lastAiMessage.text : '';
+
             const payload = {
                 current_info: currentInfo,
                 last_user_message: text,
+                last_ai_prompt: lastAiPrompt,
                 language: language === 'en' ? 'en' : 'cn'
             };
             // build headers (include auth if available)
@@ -415,24 +420,39 @@ const ThreeDPage = () => {
         setIsLoading(true);
         // 生成请求序列号
         const seq = ++reqSeqRef.current;
-        try {
-            // build headers like other API calls
-            const savedUser = (() => {
-                try { const s = localStorage.getItem('user'); return s ? JSON.parse(s) : null; } catch (e) { return null; }
-            })();
-            const token = savedUser?.token || null;
-            const headers = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
 
-            const res = await fetch(`/api/AIDialog`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    current_info: {},
-                    last_user_message: 'start',
-                    language: language === 'en' ? 'en' : 'cn'
-                })
-            }).then(r => r.json()).catch(() => null);
+        try {
+            // Frontend-generated greetings logic (Replacing backend call)
+            const isEn = language === 'en';
+
+            const greetingsOptions = [
+                {
+                    cn: "你好！很高兴遇见你。我是你的专属AI高尔夫助手。为了为你量身定制训练计划，我首先需要认识你。请问怎么称呼你呢？",
+                    en: "Hello! It's a pleasure to meet you. I am your dedicated AI golf assistant. To tailor a training plan for you, I'd like to get to know you first. May I have your name?"
+                },
+                {
+                    cn: "嗨！我是这里的智能教练助手。如果不介意的话，我们可以先聊聊你的基本情况，这样我能更好地帮助你。我们先从名字开始吧，你叫什么名字？",
+                    en: "Hi! I am your intelligent coaching assistant. If you don't mind, let's chat about your background so I can help you better. Let's start with your name. What should I call you?"
+                },
+                {
+                    cn: "哈喽！小球手。很高兴能和你一起开启高尔夫进阶之旅。在这之前，能告诉我你的名字吗？让我们互相认识一下！",
+                    en: "Hello! Ball player. I'm excited to start this golf improvement journey with you. Before we begin, could you tell me your name? Let's get introduced!"
+                }
+            ];
+
+            const randomIndex = Math.floor(Math.random() * greetingsOptions.length);
+            const selectedGreeting = isEn ? greetingsOptions[randomIndex].en : greetingsOptions[randomIndex].cn;
+
+            // Simulate backend response structure
+            const res = {
+                is_valid: true,
+                next_field: 'name',
+                reply: selectedGreeting,
+                updated_info: {}
+            };
+
+            // 模拟一点网络延迟，让体验更自然
+            await new Promise(resolve => setTimeout(resolve, 600));
 
             // 丢弃过期响应
             if (seq !== reqSeqRef.current) {
@@ -441,7 +461,7 @@ const ThreeDPage = () => {
             }
 
             if (!res) {
-                // 后端不可用时的静默失败或基础降级
+                // Fallback (redundant now but kept for safety structure)
                 console.error('Failed to start AI dialog');
                 const aiMessage = t('helloIAmAssistant');
                 setMessages(prev => {
@@ -458,9 +478,6 @@ const ThreeDPage = () => {
                     const updatedInfo = res.updated_info && typeof res.updated_info === 'object' ? res.updated_info : {};
                     setCurrentInfo(prev => ({ ...(prev || {}), ...updatedInfo })); // 用函数式 setState
                     setNextField(newNextField);
-                } else {
-                    // 若数据无效，不更新 currentInfo / nextField
-                    console.warn('Invalid startAIDialog response, not updating state');
                 }
 
                 // 2. 展示回复
@@ -471,7 +488,6 @@ const ThreeDPage = () => {
                     const mismatch = detectFieldMismatch(aiMessage, newNextField);
                     if (!mismatch.isMatch && mismatch.warning) {
                         console.warn(mismatch.warning);
-                        // 在控制台输出警告，方便调试
                         console.log(`AI Message: "${aiMessage}"`);
                         console.log(`Expected Field: ${newNextField}, Detected: ${mismatch.detectedField}`);
                     }
