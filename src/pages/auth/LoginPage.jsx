@@ -6,9 +6,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Mail, Lock, Eye, EyeOff, Brain, UserCheck } from 'lucide-react';
-import axios from 'axios';
 import { cn } from '../../utils/cn';
 import { useLanguage } from '../../utils/LanguageContext';
+import api from '../../utils/api';
 
 const LoginPage = ({ onLogin }) => {
     const { t } = useLanguage();
@@ -30,21 +30,15 @@ const LoginPage = ({ onLogin }) => {
 
         setLoading(true);
         try {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    account: username,
-                    password: password,
-                    role: role === 'consultant' ? 'consultation' : role,
-                }),
+            const response = await api.post('/login', {
+                account: username,
+                password: password,
+                role: role === 'consultant' ? 'consultation' : role,
             });
 
-            const data = await response.json();
+            const data = response.data;
 
-            if (response.ok && data.token) {
+            if (data.token) {
                 onLogin({
                     username: data.user?.username || username,
                     role: data.user?.role || role,
@@ -57,8 +51,8 @@ const LoginPage = ({ onLogin }) => {
                 setError(data.message || t('loginFailed'));
             }
         } catch (error) {
-
-            setError(t('connectionError'));
+            console.error('Login error:', error);
+            setError(error.response?.data?.message || t('connectionError'));
         } finally {
             setLoading(false);
         }
