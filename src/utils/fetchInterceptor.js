@@ -39,12 +39,9 @@ export const setupFetchInterceptor = (onUnauthorized, getToken) => {
         // 获取请求 URL 字符串
         let url = typeof input === 'string' ? input : input.url;
 
-        // 自动适配生产环境：移除 /api 前缀，直接访问后端
-        // 开发环境由 Vite Proxy 负责重写，生产环境需要手动处理
-        if (import.meta.env.PROD && typeof input === 'string' && url.startsWith('/api/')) {
-            url = url.replace('/api/', '/');
-            input = url;
-        }
+        // 移除自动重定向到 8080 的逻辑，避免干扰正常的代理转发
+        // 如果需要跨域连接后端，请在 .env.production 中配置 VITE_API_BASE_URL
+        // 或者在生产环境使用 Nginx 做反向代理
 
         const method = (init && init.method) || (typeof input !== 'string' && input.method) || 'GET';
 

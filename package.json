@@ -5,8 +5,10 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
-        "preview": "vite preview",
+        "clean": "node -e \"const fs = require('fs'); if (fs.existsSync('dist')) fs.rmSync('dist', { recursive: true, force: true });\"",
+        "build": "npm run clean && vite build",
+        "serve": "vite preview --host 0.0.0.0 --port 9000",
+        "preview": "vite preview --host 0.0.0.0 --port 9000",
         "dev:network": "vite --host 0.0.0.0"
     },
     "dependencies": {

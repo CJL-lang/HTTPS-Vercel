@@ -263,6 +263,19 @@ export const useVoiceInput = () => {
         currentSegmentTextRef.current = ''; // 重置当前片段文本
 
         try {
+            // 检查浏览器支持和安全上下文
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const isSecure = window.isSecureContext;
+                const protocol = window.location.protocol;
+                let errorMsg = '当前浏览器不支持语音识别。';
+
+                if (protocol === 'http:' && !isSecure) {
+                    errorMsg = '语音识别需要 HTTPS 安全连接。\n请使用 https:// 访问，或在本地 localhost 测试。';
+                }
+
+                throw new Error(errorMsg);
+            }
+
             // 请求麦克风权限
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {

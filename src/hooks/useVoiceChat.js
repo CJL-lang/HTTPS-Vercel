@@ -540,6 +540,17 @@ export const useVoiceChat = (options = {}) => {
         setError(null);
 
         try {
+            // 检查浏览器支持和安全上下文
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const isSecure = window.isSecureContext;
+                const protocol = window.location.protocol;
+                let errorMsg = '当前浏览器不支持语音识别。';
+                if (protocol === 'http:' && !isSecure) {
+                    errorMsg = '语音识别需要 HTTPS 安全连接。由于浏览器安全限制，HTTP 协议下无法访问麦克风。\n请配置 HTTPS 证书或在 localhost 环境测试。';
+                }
+                throw new Error(errorMsg);
+            }
+
             // 请求麦克风权限
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: {
